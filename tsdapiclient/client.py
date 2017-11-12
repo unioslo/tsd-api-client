@@ -109,6 +109,10 @@ def print_guide():
         tac --pnum p11 --delapikey '<key>' --config <file>
         tac --pnum p11 --pwreset --config <file>
 
+        Importing a file to TSD
+        ~~~~~~~~~~~~~~~~~~~~~~~
+        tac --pnum p11 --importfile <filename> --config <file>
+
         For more info please visit:
         test.api.tsd.usit.no/v1/docs/tsd-api-integration.html
 
@@ -166,7 +170,7 @@ def main(env, pnum, signup, confirm, getapikey, delapikey, pwreset, guide,
     if importfile:
         _check_present(config, 'config')
         conf = read_config(config)
-        # TODO get input
+        # TODO get input from prompt
         token = get_jwt_tsd_auth(env, pnum, user_name, password, otp, 'import')
         print streamfile(env, pnum, filename, token)
         return
