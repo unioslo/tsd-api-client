@@ -18,8 +18,8 @@ def del_api_key(pnum, client_id, password, api_key):
 def pw_reset(pnum, client_id, password):
     pass
 
-def print_help():
-    help_text = """\
+def print_guide():
+    guide_text = """\
 
         TSD API command line tool help
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -34,7 +34,7 @@ def print_help():
             --getapikey     get a persistent API key.
             --delapikey     revoke an API key.
             --pwreset       reset your password.
-            --help          print this help.
+            --guide         print this guide.
 
         Registration guide
         ~~~~~~~~~~~~~~~~~~
@@ -56,7 +56,7 @@ def print_help():
         test.api.tsd.usit.no/v1/docs/tsd-api-integration.html
 
     """
-    print help_text
+    print guide_text
 
 
 @click.command()
@@ -67,10 +67,18 @@ def print_help():
 @click.option('--getapikey', is_flag=True, default=False, help='get a persistent API key')
 @click.option('--delapikey', is_flag=True, default=False, help='revoke an API key')
 @click.option('--pwreset', is_flag=True, default=False, help='reset your password')
-@click.option('--help', is_flag=True, default=False, help='print help text')
-def main(*args, **kwargs):
-    if help:
-        print_help()
+@click.option('--guide', is_flag=True, default=False, help='print help text')
+@click.option('--client_name', default=None, help='your client\'s name')
+@click.option('--email', default=None, help='your email address')
+@click.option('--client_id', default=None, help='your client id')
+@click.option('--confirmation_token', default=None, help='your confirmation token')
+@click.option('--password', default=None, help='your API client password')
+@click.option('--api_key', default=None, help='your persistent API key')
+def main(env, pnum, signup, confirm, getapikey, delapikey, pwreset, guide,
+         client_name, email, client_id, confirmation_token, password,
+         api_key):
+    if guide:
+        print_guide()
     return
 
 
