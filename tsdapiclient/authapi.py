@@ -7,7 +7,8 @@ import requests
 from config import ENV
 
 def get_jwt_basic_auth(env, pnum, api_key):
-    headers = {'Content-Type': 'application/json'}
+    headers = {'Content-Type': 'application/json',
+               'Authorization': 'Bearer ' + api_key}
     data = {'client_name': client_name, 'email': email}
     url = '%s/%s/auth/basic/token' % (ENV[env], pnum)
     resp = requests.post(url, data=json.dumps(data), headers=headers)
@@ -15,8 +16,9 @@ def get_jwt_basic_auth(env, pnum, api_key):
     return token
 
 
-def get_jwt_tsd_auth(env, pnum, user_name, password, otp, token_type):
-    headers = {'Content-Type': 'application/json'}
+def get_jwt_tsd_auth(env, pnum, api_key, user_name, password, otp, token_type):
+    headers = {'Content-Type': 'application/json',
+               'Authorization': 'Bearer ' + api_key}
     data = {'client_name': client_name, 'email': email}
     url = '%s/%s/auth/tsd/token' % (ENV[env], pnum)
     resp = requests.post(url, data=json.dumps(data), headers=headers)

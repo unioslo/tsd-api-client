@@ -171,7 +171,10 @@ def main(env, pnum, signup, confirm, getapikey, delapikey, pwreset, guide,
         _check_present(config, 'config')
         conf = read_config(config)
         # TODO get input from prompt
-        token = get_jwt_tsd_auth(env, pnum, user_name, password, otp, 'import')
+        # user_name
+        # password
+        # otp
+        token = get_jwt_tsd_auth(env, pnum, conf['api_key'], user_name, password, otp, 'import')
         print streamfile(env, pnum, filename, token)
         return
 
