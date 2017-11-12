@@ -1,22 +1,52 @@
 
 """Command-line interface to administrative tasks in API."""
 
+import json
+
 import click
+import requests
 
-def signup(pnum, client_name, email):
-    pass
+from config import PROD, TEST
 
-def confirm(pnum, client_id, confirmation_token):
-    pass
+ENV = {'test': TEST, 'prod': PROD}
 
-def get_api_key(pnum, client_id, password):
-    pass
 
-def del_api_key(pnum, client_id, password, api_key):
-    pass
+def _post(url, endpoint, headers, data):
+    resp = requests.post(url, data=json.dumps(data), headers=headers)
+    return resp
 
-def pw_reset(pnum, client_id, password):
-    pass
+
+def signup(env, pnum, client_name, email):
+    headers = {'Content-Type': 'application/json'}
+    data = {'client_name': client_name, 'email': email}
+    return _post(ENV[env], '/pnum/auth/basic/signup', headers, data)
+
+
+def confirm(env, pnum, client_id, confirmation_token):
+    headers = {'Content-Type': 'application/json'}
+    data = {'client_id': client_id, 'token': confirmation_token}
+    return _post(ENV[env], '/pnum/auth/basic/confirm', headers, data)
+
+
+def get_api_key(env, pnum, client_id, password):
+    headers = {'Content-Type': 'application/json'}
+    data = {'client_id': client_id, 'pass': password}
+    return _post(ENV[env], '/pnum/auth/basic/api_key', headers, data)
+
+
+def del_api_key(env, pnum, client_id, password, api_key):
+    url = ENV[env] + '/pnum/auth/basic/signup'
+    headers = {'Content-Type': 'application/json'}
+    data = {'client_id': client_name, 'pass': password, 'api_key': api_key}
+    resp = requests.delete(url, data=json.dumps(data), headers=headers)
+    return resp.text
+
+
+def pw_reset(env, pnum, client_id, password):
+    headers = {'Content-Type': 'application/json'}
+    data = {'client_id': client_id, 'pass': password}
+    return _post(ENV[env], '/pnum/auth/basic/reset_password', headers, data)
+
 
 def print_guide():
     guide_text = """\
