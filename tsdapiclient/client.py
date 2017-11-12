@@ -8,9 +8,7 @@ import click
 import requests
 import yaml
 
-from config import PROD, TEST
-
-ENV = {'test': TEST, 'prod': PROD}
+from config import ENV
 
 
 def read_config(filename):
