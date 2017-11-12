@@ -1,4 +1,3 @@
 #!/bin/bash
 
-#python /lib/python2.7/site-packages/tsdapiclient/client.py $@
-python ~/tsd-api-client/tsdapiclient/client.py $@
+python /lib/python2.7/site-packages/tsdapiclient/client.py $@
