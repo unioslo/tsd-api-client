@@ -9,6 +9,8 @@ import requests
 import yaml
 
 from config import ENV
+from authapi import get_jwt_tsd_auth
+from fileapi import streamfile
 
 
 def read_config(filename):
@@ -144,24 +146,30 @@ def main(env, pnum, signup, confirm, getapikey, delapikey, pwreset, guide,
     if confirm:
         _check_present(client_id, 'client_id')
         _check_present(config, 'config')
-        config = read_config(config)
-        print do_confirm(env, pnum, config['client_id'], config['confirmation_token'])
+        conf = read_config(config)
+        print do_confirm(env, pnum, conf['client_id'], conf['confirmation_token'])
         return
     if getapikey:
         _check_present(config, 'config')
-        config = read_config(config)
-        print get_api_key(env, pnum, config['client_id'], config['pass'])
+        conf = read_config(config)
+        print get_api_key(env, pnum, conf['client_id'], conf['pass'])
     if delapikey:
         _check_present(config, 'config')
-        config = read_config(config)
-        print del_api_key(env, pnum, config['client_id'], config['pass'], delapikey)
+        conf = read_config(config)
+        print del_api_key(env, pnum, conf['client_id'], conf['pass'], delapikey)
         return
     if pwreset:
         _check_present(config, 'config')
-        config = read_config(config)
-        print pw_reset(env, pnum, config['client_id'], config['pass'])
+        conf = read_config(config)
+        print pw_reset(env, pnum, conf['client_id'], conf['pass'])
         return
-
+    if importfile:
+        _check_present(config, 'config')
+        conf = read_config(config)
+        # TODO get input
+        token = get_jwt_tsd_auth(env, pnum, user_name, password, otp, 'import')
+        print streamfile(env, pnum, filename, token)
+        return
 
 if __name__ == '__main__':
     main()
