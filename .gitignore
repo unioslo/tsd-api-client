@@ -1,3 +1,7 @@
 *.pyc
 config.yaml
 config.yaml
+*.rpm
+tsd_api_client.egg-info/
+.vagrant/
+build/
