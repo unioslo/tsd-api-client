@@ -1,6 +1,7 @@
 
 """Command-line interface to administrative tasks in API."""
 
+import getpass
 import json
 import sys
 
@@ -132,8 +133,9 @@ def print_guide():
 @click.option('--client_name', default=None, help='your client\'s name')
 @click.option('--email', default=None, help='your email address')
 @click.option('--config', default=None, help='path to config file')
+@click.option('--importfile', default=None, help='path to file')
 def main(env, pnum, signup, confirm, getapikey, delapikey, pwreset, guide,
-         client_name, email, config):
+         client_name, email, config, importfile):
     if guide:
         print_guide()
         return
@@ -170,10 +172,9 @@ def main(env, pnum, signup, confirm, getapikey, delapikey, pwreset, guide,
     if importfile:
         _check_present(config, 'config')
         conf = read_config(config)
-        # TODO get input from prompt
-        # user_name
-        # password
-        # otp
+        user_name = raw_input('User name > ')
+        password = getpass.getpass('Password > ')
+        otp = raw_input('OTP > ')
         token = get_jwt_tsd_auth(env, pnum, conf['api_key'], user_name, password, otp, 'import')
         print streamfile(env, pnum, filename, token)
         return

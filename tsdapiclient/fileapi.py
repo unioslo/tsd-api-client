@@ -12,7 +12,7 @@ def lazy_reader(filename, chunksize):
             else:
                 yield data
 
-def streamfile(env, pnum, filename, token)
+def streamfile(env, pnum, filename, token):
     url = '%s/%s/files/stream' % (ENV[env], pnum)
     headers = {'Authorization': 'Bearer ' + token, 'Filename': filename}
     print 'POST: %s' % url
