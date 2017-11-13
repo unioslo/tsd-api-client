@@ -11,5 +11,5 @@ setup(
     author_email='l.c.d.toit@usit.uio.no',
     url='https://bitbucket.usit.uio.no/projects/TSD/repos/tsd-api-client',
     packages=['tsdapiclient'],
-    scripts=['scripts/tac']
+    scripts=['scripts/tacl']
 )

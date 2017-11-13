@@ -75,44 +75,44 @@ def pw_reset(env, pnum, client_id, password):
 def print_guide():
     guide_text = """\
 
-        TSD API client line tool: tac
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        TSD API client command-line tool: tacl
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-        Usage: tac --pnum <pnum> [OPTIONS]
+        Usage: tacl --pnum <pnum> [OPTIONS]
 
-        Options help: tac --help
+        Options help: tacl --help
 
         Registration
         ~~~~~~~~~~~~
 
         Suppose you want to register for p11 in test:
 
-        tac --pnum p11 --signup --client_name '<name>' --email '<email>'
+        tacl --pnum p11 --signup --client_name '<name>' --email '<email>'
         # returns a client_id
         # get your confirmation token in email
         # save this in a config file:
         # client_id: '<id>'
         # confirmation_token: '<token>'
 
-        tac --pnum p11 --confirm --config <file>
+        tacl --pnum p11 --confirm --config <file>
         # returns a password
         # ask for your client to be verified
         # add this to the config file
         # pass: '<pw>'
 
-        tac --pnum p11 --getapikey --config <file>
+        tacl --pnum p11 --getapikey --config <file>
         # returns an API key
         # save this in the config file
         # api_key: <key>
 
         Management
         ~~~~~~~~~~
-        tac --pnum p11 --delapikey '<key>' --config <file>
-        tac --pnum p11 --pwreset --config <file>
+        tacl --pnum p11 --delapikey '<key>' --config <file>
+        tacl --pnum p11 --pwreset --config <file>
 
         Importing a file to TSD
         ~~~~~~~~~~~~~~~~~~~~~~~
-        tac --pnum p11 --importfile <filename> --config <file>
+        tacl --pnum p11 --importfile <filename> --config <file>
 
         For more info please visit:
         test.api.tsd.usit.no/v1/docs/tsd-api-integration.html
