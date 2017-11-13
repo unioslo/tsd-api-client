@@ -176,8 +176,12 @@ def main(env, pnum, signup, confirm, getapikey, delapikey, pwreset, guide,
         password = getpass.getpass('Password > ')
         otp = raw_input('OTP > ')
         token = get_jwt_tsd_auth(env, pnum, conf['api_key'], user_name, password, otp, 'import')
-        print streamfile(env, pnum, filename, token)
-        return
+        if token:
+            print streamfile(env, pnum, filename, token)
+            return
+        else:
+            print 'Authentication failed'
+            return
 
 if __name__ == '__main__':
     main()
