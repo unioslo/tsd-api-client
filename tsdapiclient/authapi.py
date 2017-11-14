@@ -17,7 +17,7 @@ def get_jwt_basic_auth(env, pnum, api_key):
     if resp.status_code in [200, 201]:
         token = json.loads(resp.text)['token']
         return None
-    else
+    else:
         return json.loads(resp.text)
 
 
@@ -35,5 +35,5 @@ def get_jwt_tsd_auth(env, pnum, api_key, user_name, password, otp, token_type):
     if resp.status_code in [200, 201]:
         token = json.loads(resp.text)['token']
         return None
-    else
+    else:
         return json.loads(resp.text)
