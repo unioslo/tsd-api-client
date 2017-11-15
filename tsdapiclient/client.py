@@ -12,6 +12,7 @@ import yaml
 from config import ENV
 from authapi import get_jwt_tsd_auth
 from fileapi import streamfile
+from guide import print_guide
 
 
 def read_config(filename):
@@ -72,55 +73,6 @@ def pw_reset(env, pnum, client_id, password):
     return _post(url, headers, data)
 
 
-def print_guide():
-    guide_text = """\
-
-        TSD API client command-line tool: tacl
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-        Usage: tacl --pnum <pnum> [OPTIONS]
-
-        Options help: tacl --help
-
-        Registration
-        ~~~~~~~~~~~~
-
-        Suppose you want to register for p11 in test:
-
-        tacl --pnum p11 --signup --client_name '<name>' --email '<email>'
-        # returns a client_id
-        # get your confirmation token in email
-        # save this in a config file:
-        # client_id: '<id>'
-        # confirmation_token: '<token>'
-
-        tacl --pnum p11 --confirm --config <file>
-        # returns a password
-        # ask for your client to be verified
-        # add this to the config file
-        # pass: '<pw>'
-
-        tacl --pnum p11 --getapikey --config <file>
-        # returns an API key
-        # save this in the config file
-        # api_key: <key>
-
-        Management
-        ~~~~~~~~~~
-        tacl --pnum p11 --delapikey '<key>' --config <file>
-        tacl --pnum p11 --pwreset --config <file>
-
-        Importing a file to TSD
-        ~~~~~~~~~~~~~~~~~~~~~~~
-        tacl --pnum p11 --importfile <filename> --config <file>
-
-        For more info please visit:
-        test.api.tsd.usit.no/v1/docs/tsd-api-integration.html
-
-    """
-    print guide_text
-
-
 @click.command()
 @click.option('--env', default='test', help='which environment you want to interact with')
 @click.option('--pnum', default=None, help='project numbers')
@@ -133,9 +85,11 @@ def print_guide():
 @click.option('--client_name', default=None, help='your client\'s name')
 @click.option('--email', default=None, help='your email address')
 @click.option('--config', default=None, help='path to config file')
-@click.option('--importfile', default=None, help='path to file')
+@click.option('--importfile', is_flag=True, help='path to file')
+@click.argument('fileinput', type=click.File('rb'), help='reads the filename')
+@click.option('--filename', default=None, help='specify the name of the file in TSD')
 def main(env, pnum, signup, confirm, getapikey, delapikey, pwreset, guide,
-         client_name, email, config, importfile):
+         client_name, email, config, importfile, input, name):
     if guide:
         print_guide()
         return
@@ -171,13 +125,14 @@ def main(env, pnum, signup, confirm, getapikey, delapikey, pwreset, guide,
         return
     if importfile:
         _check_present(config, 'config')
+        _check_present(importfile, 'importfile')
         conf = read_config(config)
         user_name = raw_input('User name > ')
         password = getpass.getpass('Password > ')
         otp = raw_input('OTP > ')
         token = get_jwt_tsd_auth(env, pnum, conf['api_key'], user_name, password, otp, 'import')
         if token:
-            print streamfile(env, pnum, filename, token)
+            print streamfile(env, pnum, fileinput, filename, token)
             return
         else:
             print 'Authentication failed'

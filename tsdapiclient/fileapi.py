@@ -3,6 +3,9 @@
 
 import requests
 
+from config import ENV
+
+
 def lazy_reader(filename, chunksize):
     with open(filename, 'rb+') as f:
         while True:
@@ -12,9 +15,11 @@ def lazy_reader(filename, chunksize):
             else:
                 yield data
 
-def streamfile(env, pnum, filename, token):
+
+def streamfile(env, pnum, fileinput, filename, token):
     url = '%s/%s/files/stream' % (ENV[env], pnum)
     headers = {'Authorization': 'Bearer ' + token, 'Filename': filename}
     print 'POST: %s' % url
-    resp = requests.post(url, data=lazy_reader(filename, 2048), headers=headers)
+    resp = requests.post(url, data=lazy_reader(fileinput, 2048),
+                         headers=headers)
     return resp.text
