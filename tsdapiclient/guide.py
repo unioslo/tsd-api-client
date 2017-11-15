@@ -39,10 +39,10 @@ def print_guide():
 
         Importing data to TSD
         ~~~~~~~~~~~~~~~~~~~~~
-        tacl --pnum p11 --config <file> --importfile <filename> --filename <myfilename>
+        tacl --pnum p11 --config <file> --importfile <filename> --filename <myfilename> --otp <otp>
 
         # or as part of a pipeline with streaming tar, gzip and HTTP POST
-        tar cf - directory | gzip -9 | tacl --config <file> --importfile - --filename mydir.tar.gz
+        tar cf - directory | gzip -9 | tacl --pnum p11 --config <file> --importfile - --filename <filename> --otp <otp>
 
         For more info please visit:
         test.api.tsd.usit.no/v1/docs/tsd-api-integration.html

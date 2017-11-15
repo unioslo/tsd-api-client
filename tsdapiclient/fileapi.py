@@ -16,10 +16,28 @@ def lazy_reader(filename, chunksize):
                 yield data
 
 
-def streamfile(env, pnum, fileinput, filename, token):
+def lazy_stdin_handler(fileinput, chunksize):
+    while True:
+        chunk = fileinput.read(chunksize)
+        if not chunk:
+            break
+        else:
+            yield chunk
+
+
+def streamfile(env, pnum, filename, token):
     url = '%s/%s/files/stream' % (ENV[env], pnum)
     headers = {'Authorization': 'Bearer ' + token, 'Filename': filename}
     print 'POST: %s' % url
-    resp = requests.post(url, data=lazy_reader(fileinput, 2048),
+    resp = requests.post(url, data=lazy_reader(filename, 2048),
+                         headers=headers)
+    return resp.text
+
+
+def streamsdtin(env, pnum, fileinput, filename, token):
+    url = '%s/%s/files/stream' % (ENV[env], pnum)
+    headers = {'Authorization': 'Bearer ' + token, 'Filename': filename}
+    print 'POST: %s' % url
+    resp = requests.post(url, data=lazy_stdin_handler(fileinput, 2048),
                          headers=headers)
     return resp.text

@@ -11,7 +11,7 @@ import yaml
 
 from config import ENV
 from authapi import get_jwt_tsd_auth
-from fileapi import streamfile
+from fileapi import streamfile, streamsdtin
 from guide import print_guide
 
 
@@ -86,10 +86,11 @@ def pw_reset(env, pnum, client_id, password):
 @click.option('--email', default=None, help='your email address')
 @click.option('--config', default=None, help='path to config file')
 @click.option('--importfile', is_flag=True, help='path to file')
-@click.argument('fileinput', type=click.File('rb'), help='reads the filename')
 @click.option('--filename', default=None, help='specify the name of the file in TSD')
+@click.argument('fileinput', type=click.File('rb'), required=False)
+@click.option('--otp', default=None, help='one time passcode')
 def main(env, pnum, signup, confirm, getapikey, delapikey, pwreset, guide,
-         client_name, email, config, importfile, input, name):
+         client_name, email, config, importfile, fileinput, filename, otp):
     if guide:
         print_guide()
         return
@@ -126,13 +127,17 @@ def main(env, pnum, signup, confirm, getapikey, delapikey, pwreset, guide,
     if importfile:
         _check_present(config, 'config')
         _check_present(importfile, 'importfile')
+        _check_present(otp, 'otp')
         conf = read_config(config)
-        user_name = raw_input('User name > ')
-        password = getpass.getpass('Password > ')
-        otp = raw_input('OTP > ')
+        # have to get these from env vars, if you want to pipe things
+        user_name = os.eviron.get('UNAME')
+        password = os.environ.get('PW')
         token = get_jwt_tsd_auth(env, pnum, conf['api_key'], user_name, password, otp, 'import')
         if token:
-            print streamfile(env, pnum, fileinput, filename, token)
+            if fileinput is None:
+                print streamfile(env, pnum, filename, token)
+            else:
+                print streamsdtin(env, pnum, fileinput, filename, token)
             return
         else:
             print 'Authentication failed'
