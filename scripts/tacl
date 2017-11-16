@@ -1,12 +1,13 @@
 #!/bin/bash
 
 if [[ $# -lt 1 ]]; then
-    echo "Missing arguments, exiting"
-    echo "tacl --help for help"
-    echo "tacl --guide for a longer explanation"
+    echo ""
+    echo "  Missing arguments, exiting"
+    echo "  tacl --help for help"
+    echo "  tacl --guide for a longer explanation"
+    echo ""
     exit 1
 fi
-
 
 collect_credentials() {
     read -p 'User > ' USERNAME
@@ -15,11 +16,13 @@ collect_credentials() {
 }
 
 exec_client() {
-    python /lib/python2.7/site-packages/tsdapiclient/client.py $@
+    python tsdapiclient/client.py $@
+    #python /lib/python2.7/site-packages/tsdapiclient/client.py $@
 }
 
 exec_2fa_client() {
-    python /lib/python2.7/site-packages/tsdapiclient/client.py \
+    #python /lib/python2.7/site-packages/tsdapiclient/client.py \
+    python tsdapiclient/client.py $@ \
         --user_name $USERNAME --password $PASSWORD --otp $OTP $@
 }
 
@@ -76,7 +79,19 @@ if [[ $1 =~ ^('--help'|'--guide') ]]; then
 fi
 
 echo $@
+args=("$@")
 
+for i in ${args[*]}; do
+    if [[ $i =~ ^('--signup'|'--confirm'|'getapikey'|'delapikey'|'pwreset') ]]; then
+        echo $@
+        exec_client $@
+        exit 0
+    elif [[ $i == '--import' ]]; then
+        echo $@
+        collect_credentials
+        # evaluate options --pre and --post
+    fi
+done
 
-collect_credentials
+#collect_credentials
 
