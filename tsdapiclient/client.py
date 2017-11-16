@@ -45,10 +45,11 @@ def _check_present(_input, name):
 @click.option('--user_name', default=None, help='TSD project user name')
 @click.option('--password', default=None, help='TSD password')
 @click.option('--otp', default=None, help='one time passcode')
+@click.option('--encryptedpw', default=None, help='encrypted password used in symmetric data encryption')
 @click.argument('fileinput', type=click.File('rb'), required=False)
 def main(env, pnum, signup, confirm, getapikey, delapikey, pwreset, guide,
          client_name, email, config, importfile, fileinput, filename, user_name,
-         password, otp):
+         password, otp, encryptedpw):
     if guide:
         print_guide()
         return
@@ -94,6 +95,7 @@ def main(env, pnum, signup, confirm, getapikey, delapikey, pwreset, guide,
             if fileinput is None:
                 print streamfile(env, pnum, filename, token)
             else:
+                # TODO: add support for encrypted pw header
                 print streamsdtin(env, pnum, fileinput, filename, token)
             return
         else:

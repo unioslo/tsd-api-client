@@ -23,37 +23,60 @@ exec_2fa_client() {
         --user_name $USERNAME --password $PASSWORD --otp $OTP $@
 }
 
-if [[ $1 == '--help' ]]; then
-    exec_client $1
-    exit 0
-elif [[ $1 == '--guide' ]]; then
+# TODO get from cmd line
+recipient='l.c.d.toit@usit.uio.no'
+
+file_post() {
+    exec_2fa_client $@
+}
+
+encrypt_file_post() {
+    PW=$(openssl rand -base64 10)
+    ENCPW=$(echo $ENCPW | gpg -r $recipient --encrypt | openssl base64 -A)
+    cat $1 |
+    openssl enc -aes-256-cbc -a -pass file:<( echo $PW ) |
+    exec_2fa_client --encryptedpw $ENCPW $@
+}
+
+archive_dir_post() {
+    tar -cf - $1 | exec_2fa_client --encryptedpw $ENCPW $@
+}
+
+archive_compress_dir_post() {
+    tar -cf - $1 | gzip -9 | exec_2fa_client --encryptedpw $ENCPW $@
+}
+
+archive_encrypt_dir_post() {
+    PW=$(openssl rand -base64 10)
+    ENCPW=$(echo $ENCPW | gpg -r $recipient --encrypt | openssl base64 -A)
+    tar -cf - $1 |
+    openssl enc -aes-256-cbc -a -pass file:<( echo $PW ) |
+    exec_2fa_client --encryptedpw $ENCPW $@
+}
+
+archive_compress_encrypt_dir_post() {
+    PW=$(openssl rand -base64 10)
+    ENCPW=$(echo $ENCPW | gpg -r $recipient --encrypt | openssl base64 -A)
+    tar -cf - $1 |
+    gzip -9 |
+    openssl enc -aes-256-cbc -a -pass file:<( echo $PW ) |
+    exec_2fa_client --encryptedpw $ENCPW $@
+}
+
+# and the on the API: decode pw header, gpg decrypt it
+# openssl enc -aes-256-cbc -a -d -pass file:<( echo $PW ) |
+# tar -C t -xvf -
+
+# TODO: do not require 2FA for API admin
+# figure out custom header scheme
+
+if [[ $1 =~ ^('--help'|'--guide') ]]; then
     exec_client $1
     exit 0
 fi
 
 echo $@
 
-# pre-upload processing: options
-# ------------------------------
-# if type is file (e.g. already a tar or zip)
-# exec_2fa_client --filename <name> $@
-    # and if encrypt
-    # openssl aes $FILE | exec_2fa_client $@
-# elif type is dir
-    # archive
-    # tar -cf - $DIR | exec_2fa_client $@
-        # and if encrypt
-        # tar -cf - $DIR | openssl enc | exec_2fa_client $@
-
-# questions:
-# encryption optional?
-# hybrid strategy: symmetric encryption, generate key in client
-# use API PGP public key to encrypt the symmetric secret
-# put that in request header, decrypt in memory in the API
-# decrypt the incoming data stream
-# decryption and untar optional in API? if so then need to set custom headers
-
-# TODO: do not require 2FA for API admin
 
 collect_credentials
-exec_2fa_client $@
+
