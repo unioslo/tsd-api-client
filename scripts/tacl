@@ -27,5 +27,23 @@ elif [[ $1 == '--guide' ]]; then
     exit 0
 fi
 
+echo $@
+
+# pre-upload processing: options
+# ------------------------------
+# if type is file (e.g. already a tar or zip)
+# exec_client --filename <name> $@
+    # and if encrypt
+    # gpg -e -r $RECIPIENT $FILE | exec_client $@
+# elif type is dir
+    # archive
+    # tar -cf - $DIR | exec_client $@
+        # and if encrypt
+        # tar -cf - $DIR | gpg -e -r $RECIPIENT | exec_client $@
+
+# questions:
+# encryption optional?
+# decryption and untar optional in API?
+
 collect_credentials
 exec_client $@
