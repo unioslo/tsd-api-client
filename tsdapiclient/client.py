@@ -99,6 +99,9 @@ def main(env, pnum, signup, confirm, getapikey, delapikey, pwreset, guide,
         else:
             print 'Authentication failed'
             return
+    else:
+        print 'Didn\'t do anything - missing input?'
+        return
 
 if __name__ == '__main__':
     main()

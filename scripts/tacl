@@ -15,7 +15,8 @@ collect_credentials() {
 }
 
 exec_client() {
-    python /lib/python2.7/site-packages/tsdapiclient/client.py $@
+    python /lib/python2.7/site-packages/tsdapiclient/client.py \
+        --user_name $USERNAME --password $PASSWORD --otp $OTP $@
 }
 
 if [[ $1 == '--help' ]]; then
@@ -27,4 +28,4 @@ elif [[ $1 == '--guide' ]]; then
 fi
 
 collect_credentials
-exec_client --user_name $USERNAME --password $PASSWORD --otp $OTP $@
+exec_client $@
