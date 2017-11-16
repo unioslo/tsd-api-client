@@ -1,16 +1,17 @@
 
-"""Command-line interface to administrative tasks in API."""
+"""Command-line interface to the TSD API."""
 
 import getpass
 import json
 import sys
 
 import click
-import requests
 import yaml
 
-from config import ENV
+from administrator import do_signup, do_confirm, get_api_key, del_api_key, \
+                          pw_reset
 from authapi import get_jwt_tsd_auth
+from config import ENV
 from fileapi import streamfile, streamsdtin
 from guide import print_guide
 
@@ -21,56 +22,10 @@ def read_config(filename):
     return config
 
 
-def _post(url, headers, data):
-    resp = requests.post(url, data=json.dumps(data), headers=headers)
-    return resp.text
-
-
 def _check_present(_input, name):
     if not _input:
         print 'missing %s' % name
         sys.exit(1)
-
-
-def do_signup(env, pnum, client_name, email):
-    headers = {'Content-Type': 'application/json'}
-    data = {'client_name': client_name, 'email': email}
-    url = '%s/%s/auth/basic/signup' % (ENV[env], pnum)
-    print 'POST: %s' % url
-    return _post(url, headers, data)
-
-
-def do_confirm(env, pnum, client_id, confirmation_token):
-    headers = {'Content-Type': 'application/json'}
-    data = {'client_id': client_id, 'token': confirmation_token}
-    url = '%s/%s/auth/basic/confirm' % (ENV[env], pnum)
-    print 'POST: %s' % url
-    return _post(url, headers, data)
-
-
-def get_api_key(env, pnum, client_id, password):
-    headers = {'Content-Type': 'application/json'}
-    data = {'client_id': client_id, 'pass': password}
-    url = '%s/%s/auth/basic/api_key' % (ENV[env], pnum)
-    print 'POST: %s' % url
-    return _post(url, headers, data)
-
-
-def del_api_key(env, pnum, client_id, password, api_key):
-    headers = {'Content-Type': 'application/json'}
-    data = {'client_id': client_name, 'pass': password, 'api_key': api_key}
-    url = '%s/%s/auth/basic/api_key' % (ENV[env], pnum)
-    print 'DELETE: %s' % url
-    resp = requests.delete(url, data=json.dumps(data), headers=headers)
-    return resp.text
-
-
-def pw_reset(env, pnum, client_id, password):
-    headers = {'Content-Type': 'application/json'}
-    data = {'client_id': client_id, 'pass': password}
-    url = '%s/%s/auth/basic/reset_password' % (ENV[env], pnum)
-    print 'POST: %s' % url
-    return _post(url, headers, data)
 
 
 @click.command()
@@ -129,7 +84,7 @@ def main(env, pnum, signup, confirm, getapikey, delapikey, pwreset, guide,
         _check_present(importfile, 'importfile')
         _check_present(otp, 'otp')
         conf = read_config(config)
-        # have to get these from env vars, if you want to pipe things
+        # TODO: pass from bash
         user_name = os.eviron.get('UNAME')
         password = os.environ.get('PW')
         token = get_jwt_tsd_auth(env, pnum, conf['api_key'], user_name, password, otp, 'import')
