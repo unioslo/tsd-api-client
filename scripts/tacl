@@ -1,3 +1,30 @@
 #!/bin/bash
 
-python /lib/python2.7/site-packages/tsdapiclient/client.py $@
+if [[ $# -lt 1 ]]; then
+    echo "Missing arguments, exiting"
+    echo "tacl --help for help"
+    echo "tacl --guide for a longer explanation"
+    exit 1
+fi
+
+
+collect_credentials() {
+    read -p 'User > ' USERNAME
+    read -s -p 'Password > ' PASSWORD; echo
+    read -p 'OTP > ' OTP
+}
+
+exec_client() {
+    python /lib/python2.7/site-packages/tsdapiclient/client.py $@
+}
+
+if [[ $1 == '--help' ]]; then
+    exec_client $1
+    exit 0
+elif [[ $1 == '--guide' ]]; then
+    exec_client $1
+    exit 0
+fi
+
+collect_credentials
+exec_client --user_name $USERNAME --password $PASSWORD --otp $OTP $@

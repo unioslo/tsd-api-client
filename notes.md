@@ -6,3 +6,8 @@ https://github.com/gourneau/SpiderOak-zipstream
 probably
 --------
 https://bitbucket.usit.uio.no/projects/TSD/repos/tsd-prace-instruments/browse
+
+tar cf - dir | gpg --encrypt -r <recipient> -o test.gz.gpg
+do not compress and then encrypt
+https://blog.appcanary.com/2016/encrypt-or-compress.html
+bla.tar.gpg.gz

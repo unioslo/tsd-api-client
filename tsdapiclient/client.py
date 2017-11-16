@@ -42,10 +42,13 @@ def _check_present(_input, name):
 @click.option('--config', default=None, help='path to config file')
 @click.option('--importfile', is_flag=True, help='path to file')
 @click.option('--filename', default=None, help='specify the name of the file in TSD')
-@click.argument('fileinput', type=click.File('rb'), required=False)
+@click.option('--user_name', default=None, help='TSD project user name')
+@click.option('--password', default=None, help='TSD password')
 @click.option('--otp', default=None, help='one time passcode')
+@click.argument('fileinput', type=click.File('rb'), required=False)
 def main(env, pnum, signup, confirm, getapikey, delapikey, pwreset, guide,
-         client_name, email, config, importfile, fileinput, filename, otp):
+         client_name, email, config, importfile, fileinput, filename, user_name,
+         password, otp):
     if guide:
         print_guide()
         return
@@ -82,11 +85,10 @@ def main(env, pnum, signup, confirm, getapikey, delapikey, pwreset, guide,
     if importfile:
         _check_present(config, 'config')
         _check_present(importfile, 'importfile')
+        _check_present(user_name, 'user_name')
+        _check_present(password, 'password')
         _check_present(otp, 'otp')
         conf = read_config(config)
-        # TODO: pass from bash
-        user_name = os.eviron.get('UNAME')
-        password = os.environ.get('PW')
         token = get_jwt_tsd_auth(env, pnum, conf['api_key'], user_name, password, otp, 'import')
         if token:
             if fileinput is None:
