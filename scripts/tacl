@@ -46,8 +46,11 @@ echo $@
         # tar -cf - $DIR | openssl enc | exec_2fa_client $@
 
 # questions:
-# encryption optional? use JWT as symmetric key?
-# if asymmetric, how distribute keys?
+# encryption optional?
+# hybrid strategy: symmetric encryption, generate key in client
+# use API PGP public key to encrypt the symmetric secret
+# put that in request header, decrypt in memory in the API
+# decrypt the incoming data stream
 # decryption and untar optional in API? if so then need to set custom headers
 
 # TODO: do not require 2FA for API admin
