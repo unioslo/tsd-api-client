@@ -15,6 +15,10 @@ collect_credentials() {
 }
 
 exec_client() {
+    python /lib/python2.7/site-packages/tsdapiclient/client.py $@
+}
+
+exec_2fa_client() {
     python /lib/python2.7/site-packages/tsdapiclient/client.py \
         --user_name $USERNAME --password $PASSWORD --otp $OTP $@
 }
@@ -32,18 +36,20 @@ echo $@
 # pre-upload processing: options
 # ------------------------------
 # if type is file (e.g. already a tar or zip)
-# exec_client --filename <name> $@
+# exec_2fa_client --filename <name> $@
     # and if encrypt
-    # gpg -e -r $RECIPIENT $FILE | exec_client $@
+    # gpg -e -r $RECIPIENT $FILE | exec_2fa_client $@
 # elif type is dir
     # archive
-    # tar -cf - $DIR | exec_client $@
+    # tar -cf - $DIR | exec_2fa_client $@
         # and if encrypt
-        # tar -cf - $DIR | gpg -e -r $RECIPIENT | exec_client $@
+        # tar -cf - $DIR | gpg -e -r $RECIPIENT | exec_2fa_client $@
 
 # questions:
 # encryption optional?
-# decryption and untar optional in API?
+# decryption and untar optional in API? if so then need to set custom headers
+
+# TODO: do not require 2FA for API admin
 
 collect_credentials
-exec_client $@
+exec_2fa_client $@
