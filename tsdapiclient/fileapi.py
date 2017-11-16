@@ -25,19 +25,19 @@ def lazy_stdin_handler(fileinput, chunksize):
             yield chunk
 
 
-def streamfile(env, pnum, filename, token):
+def streamfile(env, pnum, filename, token, chunksize=2048):
     url = '%s/%s/files/stream' % (ENV[env], pnum)
     headers = {'Authorization': 'Bearer ' + token, 'Filename': filename}
     print 'POST: %s' % url
-    resp = requests.post(url, data=lazy_reader(filename, 2048),
+    resp = requests.post(url, data=lazy_reader(filename, chunksize),
                          headers=headers)
     return resp.text
 
 
-def streamsdtin(env, pnum, fileinput, filename, token):
+def streamsdtin(env, pnum, fileinput, filename, token, chunksize=2048):
     url = '%s/%s/files/stream' % (ENV[env], pnum)
     headers = {'Authorization': 'Bearer ' + token, 'Filename': filename}
     print 'POST: %s' % url
-    resp = requests.post(url, data=lazy_stdin_handler(fileinput, 2048),
+    resp = requests.post(url, data=lazy_stdin_handler(fileinput, chunksize),
                          headers=headers)
     return resp.text
