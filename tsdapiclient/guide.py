@@ -39,8 +39,7 @@ def print_guide():
 
         Importing data to TSD
         ~~~~~~~~~~~~~~~~~~~~~
-        tacl --pnum p11 --config <file> --import --data <filename, dirname> \
-            --pre 'archive,compress,encrypt' --post 'unpack,decompress,decrypt'
+        tacl --pnum p11 --config <file> --import --data <filename, dirname> --pre 'archive,compress,encrypt' --post 'untar,decompress,decrypt'
 
         For more info please visit:
         test.api.tsd.usit.no/v1/docs/tsd-api-integration.html

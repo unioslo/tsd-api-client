@@ -29,20 +29,35 @@ def _check_present(_input, name):
 
 
 def parse_post_processing_expression(expr, encryptedpw):
+    """
+    Map expressions to custom headers.
+
+    Params
+    ------
+    expr: str
+        e.g. 'untar,decompress,decrypt'
+    encryptedpw: str
+        base64 encoded, gpg encrypted, AES secrek key
+
+    Returns
+    -------
+    dict
+
+    """
     if expr == '':
         return {'Content-Type': 'application/octet-stream'}
-    elif expr == 'encrypt':
+    elif expr == 'decrypt':
         return {'Content-Type': 'application/aes',
                 'Aes-Key': encryptedpw}
-    elif expr == 'archive':
+    elif expr == 'untar':
         return {'Content-Type': 'application/tar'}
-    elif 'archive' in expr and 'compress' in expr and 'encrypt' in expr:
+    elif 'untar' in expr and 'decompress' in expr and 'decrypt' in expr:
         return {'Content-Type': 'application/tar.gz.aes',
                 'Aes-Key': encryptedpw}
-    elif 'archive' in expr and 'encrypt' in expr:
+    elif 'untar' in expr and 'decrypt' in expr:
         return {'Content-Type': 'application/tar.aes',
                 'Aes-Key': encryptedpw}
-    elif 'archive' in expr and 'compress' in expr:
+    elif 'untar' in expr and 'decompress' in expr:
         return {'Content-Type': 'application/tar.gz'}
     else:
         print 'expression not parseable'
