@@ -20,7 +20,7 @@ exec_client() {
 }
 
 exec_2fa_client() {
-    python /lib/python2.7/site-packages/tsdapiclient/client.py
+    python /lib/python2.7/site-packages/tsdapiclient/client.py \
         --user_name $USERNAME --password $PASSWORD --otp $OTP $@
 }
 

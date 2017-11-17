@@ -82,16 +82,16 @@ def parse_post_processing_expression(expr, encryptedpw):
 @click.option('--password', default=None, help='TSD password')
 @click.option('--otp', default=None, help='one time passcode')
 @click.option('--encryptedpw', default=None, help='encrypted password used in symmetric data encryption')
-@click.option('--pre', default=None, help='pre processing expression')
+@click.option('--pre', default=None, help='pre processing expression', required=False)
 @click.option('--post', default=None, help='post processing expression')
 @click.argument('fileinput', type=click.File('rb'), required=False)
 def main(env, pnum, signup, confirm, getapikey, delapikey, pwreset, guide,
          client_name, email, config, importfile, fileinput, filename, user_name,
-         password, otp, encryptedpw, expr):
+         password, otp, encryptedpw, pre, post):
     if guide:
         print_guide()
         return
-    if environ not in ['test', 'prod']:
+    if env not in ['test', 'prod']:
         print 'unknown env'
         sys.exit(1)
     _check_present(env, 'env')
