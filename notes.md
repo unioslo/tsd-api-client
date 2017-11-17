@@ -11,3 +11,7 @@ tar cf - dir | gpg --encrypt -r <recipient> -o test.gz.gpg
 do not compress and then encrypt
 https://blog.appcanary.com/2016/encrypt-or-compress.html
 bla.tar.gpg.gz
+
+# and the on the API: decode pw header, gpg decrypt it
+# openssl enc -aes-256-cbc -a -d -pass file:<( echo $PW ) |
+# tar -C t -xvf -

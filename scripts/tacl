@@ -26,16 +26,19 @@ exec_2fa_client() {
         --user_name $USERNAME --password $PASSWORD --otp $OTP $@
 }
 
-# TODO get from cmd line
-recipient='l.c.d.toit@usit.uio.no'
+recipient='l.c.d.toit@usit.uio.no' # TODO get from config
 
 file_post() {
     exec_2fa_client $@
 }
 
+make_symmetric_secret() {
+    openssl rand -base64 10
+}
+
 encrypt_file_post() {
-    PW=$(openssl rand -base64 10)
-    ENCPW=$(echo $ENCPW | gpg -r $recipient --encrypt | openssl base64 -A)
+    PW=$(make_symmetric_secret)
+    ENCPW=$(echo $PW | gpg -r $recipient --encrypt | openssl base64 -A)
     cat $1 |
     openssl enc -aes-256-cbc -a -pass file:<( echo $PW ) |
     exec_2fa_client --encryptedpw $ENCPW $@
@@ -50,48 +53,65 @@ archive_compress_dir_post() {
 }
 
 archive_encrypt_dir_post() {
-    PW=$(openssl rand -base64 10)
-    ENCPW=$(echo $ENCPW | gpg -r $recipient --encrypt | openssl base64 -A)
+    PW=$(make_symmetric_secret)
+    ENCPW=$(echo $PW | gpg -r $recipient --encrypt | openssl base64 -A)
     tar -cf - $1 |
     openssl enc -aes-256-cbc -a -pass file:<( echo $PW ) |
     exec_2fa_client --encryptedpw $ENCPW $@
 }
 
 archive_compress_encrypt_dir_post() {
-    PW=$(openssl rand -base64 10)
-    ENCPW=$(echo $ENCPW | gpg -r $recipient --encrypt | openssl base64 -A)
+    PW=$(make_symmetric_secret)
+    ENCPW=$(echo $PW | gpg -r $recipient --encrypt | openssl base64 -A)
     tar -cf - $1 |
     gzip -9 |
     openssl enc -aes-256-cbc -a -pass file:<( echo $PW ) |
     exec_2fa_client --encryptedpw $ENCPW $@
 }
 
-# and the on the API: decode pw header, gpg decrypt it
-# openssl enc -aes-256-cbc -a -d -pass file:<( echo $PW ) |
-# tar -C t -xvf -
-
-# TODO: do not require 2FA for API admin
-# figure out custom header scheme
+import_data() {
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --pre)      shift; PRE=$1; shift ;;
+            --post)     shift; POST=$1; shift ;;
+            *)          shift ;;
+        esac
+    done
+    if [[ $PRE == '' ]]; then
+        echo 'POST without pre-processing'
+        # file_post $@
+        exit 0
+    elif [[ $PRE == 'encrypt' ]]; then
+        echo 'POST with encryption'
+        # encrypt_file_post $@
+    elif [[ $PRE == 'archive' ]]; then
+        echo 'POST with tar'
+        # archive_dir_post $@
+    elif [[ $PRE == *"archive"* ]] && [[ $PRE == *"compress"* ]] && [[ $PRE == *"encrypt"* ]]; then
+        echo 'POST with tar, compress, and encrypt'
+        # archive_compress_dir_post $@
+    elif [[ $PRE == *"archive"* ]] && [[ $PRE == *"encrypt"* ]]; then
+        echo 'POST with tar and encrypt'
+        # archive_encrypt_dir_post $@
+    elif [[ $PRE == *"archive"* ]] && [[ $PRE == *"compress"* ]]; then
+        echo 'POST with tar and gzip'
+        # archive_compress_encrypt_dir_post $@
+    fi
+}
 
 if [[ $1 =~ ^('--help'|'--guide') ]]; then
     exec_client $1
     exit 0
 fi
 
-echo $@
 args=("$@")
-
 for i in ${args[*]}; do
-    if [[ $i =~ ^('--signup'|'--confirm'|'getapikey'|'delapikey'|'pwreset') ]]; then
-        echo $@
+    if [[ $i =~ ^('--signup'|'--confirm'|'--getapikey'|'--delapikey'|'--pwreset') ]]; then
         exec_client $@
         exit 0
     elif [[ $i == '--import' ]]; then
-        echo $@
-        collect_credentials
-        # evaluate options --pre and --post
+        #collect_credentials
+        import_data $@
+        exit 0
     fi
 done
-
-#collect_credentials
-
