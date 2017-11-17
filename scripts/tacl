@@ -16,13 +16,11 @@ collect_credentials() {
 }
 
 exec_client() {
-    python tsdapiclient/client.py $@
-    #python /lib/python2.7/site-packages/tsdapiclient/client.py $@
+    python /lib/python2.7/site-packages/tsdapiclient/client.py $@
 }
 
 exec_2fa_client() {
-    #python /lib/python2.7/site-packages/tsdapiclient/client.py \
-    python tsdapiclient/client.py $@ \
+    python /lib/python2.7/site-packages/tsdapiclient/client.py
         --user_name $USERNAME --password $PASSWORD --otp $OTP $@
 }
 
@@ -79,27 +77,27 @@ import_data() {
     done
     if [[ $PRE == '' ]]; then
         echo 'POST without pre-processing'
-        # file_post $@
+        file_post $@
         exit 0
     elif [[ $PRE == 'encrypt' ]]; then
         echo 'POST with encryption'
-        # encrypt_file_post $@ --expr $POST
+        encrypt_file_post $@ --expr $POST
         exit 0
     elif [[ $PRE == 'archive' ]]; then
         echo 'POST with tar'
-        # archive_dir_post $@ --expr $POST
+        archive_dir_post $@ --expr $POST
         exit 0
     elif [[ $PRE == *"archive"* ]] && [[ $PRE == *"compress"* ]] && [[ $PRE == *"encrypt"* ]]; then
         echo 'POST with tar, compress, and encrypt'
-        # archive_compress_dir_post $@ --expr $POST
+        archive_compress_dir_post $@ --expr $POST
         exit 0
     elif [[ $PRE == *"archive"* ]] && [[ $PRE == *"encrypt"* ]]; then
         echo 'POST with tar and encrypt'
-        # archive_encrypt_dir_post $@ --expr $POST
+        archive_encrypt_dir_post $@ --expr $POST
         exit 0
     elif [[ $PRE == *"archive"* ]] && [[ $PRE == *"compress"* ]]; then
         echo 'POST with tar and gzip'
-        # archive_compress_encrypt_dir_post $@ --expr $POST
+        archive_compress_encrypt_dir_post $@ --expr $POST
         exit 0
     fi
 }
@@ -115,7 +113,7 @@ for i in ${args[*]}; do
         exec_client $@
         exit 0
     elif [[ $i == '--import' ]]; then
-        #collect_credentials
+        collect_credentials
         import_data $@
         exit 0
     fi
