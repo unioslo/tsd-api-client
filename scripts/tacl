@@ -83,19 +83,19 @@ import_data() {
         exit 0
     elif [[ $PRE == 'encrypt' ]]; then
         echo 'POST with encryption'
-        # encrypt_file_post $@
+        # encrypt_file_post $@ --expr $POST
     elif [[ $PRE == 'archive' ]]; then
         echo 'POST with tar'
-        # archive_dir_post $@
+        # archive_dir_post $@ --expr $POST
     elif [[ $PRE == *"archive"* ]] && [[ $PRE == *"compress"* ]] && [[ $PRE == *"encrypt"* ]]; then
         echo 'POST with tar, compress, and encrypt'
-        # archive_compress_dir_post $@
+        # archive_compress_dir_post $@ --expr $POST
     elif [[ $PRE == *"archive"* ]] && [[ $PRE == *"encrypt"* ]]; then
         echo 'POST with tar and encrypt'
-        # archive_encrypt_dir_post $@
+        # archive_encrypt_dir_post $@ --expr $POST
     elif [[ $PRE == *"archive"* ]] && [[ $PRE == *"compress"* ]]; then
         echo 'POST with tar and gzip'
-        # archive_compress_encrypt_dir_post $@
+        # archive_compress_encrypt_dir_post $@ --expr $POST
     fi
 }
 

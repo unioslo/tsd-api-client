@@ -28,6 +28,10 @@ def _check_present(_input, name):
         sys.exit(1)
 
 
+def parse_post_processing_expression(expr):
+    return 'Content-Type: application/octet-stream'
+
+
 @click.command()
 @click.option('--env', default='test', help='which environment you want to interact with')
 @click.option('--pnum', default=None, help='project numbers')
@@ -46,10 +50,11 @@ def _check_present(_input, name):
 @click.option('--password', default=None, help='TSD password')
 @click.option('--otp', default=None, help='one time passcode')
 @click.option('--encryptedpw', default=None, help='encrypted password used in symmetric data encryption')
+@click.option('--expr', default=None, help='post processing expression')
 @click.argument('fileinput', type=click.File('rb'), required=False)
 def main(env, pnum, signup, confirm, getapikey, delapikey, pwreset, guide,
          client_name, email, config, importfile, fileinput, filename, user_name,
-         password, otp, encryptedpw):
+         password, otp, encryptedpw, expr):
     if guide:
         print_guide()
         return
@@ -91,11 +96,13 @@ def main(env, pnum, signup, confirm, getapikey, delapikey, pwreset, guide,
         _check_present(otp, 'otp')
         conf = read_config(config)
         token = get_jwt_tsd_auth(env, pnum, conf['api_key'], user_name, password, otp, 'import')
+        custom_header = parse_post_processing_expression(expr)
+        # TODO: add support for encrypted pw header
+        # in the API, and in streamfile, and streamsdtin
         if token:
             if fileinput is None:
                 print streamfile(env, pnum, filename, token)
             else:
-                # TODO: add support for encrypted pw header
                 print streamsdtin(env, pnum, fileinput, filename, token)
             return
         else:
