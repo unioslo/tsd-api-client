@@ -24,21 +24,32 @@ def lazy_stdin_handler(fileinput, chunksize):
         else:
             yield chunk
 
-# TODO: add custom headers based on input type
 
-def streamfile(env, pnum, filename, token, chunksize=2048):
+def streamfile(env, pnum, filename, token,
+               chunksize=4096, custom_headers=None):
     url = '%s/%s/files/stream' % (ENV[env], pnum)
     headers = {'Authorization': 'Bearer ' + token, 'Filename': filename}
+    if custom_header is not None:
+        new_headers = headers.copy()
+        new_headers.update(custom_headers)
+    else:
+        new_headers = headers
     print 'PUT: %s' % url
     resp = requests.put(url, data=lazy_reader(filename, chunksize),
-                         headers=headers)
+                         headers=new_headers)
     return resp.text
 
 
-def streamsdtin(env, pnum, fileinput, filename, token, chunksize=2048):
+def streamsdtin(env, pnum, fileinput, filename, token,
+                chunksize=4096, custom_headers=None):
     url = '%s/%s/files/stream' % (ENV[env], pnum)
     headers = {'Authorization': 'Bearer ' + token, 'Filename': filename}
+    if custom_header is not None:
+        new_headers = headers.copy()
+        new_headers.update(custom_headers)
+    else:
+        new_headers = headers
     print 'PUT: %s' % url
     resp = requests.put(url, data=lazy_stdin_handler(fileinput, chunksize),
-                         headers=headers)
+                         headers=new_headers)
     return resp.text

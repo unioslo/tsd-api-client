@@ -28,8 +28,25 @@ def _check_present(_input, name):
         sys.exit(1)
 
 
-def parse_post_processing_expression(expr):
-    return 'Content-Type: application/octet-stream'
+def parse_post_processing_expression(expr, encryptedpw):
+    if expr == '':
+        return {'Content-Type': 'application/octet-stream'}
+    elif expr == 'encrypt':
+        return {'Content-Type': 'application/aes',
+                'Aes-Key': encryptedpw}
+    elif expr == 'archive':
+        return {'Content-Type': 'application/tar'}
+    elif 'archive' in expr and 'compress' in expr and 'encrypt' in expr:
+        return {'Content-Type': 'application/tar.gz.aes',
+                'Aes-Key': encryptedpw}
+    elif 'archive' in expr and 'encrypt' in expr:
+        return {'Content-Type': 'application/tar.aes',
+                'Aes-Key': encryptedpw}
+    elif 'archive' in expr and 'compress' in expr:
+        return {'Content-Type': 'application/tar.gz'}
+    else:
+        print 'expression not parseable'
+        raise Exception
 
 
 @click.command()
@@ -96,14 +113,16 @@ def main(env, pnum, signup, confirm, getapikey, delapikey, pwreset, guide,
         _check_present(otp, 'otp')
         conf = read_config(config)
         token = get_jwt_tsd_auth(env, pnum, conf['api_key'], user_name, password, otp, 'import')
-        custom_header = parse_post_processing_expression(expr)
-        # TODO: add support for encrypted pw header
-        # in the API, and in streamfile, and streamsdtin
+        try:
+            custom_headers = parse_post_processing_expression(expr, encryptedpw)
+        except Exception:
+            print 'Cannot proceed'
+            return
         if token:
             if fileinput is None:
-                print streamfile(env, pnum, filename, token)
+                print streamfile(env, pnum, filename, token, custom_headers=custom_headers)
             else:
-                print streamsdtin(env, pnum, fileinput, filename, token)
+                print streamsdtin(env, pnum, fileinput, filename, token, custom_headers=custom_headers)
             return
         else:
             print 'Authentication failed'
