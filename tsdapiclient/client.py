@@ -35,7 +35,7 @@ def parse_post_processing_expression(expr, encryptedpw):
     Params
     ------
     expr: str
-        e.g. 'untar,decompress,decrypt'
+        e.g. 'restore,decompress,decrypt'
     encryptedpw: str
         base64 encoded, gpg encrypted, AES secrek key
 
@@ -49,15 +49,15 @@ def parse_post_processing_expression(expr, encryptedpw):
     elif expr == 'decrypt':
         return {'Content-Type': 'application/aes',
                 'Aes-Key': encryptedpw}
-    elif expr == 'untar':
+    elif expr == 'restore':
         return {'Content-Type': 'application/tar'}
-    elif 'untar' in expr and 'decompress' in expr and 'decrypt' in expr:
+    elif 'restore' in expr and 'decompress' in expr and 'decrypt' in expr:
         return {'Content-Type': 'application/tar.gz.aes',
                 'Aes-Key': encryptedpw}
-    elif 'untar' in expr and 'decrypt' in expr:
+    elif 'restore' in expr and 'decrypt' in expr:
         return {'Content-Type': 'application/tar.aes',
                 'Aes-Key': encryptedpw}
-    elif 'untar' in expr and 'decompress' in expr:
+    elif 'restore' in expr and 'decompress' in expr:
         return {'Content-Type': 'application/tar.gz'}
     else:
         print 'expression not parseable'
@@ -82,7 +82,8 @@ def parse_post_processing_expression(expr, encryptedpw):
 @click.option('--password', default=None, help='TSD password')
 @click.option('--otp', default=None, help='one time passcode')
 @click.option('--encryptedpw', default=None, help='encrypted password used in symmetric data encryption')
-@click.option('--expr', default=None, help='post processing expression')
+@click.option('--pre', default=None, help='pre processing expression')
+@click.option('--post', default=None, help='post processing expression')
 @click.argument('fileinput', type=click.File('rb'), required=False)
 def main(env, pnum, signup, confirm, getapikey, delapikey, pwreset, guide,
          client_name, email, config, importfile, fileinput, filename, user_name,
@@ -90,7 +91,7 @@ def main(env, pnum, signup, confirm, getapikey, delapikey, pwreset, guide,
     if guide:
         print_guide()
         return
-    if env not in ['test', 'prod']:
+    if environ not in ['test', 'prod']:
         print 'unknown env'
         sys.exit(1)
     _check_present(env, 'env')
@@ -127,12 +128,13 @@ def main(env, pnum, signup, confirm, getapikey, delapikey, pwreset, guide,
         _check_present(password, 'password')
         _check_present(otp, 'otp')
         conf = read_config(config)
-        token = get_jwt_tsd_auth(env, pnum, conf['api_key'], user_name, password, otp, 'import')
         try:
             custom_headers = parse_post_processing_expression(expr, encryptedpw)
+            print custom_headers
         except Exception:
-            print 'Cannot proceed'
+            print 'Cannot proceed - unclear data pipeline specification'
             return
+        token = get_jwt_tsd_auth(env, pnum, conf['api_key'], user_name, password, otp, 'import')
         if token:
             if fileinput is None:
                 print streamfile(env, pnum, filename, token, custom_headers=custom_headers)

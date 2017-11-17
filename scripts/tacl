@@ -30,38 +30,26 @@ file_post() {
     exec_2fa_client $@
 }
 
-make_symmetric_secret() {
-    openssl rand -base64 10
-}
-
-encrypt_file_post() {
-    PW=$(make_symmetric_secret)
-    ENCPW=$(echo $PW | gpg -r $recipient --encrypt | openssl base64 -A)
-    cat $1 |
-    openssl enc -aes-256-cbc -a -pass file:<( echo $PW ) |
-    exec_2fa_client --encryptedpw $ENCPW $@
-}
-
 archive_dir_post() {
-    tar -cf - $1 | exec_2fa_client --encryptedpw $ENCPW $@
+    tar -cf - $INPUT_DATA | exec_2fa_client --encryptedpw $ENCPW $@
 }
 
 archive_compress_dir_post() {
-    tar -cf - $1 | gzip -9 | exec_2fa_client --encryptedpw $ENCPW $@
+    tar -cf - $INPUT_DATA | gzip -9 | exec_2fa_client --encryptedpw $ENCPW $@
 }
 
 archive_encrypt_dir_post() {
-    PW=$(make_symmetric_secret)
+    PW=$(openssl rand -base64 10)
     ENCPW=$(echo $PW | gpg -r $recipient --encrypt | openssl base64 -A)
-    tar -cf - $1 |
+    tar -cf - $INPUT_DATA |
     openssl enc -aes-256-cbc -a -pass file:<( echo $PW ) |
     exec_2fa_client --encryptedpw $ENCPW $@
 }
 
 archive_compress_encrypt_dir_post() {
-    PW=$(make_symmetric_secret)
+    PW=$(openssl rand -base64 10)
     ENCPW=$(echo $PW | gpg -r $recipient --encrypt | openssl base64 -A)
-    tar -cf - $1 |
+    tar -cf - $INPUT_DATA |
     gzip -9 |
     openssl enc -aes-256-cbc -a -pass file:<( echo $PW ) |
     exec_2fa_client --encryptedpw $ENCPW $@
@@ -70,34 +58,44 @@ archive_compress_encrypt_dir_post() {
 import_data() {
     while [[ $# -gt 0 ]]; do
         case $1 in
+            --env)      shift; API_ENV=$1; shift ;;
+            --config)   shift; CONF=$1; shift ;;
+            --pnum)     shift; PNUM=$1; shift ;;
             --pre)      shift; PRE=$1; shift ;;
             --post)     shift; POST=$1; shift ;;
+            --data)     shift; INPUT_DATA=$1; shift ;;
             *)          shift ;;
         esac
     done
     if [[ $PRE == '' ]]; then
         echo 'POST without pre-processing'
-        file_post $@
+        exec_2fa_client --encryptedpw $ENCPW --env $API_ENV --pnum $PNUM \
+            --config $CONF --post $POST --filename $INPUT_DATA
         exit 0
     elif [[ $PRE == 'encrypt' ]]; then
         echo 'POST with encryption'
-        encrypt_file_post $@ --expr $POST
+        PW=$(openssl rand -base64 10)
+        ENCPW=$(echo $PW | gpg -r $recipient --encrypt | openssl base64 -A)
+        openssl enc -aes-256-cbc -in $INPUT_DATA -a -pass file:<( echo $PW ) |
+        exec_2fa_client --encryptedpw $ENCPW --env $API_ENV --pnum $PNUM \
+            --config $CONF --post $POST --filename $INPUT_DATA
         exit 0
+    # TODO: fix these:
     elif [[ $PRE == 'archive' ]]; then
         echo 'POST with tar'
-        archive_dir_post $@ --expr $POST
+        archive_dir_post $@
         exit 0
     elif [[ $PRE == *"archive"* ]] && [[ $PRE == *"compress"* ]] && [[ $PRE == *"encrypt"* ]]; then
         echo 'POST with tar, compress, and encrypt'
-        archive_compress_dir_post $@ --expr $POST
+        archive_compress_dir_post $@
         exit 0
     elif [[ $PRE == *"archive"* ]] && [[ $PRE == *"encrypt"* ]]; then
         echo 'POST with tar and encrypt'
-        archive_encrypt_dir_post $@ --expr $POST
+        archive_encrypt_dir_post $@
         exit 0
     elif [[ $PRE == *"archive"* ]] && [[ $PRE == *"compress"* ]]; then
         echo 'POST with tar and gzip'
-        archive_compress_encrypt_dir_post $@ --expr $POST
+        archive_compress_encrypt_dir_post
         exit 0
     fi
 }
