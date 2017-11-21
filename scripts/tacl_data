@@ -1,3 +1,102 @@
 #!/bin env python
 
 """API client for data uploads."""
+
+import getpass
+import sys
+
+from tsdapiclient.authapi import get_jwt_tsd_auth
+from tsdapiclient.config import ENV
+from tsdapiclient.fileapi import streamfile, streamsdtin
+from tsdapiclient.guide import print_guide
+from tsdapiclient.tools import read_config, _check_present
+
+
+def parse_post_processing_expression(expr, encryptedpw):
+    """
+    Map expressions to custom headers.
+
+    Params
+    ------
+    expr: str
+        e.g. 'restore,decompress,decrypt'
+    encryptedpw: str
+        base64 encoded, gpg encrypted, AES secrek key
+
+    Returns
+    -------
+    dict
+
+    """
+    if expr == '':
+        return {'Content-Type': 'application/octet-stream'}
+    elif expr == 'decrypt':
+        return {'Content-Type': 'application/aes',
+                'Aes-Key': encryptedpw}
+    elif expr == 'restore':
+        return {'Content-Type': 'application/tar'}
+    elif 'restore' in expr and 'decompress' in expr and 'decrypt' in expr:
+        return {'Content-Type': 'application/tar.gz.aes',
+                'Aes-Key': encryptedpw}
+    elif 'restore' in expr and 'decrypt' in expr:
+        return {'Content-Type': 'application/tar.aes',
+                'Aes-Key': encryptedpw}
+    elif 'restore' in expr and 'decompress' in expr:
+        return {'Content-Type': 'application/tar.gz'}
+    else:
+        print 'expression not parseable'
+        raise Exception
+
+
+@click.command()
+@click.option('--env', default='test', help='which environment you want to interact with')
+@click.option('--pnum', default=None, help='project numbers')
+@click.option('--config', default=None, help='path to config file')
+@click.option('--importfile', is_flag=True, help='path to file')
+@click.option('--filename', default=None, help='specify the name of the file in TSD')
+@click.option('--user_name', default=None, help='TSD project user name')
+@click.option('--password', default=None, help='TSD password')
+@click.option('--otp', default=None, help='one time passcode')
+@click.option('--encryptedpw', default=None, help='encrypted password used in symmetric data encryption')
+@click.option('--pre', default=None, help='pre processing expression', required=False)
+@click.option('--post', default=None, help='post processing expression')
+@click.argument('fileinput', type=click.File('rb'), required=False)
+def main(env, pnum, config, importfile, fileinput, filename, user_name,
+         password, otp, encryptedpw, pre, post):
+    if guide:
+        print_guide()
+        return
+    if env not in ['test', 'prod']:
+        print 'unknown env'
+        sys.exit(1)
+    _check_present(env, 'env')
+    _check_present(pnum, 'pnum')
+    if importfile:
+        _check_present(config, 'config')
+        _check_present(importfile, 'importfile')
+        _check_present(user_name, 'user_name')
+        _check_present(password, 'password')
+        _check_present(otp, 'otp')
+        conf = read_config(config)
+        try:
+            custom_headers = parse_post_processing_expression(expr, encryptedpw)
+            print custom_headers
+        except Exception:
+            print 'Cannot proceed - unclear data pipeline specification'
+            return
+        token = get_jwt_tsd_auth(env, pnum, conf['api_key'], user_name, password, otp, 'import')
+        if token:
+            if fileinput is None:
+                print streamfile(env, pnum, filename, token, custom_headers=custom_headers)
+            else:
+                print streamsdtin(env, pnum, fileinput, filename, token, custom_headers=custom_headers)
+            return
+        else:
+            print 'Authentication failed'
+            return
+    else:
+        print 'Didn\'t do anything - missing input?'
+        return
+
+if __name__ == '__main__':
+    main()

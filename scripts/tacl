@@ -15,15 +15,6 @@ collect_credentials() {
     read -p 'OTP > ' OTP
 }
 
-exec_client() {
-    python /lib/python2.7/site-packages/tsdapiclient/client.py $@
-}
-
-exec_2fa_client() {
-    python /lib/python2.7/site-packages/tsdapiclient/client.py \
-        --user_name $USERNAME --password $PASSWORD --otp $OTP $@
-}
-
 recipient='l.c.d.toit@usit.uio.no' # TODO get from config
 
 import_data() {
@@ -95,18 +86,18 @@ import_data() {
 }
 
 if [[ $1 =~ ^('--help'|'--guide') ]]; then
-    exec_client $1
+    tacl_admin $1
     exit 0
 fi
 
 args=("$@")
 for i in ${args[*]}; do
     if [[ $i =~ ^('--signup'|'--confirm'|'--getapikey'|'--delapikey'|'--pwreset') ]]; then
-        exec_client $@
+        tacl_admin $@
         exit 0
     elif [[ $i == '--import' ]]; then
         collect_credentials
-        import_data $@
+        tacl_data --user_name $USERNAME --password $PASSWORD --otp $OTP $@
         exit 0
     fi
 done
