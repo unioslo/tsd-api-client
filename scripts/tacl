@@ -97,10 +97,9 @@ import_data() {
         echo 'POST with tar and gzip'
         tar -cf - $INPUT_DATA | gzip -9 |
         tacl_data \
-            --encryptedpw $ENCPW \
             --env $API_ENV --pnum $PNUM \
-            --config $CONF --post $POST --data $INPUT_DATA - \
-            --user_name $USERNAME --password $PASSWORD --otp $OTP $@
+            --config $CONF --post $POST --data $INPUT_DATA \
+            --user_name $USERNAME --password $PASSWORD --otp $OTP -
         exit 0
     fi
 }
