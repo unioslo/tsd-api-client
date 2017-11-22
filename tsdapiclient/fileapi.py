@@ -40,7 +40,7 @@ def streamfile(env, pnum, filename, token,
     return resp.text
 
 
-def streamsdtin(env, pnum, fileinput, filename, token,
+def streamstdin(env, pnum, fileinput, filename, token,
                 chunksize=4096, custom_headers=None):
     url = '%s/%s/files/stream' % (ENV[env], pnum)
     headers = {'Authorization': 'Bearer ' + token, 'Filename': filename}
