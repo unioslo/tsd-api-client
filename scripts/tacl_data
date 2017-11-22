@@ -84,7 +84,11 @@ def main(env, pnum, config, guide, data, fileinput, user_name,
         except Exception:
             print 'Cannot proceed - unclear data pipeline specification'
             return
-        token = get_jwt_tsd_auth(env, pnum, conf['api_key'], user_name, password, otp, 'import')
+        try:
+            token = get_jwt_tsd_auth(env, pnum, conf['api_key'], user_name, password, otp, 'import')
+        except Exception:
+            print 'Authentication failed'
+            return
         if token:
             if fileinput is None:
                 print streamfile(env, pnum, data, token, custom_headers=custom_headers)

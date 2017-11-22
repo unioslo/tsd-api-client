@@ -45,7 +45,7 @@ import_data() {
         exit_if_is_directory $INPUT_DATA
         tacl_data --env $API_ENV --pnum $PNUM \
             --config $CONF --data $INPUT_DATA \
-            --user_name $USERNAME --password $PASSWORD --otp $OTP $@
+            --user_name $USERNAME --password $PASSWORD --otp $OTP
         exit 0
     elif [[ $PRE == 'encrypt' ]]; then
         echo 'POST with encryption'
@@ -60,10 +60,8 @@ import_data() {
         exit 0
     elif [[ $PRE == 'archive' ]]; then
         echo 'POST with tar'
-        PW=$(openssl rand -base64 10)
-        ENCPW=$(echo $PW | gpg -r $recipient --encrypt | openssl base64 -A)
         tar -cf - $INPUT_DATA |
-        tacl_data --encryptedpw $ENCPW \
+        tacl_data \
             --env $API_ENV --pnum $PNUM \
             --config $CONF --post $POST --data $INPUT_DATA \
             --user_name $USERNAME --password $PASSWORD --otp $OTP -
@@ -78,8 +76,8 @@ import_data() {
         tacl_data \
             --encryptedpw $ENCPW \
             --env $API_ENV --pnum $PNUM \
-            --config $CONF --post $POST --data $INPUT_DATA - \
-            --user_name $USERNAME --password $PASSWORD --otp $OTP $@
+            --config $CONF --post $POST --data $INPUT_DATA \
+            --user_name $USERNAME --password $PASSWORD --otp $OTP -
         exit 0
     elif [[ $PRE == *"archive"* ]] && [[ $PRE == *"encrypt"* ]]; then
         echo 'POST with tar and encrypt'
@@ -90,8 +88,8 @@ import_data() {
         tacl_data \
             --encryptedpw $ENCPW \
             --env $API_ENV --pnum $PNUM \
-            --config $CONF --post $POST --data $INPUT_DATA - \
-            --user_name $USERNAME --password $PASSWORD --otp $OTP $@
+            --config $CONF --post $POST --data $INPUT_DATA \
+            --user_name $USERNAME --password $PASSWORD --otp $OTP -
         exit 0
     elif [[ $PRE == *"archive"* ]] && [[ $PRE == *"compress"* ]]; then
         echo 'POST with tar and gzip'
@@ -116,7 +114,6 @@ for i in ${args[*]}; do
         exit 0
     elif [[ $i == '--data' ]]; then
         collect_credentials
-        set -x
         import_data $@
         exit 0
     fi
