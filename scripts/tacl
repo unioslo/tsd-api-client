@@ -29,12 +29,12 @@ import_data() {
             *)          shift ;;
         esac
     done
+    if [[ $POST == '' ]]; then
+        POST='none'
+    fi
     if [[ $PRE == '' ]]; then
-        echo $@
         echo 'POST without pre-processing'
-        PW=$(openssl rand -base64 10)
-        ENCPW=$(echo $PW | gpg -r $recipient --encrypt | openssl base64 -A)
-        tacl_data --encryptedpw $ENCPW --env $API_ENV --pnum $PNUM \
+        tacl_data --env $API_ENV --pnum $PNUM \
             --config $CONF --data $INPUT_DATA \
             --user_name $USERNAME --password $PASSWORD --otp $OTP $@
         exit 0
@@ -50,11 +50,13 @@ import_data() {
         exit 0
     elif [[ $PRE == 'archive' ]]; then
         echo 'POST with tar'
+        PW=$(openssl rand -base64 10)
+        ENCPW=$(echo $PW | gpg -r $recipient --encrypt | openssl base64 -A)
         tar -cf - $INPUT_DATA |
         tacl_data --encryptedpw $ENCPW \
             --env $API_ENV --pnum $PNUM \
-            --config $CONF --post $POST --data $INPUT_DATA - \
-            --user_name $USERNAME --password $PASSWORD --otp $OTP $@
+            --config $CONF --post $POST --data $INPUT_DATA \
+            --user_name $USERNAME --password $PASSWORD --otp $OTP -
         exit 0
     elif [[ $PRE == *"archive"* ]] && [[ $PRE == *"compress"* ]] && [[ $PRE == *"encrypt"* ]]; then
         echo 'POST with tar, compress, and encrypt'

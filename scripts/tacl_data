@@ -29,7 +29,7 @@ def parse_post_processing_expression(expr, encryptedpw):
     dict
 
     """
-    if expr == '' or expr == None:
+    if expr == 'none':
         return {'Content-Type': 'application/octet-stream'}
     elif expr == 'decrypt':
         return {'Content-Type': 'application/aes',
@@ -81,7 +81,6 @@ def main(env, pnum, config, guide, data, fileinput, user_name,
         conf = read_config(config)
         try:
             custom_headers = parse_post_processing_expression(post, encryptedpw)
-            print custom_headers
         except Exception:
             print 'Cannot proceed - unclear data pipeline specification'
             return
