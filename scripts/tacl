@@ -17,6 +17,14 @@ collect_credentials() {
 
 recipient='l.c.d.toit@usit.uio.no' # TODO get from config
 
+exit_if_is_directory() {
+    if [[ -d $1 ]]; then
+        echo 'Input data is a directory'
+        echo 'This method handles files only'
+        exit 1
+    fi
+}
+
 import_data() {
     while [[ $# -gt 0 ]]; do
         case $1 in
@@ -34,19 +42,21 @@ import_data() {
     fi
     if [[ $PRE == '' ]]; then
         echo 'POST without pre-processing'
+        exit_if_is_directory $INPUT_DATA
         tacl_data --env $API_ENV --pnum $PNUM \
             --config $CONF --data $INPUT_DATA \
             --user_name $USERNAME --password $PASSWORD --otp $OTP $@
         exit 0
     elif [[ $PRE == 'encrypt' ]]; then
         echo 'POST with encryption'
+        exit_if_is_directory $INPUT_DATA
         PW=$(openssl rand -base64 10)
         ENCPW=$(echo $PW | gpg -r $recipient --encrypt | openssl base64 -A)
         openssl enc -aes-256-cbc -in $INPUT_DATA -a -pass file:<( echo $PW ) |
         tacl_data \
             --encryptedpw $ENCPW --env $API_ENV --pnum $PNUM \
-            --config $CONF --post $POST --data $INPUT_DATA - \
-            --user_name $USERNAME --password $PASSWORD --otp $OTP $@
+            --config $CONF --post $POST --data $INPUT_DATA \
+            --user_name $USERNAME --password $PASSWORD --otp $OTP -
         exit 0
     elif [[ $PRE == 'archive' ]]; then
         echo 'POST with tar'
