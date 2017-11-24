@@ -47,6 +47,14 @@ import_data() {
             --config $CONF --data $INPUT_DATA \
             --user_name $USERNAME --password $PASSWORD --otp $OTP
         exit 0
+    elif [[ $PRE == 'compress' ]]; then
+        exit_if_is_directory $INPUT_DATA
+        gzip -9 < $INPUT_DATA |
+        tacl_data \
+            --env $API_ENV --pnum $PNUM \
+            --config $CONF --post $POST --data $INPUT_DATA \
+            --user_name $USERNAME --password $PASSWORD --otp $OTP -
+    fi
     elif [[ $PRE == 'encrypt' ]]; then
         echo 'POST with encryption'
         exit_if_is_directory $INPUT_DATA
