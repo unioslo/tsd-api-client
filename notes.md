@@ -15,3 +15,6 @@ bla.tar.gpg.gz
 # and the on the API: decode pw header, gpg decrypt it
 # openssl enc -aes-256-cbc -a -d -pass file:<( echo $PW ) |
 # tar -C t -xvf -
+
+https://security.stackexchange.com/questions/29106/openssl-recover-key-and-iv-by-passphrase
+https://crypto.stackexchange.com/questions/34884/length-of-encryption-password-aes-256-cbc
