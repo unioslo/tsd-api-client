@@ -6,6 +6,7 @@ Python cient library for TSD HTTP API, and a command-line tool `tacl`.
 
 - provide a simple Python library for implementing clients
 - provide a command-line client as a powertool, exposing all options in a simple way
+- non-blocking, efficient, secure data transfer implementations
 
 ## Install
 
