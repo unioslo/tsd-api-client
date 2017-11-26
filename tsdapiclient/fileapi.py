@@ -27,6 +27,23 @@ def lazy_stdin_handler(fileinput, chunksize):
 
 def streamfile(env, pnum, filename, token,
                chunksize=4096, custom_headers=None):
+    """
+    Idempotent, lazy data upload from files.
+
+    Parameters
+    ----------
+    env: str - 'test' or 'prod'
+    pnum: str - project number
+    filename: path to file
+    token: JWT
+    chunksize: bytes to read per chunk
+    custom_headers: header controlling API data processing
+
+    Returns
+    -------
+    str (HTTP status message)
+
+    """
     url = '%s/%s/files/stream' % (ENV[env], pnum)
     headers = {'Authorization': 'Bearer ' + token, 'Filename': filename}
     if custom_header is not None:
@@ -42,6 +59,23 @@ def streamfile(env, pnum, filename, token,
 
 def streamstdin(env, pnum, fileinput, filename, token,
                 chunksize=4096, custom_headers=None):
+    """
+    Idempotent, lazy data upload from stdin.
+
+    Parameters
+    ----------
+    env: str - 'test' or 'prod'
+    pnum: str - project number
+    filename: path to file
+    token: JWT
+    chunksize: bytes to read per chunk
+    custom_headers: header controlling API data processing
+
+    Returns
+    -------
+    str (HTTP status message)
+
+    """
     url = '%s/%s/files/stream' % (ENV[env], pnum)
     headers = {'Authorization': 'Bearer ' + token, 'Filename': filename}
     if custom_header is not None:
