@@ -40,6 +40,10 @@ import_data() {
     if [[ $POST == '' ]]; then
         POST='none'
     fi
+
+    # Files
+    # -----
+
     if [[ $PRE == '' ]]; then
         echo 'POST without pre-processing'
         exit_if_is_directory $INPUT_DATA
@@ -54,7 +58,7 @@ import_data() {
             --env $API_ENV --pnum $PNUM \
             --config $CONF --post $POST --data $INPUT_DATA \
             --user_name $USERNAME --password $PASSWORD --otp $OTP -
-    fi
+        exit 0
     elif [[ $PRE == 'encrypt' ]]; then
         echo 'POST with encryption'
         exit_if_is_directory $INPUT_DATA
@@ -66,6 +70,22 @@ import_data() {
             --config $CONF --post $POST --data $INPUT_DATA \
             --user_name $USERNAME --password $PASSWORD --otp $OTP -
         exit 0
+    elif [[ $PRE == *"compress"* ]] && [[ $PRE == *"encrypt"* ]]; then
+        echo 'POST with compression and encryption'
+        exit_if_is_directory $INPUT_DATA
+        PW=$(openssl rand -base64 10)
+        ENCPW=$(echo $PW | gpg -r $recipient --encrypt | openssl base64 -A)
+        gzip -9 < $INPUT_DATA |
+        openssl enc -aes-256-cbc -in $INPUT_DATA -a -pass file:<( echo $PW ) |
+        tacl_data \
+            --encryptedpw $ENCPW --env $API_ENV --pnum $PNUM \
+            --config $CONF --post $POST --data $INPUT_DATA \
+            --user_name $USERNAME --password $PASSWORD --otp $OTP -
+        exit 0
+
+    # Directories
+    # -----------
+
     elif [[ $PRE == 'archive' ]]; then
         echo 'POST with tar'
         tar -cf - $INPUT_DATA |
