@@ -8,8 +8,9 @@ import click
 
 from tsdapiclient.authapi import get_jwt_tsd_auth
 from tsdapiclient.config import ENV
+from tsdapiclient.configurer import read_config
 from tsdapiclient.fileapi import streamfile, streamstdin
-from tsdapiclient.tools import read_config, _check_present
+from tsdapiclient.tools import _check_present
 
 
 def print_data_guide():
@@ -24,7 +25,7 @@ def print_data_guide():
         ~~~~~~~
 
         --env       Either 'test' or 'prod' environment.
-        --pnum      Projet number.
+        --pnum      Project number.
         --config    Path to yaml config file (tacl --help admin for more info).
         --data      Path to file or folder you want to upload.
         --pre       Comma-separated string specifying pre-upload data processing:

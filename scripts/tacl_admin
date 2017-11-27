@@ -7,7 +7,8 @@ import click
 from tsdapiclient.administrator import do_signup, do_confirm, \
         get_api_key, del_api_key, pw_reset
 from tsdapiclient.config import ENV
-from tsdapiclient.tools import read_config, _check_present
+from tsdapiclient.configurer import read_config
+from tsdapiclient.tools import _check_present
 
 
 def print_admin_guide():
@@ -71,11 +72,13 @@ def main(env, pnum, signup, confirm, getapikey, delapikey, pwreset, guide,
     if guide:
         print_admin_guide()
         return
+    # TODO: set prod as default
     if env not in ['test', 'prod']:
         print 'unknown env'
         sys.exit(1)
     _check_present(env, 'env')
     _check_present(pnum, 'pnum')
+    # TODO: create config file automatically
     if signup:
         _check_present(client_name, 'client_name')
         _check_present(email, 'email')
