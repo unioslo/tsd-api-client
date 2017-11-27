@@ -3,8 +3,8 @@
 if [[ $# -lt 1 ]]; then
     echo ""
     echo "  Missing arguments, exiting"
-    echo "  tacl --help for help"
-    echo "  tacl --guide for a longer explanation"
+    echo "  tacl --help <admin,data> for help"
+    echo "  tacl --guide <admin,data> for a longer explanation"
     echo ""
     exit 1
 fi
@@ -131,8 +131,13 @@ import_data() {
 }
 
 if [[ $1 =~ ^('--help'|'--guide') ]]; then
-    tacl_admin $1
-    exit 0
+    if [[ $2 == 'admin' ]]; then
+        tacl_admin $1
+        exit 0
+    elif [[ $2 == 'data' ]]; then
+        tacl_data $1
+        exit 0
+    fi
 fi
 
 args=("$@")
