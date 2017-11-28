@@ -7,7 +7,7 @@ import click
 from tsdapiclient.administrator import do_signup, do_confirm, \
         get_api_key, del_api_key, pw_reset
 from tsdapiclient.config import ENV
-from tsdapiclient.configurer import read_config
+from tsdapiclient.configurer import read_config, update_config
 from tsdapiclient.tools import _check_present
 
 
@@ -66,9 +66,8 @@ def print_admin_guide():
 @click.option('--guide', is_flag=True, default=False, help='print help text')
 @click.option('--client_name', default=None, help='your client\'s name')
 @click.option('--email', default=None, help='your email address')
-@click.option('--config', default=None, help='path to config file')
 def main(env, pnum, signup, confirm, getapikey, delapikey, pwreset, guide,
-         client_name, email, config):
+         client_name, email):
     if guide:
         print_admin_guide()
         return
@@ -78,31 +77,40 @@ def main(env, pnum, signup, confirm, getapikey, delapikey, pwreset, guide,
         sys.exit(1)
     _check_present(env, 'env')
     _check_present(pnum, 'pnum')
-    # TODO: create config file automatically
+    tacl_config = {'test': {}, 'prod': {}}
     if signup:
         _check_present(client_name, 'client_name')
         _check_present(email, 'email')
-        print do_signup(env, pnum, client_name, email)
+        resp = do_signup(env, pnum, client_name, email)
+        print resp
+        update_config(env, 'client_name', client_name)
+        update_config(env, 'email', email)
+        # TODO: pick client_id out and update config
         return
     if confirm:
         _check_present(client_id, 'client_id')
-        _check_present(config, 'config')
-        conf = read_config(config)
-        print do_confirm(env, pnum, conf['client_id'], conf['confirmation_token'])
+        conf = read_config()[env]
+        resp = do_confirm(env, pnum, conf['client_id'], conf['confirmation_token'])
+        print resp
+        # TODO: pick out pass, store in config
         return
     if getapikey:
-        _check_present(config, 'config')
-        conf = read_config(config)
-        print get_api_key(env, pnum, conf['client_id'], conf['pass'])
+        conf = read_config()[env]
+        resp = get_api_key(env, pnum, conf['client_id'], conf['pass'])
+        print resp
+        # TODO: store key in config
+        return
     if delapikey:
-        _check_present(config, 'config')
-        conf = read_config(config)
-        print del_api_key(env, pnum, conf['client_id'], conf['pass'], delapikey)
+        conf = read_config()[env]
+        resp = del_api_key(env, pnum, conf['client_id'], conf['pass'], delapikey)
+        print resp
+        # TODO: store new key
         return
     if pwreset:
-        _check_present(config, 'config')
-        conf = read_config(config)
-        print pw_reset(env, pnum, conf['client_id'], conf['pass'])
+        conf = read_config()[env]
+        resp = pw_reset(env, pnum, conf['client_id'], conf['pass'])
+        print resp
+        # TODO: store new pw
         return
 
 
