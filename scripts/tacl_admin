@@ -21,7 +21,6 @@ def print_admin_guide():
 
         Registration
         ~~~~~~~~~~~~
-
         Suppose you want to register for p11 in the test environment:
 
         tacl --env test --pnum p11 --signup --client_name '<name>' --email '<email>'
@@ -36,6 +35,8 @@ def print_admin_guide():
 
         tacl --env test --pnum p11 --getapikey
         # stores an API key in the config file
+
+        Omitting --env test means tacl will use production.
 
         Client credentials management
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
