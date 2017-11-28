@@ -7,9 +7,11 @@ import requests
 from config import ENV
 
 def _post(url, headers, data):
-    resp = requests.post(url, data=json.dumps(data), headers=headers)
-    return resp.text
-
+    try:
+        resp = requests.post(url, data=json.dumps(data), headers=headers)
+        return json.loads(resp.text)
+    except Exception:
+        return False
 
 def do_signup(env, pnum, client_name, email):
     headers = {'Content-Type': 'application/json'}
@@ -41,7 +43,7 @@ def del_api_key(env, pnum, client_id, password, api_key):
     url = '%s/%s/auth/basic/api_key' % (ENV[env], pnum)
     print 'DELETE: %s' % url
     resp = requests.delete(url, data=json.dumps(data), headers=headers)
-    return resp.text
+    return json.loads(resp.text)
 
 
 def pw_reset(env, pnum, client_id, password):

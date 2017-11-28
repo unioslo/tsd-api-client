@@ -27,7 +27,7 @@ def update_config(env, key, val):
     except IOError:
         config = {'test': {}, 'prod': {}}
     try:
-        print 'Current config:', config
+        print 'current config:', config
         if config.has_key(env):
             curr_env = config[env]
             new_env = curr_env.copy()
@@ -55,3 +55,7 @@ def print_config(filename=TACL_CONFIG):
     with open(filename, 'r') as f:
         cf = f.read()
         print cf
+
+def delete_config(filename=TACL_CONFIG):
+    with open(filename, 'w+') as f:
+        f.write(yaml.dump({'test': {}, 'prod': {}}))

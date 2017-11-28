@@ -7,7 +7,7 @@ import click
 from tsdapiclient.administrator import do_signup, do_confirm, \
         get_api_key, del_api_key, pw_reset
 from tsdapiclient.config import ENV
-from tsdapiclient.configurer import read_config, update_config
+from tsdapiclient.configurer import read_config, update_config, print_config
 from tsdapiclient.tools import _check_present
 
 
@@ -22,30 +22,30 @@ def print_admin_guide():
         Registration
         ~~~~~~~~~~~~
 
-        Suppose you want to register for p11 in test:
+        Suppose you want to register for p11 in the test environment:
 
-        tacl --pnum p11 --signup --client_name '<name>' --email '<email>'
-        # returns a client_id
-        # get your confirmation token in email
-        # save this in a config file:
-        # client_id: '<id>'
-        # confirmation_token: '<token>'
+        tacl --env test --pnum p11 --signup --client_name '<name>' --email '<email>'
+        # stores your client_id, along with client_name and email in config
+        # tacl config is kept in ~/.tacl_config
 
-        tacl --pnum p11 --config <file> --confirm
-        # returns a password
-        # ask for your client to be verified
-        # add this to the config file
-        # pass: '<pw>'
+        # email tsd-drift@usit.uio.no, asking for your confirmation token
 
-        tacl --pnum p11 --config <file> --getapikey
-        # returns an API key
-        # save this in the config file
-        # api_key: <key>
+        tacl --env test --pnum p11 --confirm <confirmation_token>
+        # stores your password in config
+        # your client will be verified by tsd-drift
 
-        Management
-        ~~~~~~~~~~
-        tacl --pnum p11 --config <file> --delapikey '<key>'
-        tacl --pnum p11 --config <file> --pwreset
+        tacl --env test --pnum p11 --getapikey
+        # stores an API key in the config file
+
+        Client credentials management
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        tacl --env test --pnum p11 --delapikey <key>
+        tacl --env test --pnum p11 --pwreset
+
+        tacl config management
+        ~~~~~~~~~~~~~~~~~~~~~~
+        tacl --show_config
+        tacl --del_config
 
         API docs
         ~~~~~~~~
@@ -56,61 +56,79 @@ def print_admin_guide():
 
 
 @click.command()
-@click.option('--env', default='test', help='which environment you want to interact with')
+@click.option('--env', default='prod', help='which environment you want to interact with')
 @click.option('--pnum', default=None, help='project numbers')
 @click.option('--signup', is_flag=True, default=False, help='register an API client')
-@click.option('--confirm', is_flag=True, default=False, help='confirm your details')
+@click.option('--confirm', default=False, help='confirmation token')
 @click.option('--getapikey', is_flag=True, default=False, help='get a persistent API key')
 @click.option('--delapikey', default=False, help='revoke an API key')
 @click.option('--pwreset', is_flag=True, default=False, help='reset your password')
 @click.option('--guide', is_flag=True, default=False, help='print help text')
 @click.option('--client_name', default=None, help='your client\'s name')
 @click.option('--email', default=None, help='your email address')
+@click.option('--show_config', is_flag=True, help='print current tacl config')
+@click.option('--del_config', is_flag=True, help='delete current tacl config')
 def main(env, pnum, signup, confirm, getapikey, delapikey, pwreset, guide,
-         client_name, email):
+         client_name, email, show_config, del_config):
     if guide:
         print_admin_guide()
         return
-    # TODO: set prod as default
+    if show_config:
+        print_config()
+        return
+    if del_config:
+        delete_config()
+        return
     if env not in ['test', 'prod']:
         print 'unknown env'
         sys.exit(1)
     _check_present(env, 'env')
     _check_present(pnum, 'pnum')
-    tacl_config = {'test': {}, 'prod': {}}
     if signup:
         _check_present(client_name, 'client_name')
         _check_present(email, 'email')
         resp = do_signup(env, pnum, client_name, email)
-        print resp
+        if not resp:
+            print 'Error in signup'
+            return
         update_config(env, 'client_name', client_name)
         update_config(env, 'email', email)
-        # TODO: pick client_id out and update config
+        update_config(env, 'client_id', resp['client_id'])
+        print 'client registered with client_id: %s' % resp['client_id']
         return
     if confirm:
         _check_present(client_id, 'client_id')
         conf = read_config()[env]
         resp = do_confirm(env, pnum, conf['client_id'], conf['confirmation_token'])
-        print resp
-        # TODO: pick out pass, store in config
+        if not resp:
+            print 'Error in confirmation'
+            return
+        update_config(env, 'pass', resp['pass'])
+        print 'client confirmed, password stored in tacl config'
         return
     if getapikey:
         conf = read_config()[env]
         resp = get_api_key(env, pnum, conf['client_id'], conf['pass'])
-        print resp
-        # TODO: store key in config
+        if not resp:
+            print 'Error getting API key'
+            return
+        update_config(env, 'api_key', resp['api_key'])
+        print 'API key stored in config'
         return
     if delapikey:
         conf = read_config()[env]
         resp = del_api_key(env, pnum, conf['client_id'], conf['pass'], delapikey)
-        print resp
-        # TODO: store new key
+        # TODO inspect response
+        print 'API key deleted'
         return
     if pwreset:
         conf = read_config()[env]
         resp = pw_reset(env, pnum, conf['client_id'], conf['pass'])
-        print resp
-        # TODO: store new pw
+        if not resp:
+            print 'Error in password reset'
+            return
+        update_config(env, 'pass', resp['pass'])
+        print 'new password stored in tacl config'
         return
 
 
