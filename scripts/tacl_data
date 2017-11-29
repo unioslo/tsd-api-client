@@ -26,20 +26,21 @@ def print_data_guide():
 
         --env       Either 'test' or 'prod' environment.
         --pnum      Project number.
-        --config    Path to yaml config file (tacl --help admin for more info).
         --data      Path to file or folder you want to upload.
-        --pre       Comma-separated string specifying pre-upload data processing:
+        --pre       (Optional) Comma-separated string specifying pre-upload data processing:
                         - 'archive': create a tarball
                         - 'compress': use gzip compression
                         - 'encrypt': encrypt data using AES
-        --post      Comma-separated string specifying post-upload data processing (server-side):
+        --post      (Optional) Comma-separated string specifying post-upload data processing (server-side):
                         - 'restore': restore the tarball to a directory
                         - 'decompress': decompress data
                         - 'decrypt': decrypt data
+        -recipient  (Optional) GPG recipient - only when using 'encrypt' or 'decrypt' in pre and/or post
+                    expression.
 
         Importing data to TSD
         ~~~~~~~~~~~~~~~~~~~~~
-        tacl --env <test,prod> --pnum p11 --data <filename, dirname> --pre 'archive,compress,encrypt' --post 'restore,decompress,decrypt'
+        tacl --env <test,prod> --pnum p11 --data <filename, dirname> --pre 'archive,compress,encrypt' --post 'restore,decompress,decrypt' --recipient <gpg-recipient>
 
         API docs
         ~~~~~~~~

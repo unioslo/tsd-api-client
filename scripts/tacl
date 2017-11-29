@@ -15,8 +15,6 @@ collect_credentials() {
     read -p 'OTP > ' OTP
 }
 
-recipient='l.c.d.toit@usit.uio.no' # TODO get from config
-
 exit_if_is_directory() {
     if [[ -d $1 ]]; then
         echo 'Input data is a directory'
@@ -36,12 +34,13 @@ optionally_append_extension_to_file() {
 import_data() {
     while [[ $# -gt 0 ]]; do
         case $1 in
-            --env)      shift; API_ENV=$1; shift ;;
-            --pnum)     shift; PNUM=$1; shift ;;
-            --pre)      shift; PRE=$1; shift ;;
-            --post)     shift; POST=$1; shift ;;
-            --data)     shift; INPUT_DATA=$1; shift ;;
-            *)          shift ;;
+            --env)       shift; API_ENV=$1; shift ;;
+            --pnum)      shift; PNUM=$1; shift ;;
+            --pre)       shift; PRE=$1; shift ;;
+            --post)      shift; POST=$1; shift ;;
+            --data)      shift; INPUT_DATA=$1; shift ;;
+            --recipient) shift; RECIPIENT=$1; shift ;;
+            *)           shift ;;
         esac
     done
     if [[ $POST == '' ]]; then
@@ -72,7 +71,7 @@ import_data() {
         exit_if_is_directory $INPUT_DATA
         optionally_append_extension_to_file $POST $INPUT_DATA 'aes'
         PW=$(openssl rand -base64 10)
-        ENCPW=$(echo $PW | gpg -r $recipient --encrypt | openssl base64 -A)
+        ENCPW=$(echo $PW | gpg -r $RECIPIENT --encrypt | openssl base64 -A)
         openssl enc -aes-256-cbc -in $INPUT_DATA -a -pass file:<( echo $PW ) |
         tacl_data \
             --encryptedpw $ENCPW --env $API_ENV --pnum $PNUM \
@@ -84,7 +83,7 @@ import_data() {
         exit_if_is_directory $INPUT_DATA
         optionally_append_extension_to_file $POST $INPUT_DATA 'gz.aes'
         PW=$(openssl rand -base64 10)
-        ENCPW=$(echo $PW | gpg -r $recipient --encrypt | openssl base64 -A)
+        ENCPW=$(echo $PW | gpg -r $RECIPIENT --encrypt | openssl base64 -A)
         gzip -9 < $INPUT_DATA |
         openssl enc -aes-256-cbc -in $INPUT_DATA -a -pass file:<( echo $PW ) |
         tacl_data \
@@ -109,7 +108,7 @@ import_data() {
         echo 'data import with tar, compress, and encrypt'
         optionally_append_extension_to_file $POST $INPUT_DATA 'tar.gz.aes'
         PW=$(openssl rand -base64 10)
-        ENCPW=$(echo $PW | gpg -r $recipient --encrypt | openssl base64 -A)
+        ENCPW=$(echo $PW | gpg -r $RECIPIENT --encrypt | openssl base64 -A)
         tar -cf - $INPUT_DATA |
         gzip -9 |
         openssl enc -aes-256-cbc -a -pass file:<( echo $PW ) |
@@ -123,7 +122,7 @@ import_data() {
         echo 'data import with tar and encrypt'
         optionally_append_extension_to_file $POST $INPUT_DATA 'tar.aes'
         PW=$(openssl rand -base64 10)
-        ENCPW=$(echo $PW | gpg -r $recipient --encrypt | openssl base64 -A)
+        ENCPW=$(echo $PW | gpg -r $RECIPIENT --encrypt | openssl base64 -A)
         tar -cf - $INPUT_DATA |
         openssl enc -aes-256-cbc -a -pass file:<( echo $PW ) |
         tacl_data \
