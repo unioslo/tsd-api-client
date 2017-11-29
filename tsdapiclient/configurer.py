@@ -8,7 +8,7 @@ import yaml
 HOME = os.path.expanduser('~')
 TACL_CONFIG = HOME + '/.tacl_config'
 
-def read_config(env, filename=TACL_CONFIG):
+def read_config(filename=TACL_CONFIG):
     with open(filename, 'rw') as f:
         config = yaml.load(f)
     return config
@@ -27,7 +27,6 @@ def update_config(env, key, val):
     except IOError:
         config = {'test': {}, 'prod': {}}
     try:
-        print 'current config:', config
         if config.has_key(env):
             curr_env = config[env]
             new_env = curr_env.copy()
