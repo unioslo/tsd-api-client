@@ -14,5 +14,6 @@ setup(
     scripts=[
         'scripts/tacl',
         'scripts/tacl_admin',
-        'scripts/tacl_data']
+        'scripts/tacl_data',
+        'scripts/data2tsd']
 )

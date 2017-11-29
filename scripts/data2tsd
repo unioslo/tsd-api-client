@@ -1,0 +1,41 @@
+#!/bin/bash
+
+_help="\
+
+    data2tsd
+    ~~~~~~~~
+    Upload your files and directories to TSD - safely, efficiently, simply.
+
+    Usage
+    ~~~~~
+    data2tsd --signup
+    data2tsd <file,directory>
+
+    More info
+    ~~~~~~~~~
+    data2tsd is a wrapper around another tool, called tacl. tacl is
+    a more low-level interface to the same data upload functionality.
+    For more info on that tool, its possibilities, simply type: tacl.
+
+"
+
+if [[ $# -lt 1 ]]; then
+    echo ""
+    echo "  Missing arguments, exiting"
+    echo "  For help type: data2tsd --help"
+    echo ""
+    exit 1
+fi
+
+if [[ $1 == '--help' ]]; then
+    printf "%s\n" "$_help"
+    exit 0
+fi
+
+if [[ -d $1 ]]; then
+    tacl --data $1 --pre 'archive,compress' --post 'restore,decompress' $@
+    exit 0
+else
+    tacl --data $1 --pre 'compress' --post 'decompress' $@
+    exit 0
+fi
