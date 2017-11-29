@@ -19,8 +19,15 @@ def print_admin_guide():
 
         Usage: tacl [OPTIONS]
 
-        Registration
-        ~~~~~~~~~~~~
+        1. API client admin without a TSD identity
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+        Some API users might not have TSD identities, and simply want
+        to use tacl to get credentials for their apps. Below describes
+        the procedure for getting API credentials.
+
+        1.1 Registration
+        ~~~~~~~~~~~~~~~~
         Suppose you want to register for p11 in the test environment:
 
         tacl --env test --pnum p11 --signup --client_name '<name>' --email '<email>'
@@ -38,18 +45,33 @@ def print_admin_guide():
 
         Omitting --env test means tacl will use production.
 
-        Client credentials management
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        1.2 Client credentials management
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         tacl --env test --pnum p11 --delapikey <key>
         tacl --env test --pnum p11 --pwreset
 
-        tacl config management
-        ~~~~~~~~~~~~~~~~~~~~~~
+
+        2. API client admin with TSD identity
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+        Persons who are already TSD users, can download tacl and register
+        their tacl API client using their TSD credentials in one step.
+
+        2.1 Registation
+        ~~~~~~~~~~~~~~~
+        tacl --tsd_signup
+
+        2.2 Client credentials management
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        tacl --renew_tsd_api_key
+
+        3. tacl config management
+        ~~~~~~~~~~~~~~~~~~~~~~~~~
         tacl --show_config
         tacl --del_config
 
-        API docs
-        ~~~~~~~~
+        4. API docs
+        ~~~~~~~~~~~
         test.api.tsd.usit.no/v1/docs/tsd-api-integration.html
 
     """
