@@ -25,7 +25,6 @@ def print_data_guide():
         ~~~~~~~
 
         --env       Either 'test' or 'prod' environment.
-        --pnum      Project number.
         --data      Path to file or folder you want to upload.
         --pre       (Optional) Comma-separated string specifying pre-upload data processing:
                         - 'archive': create a tarball
@@ -40,7 +39,11 @@ def print_data_guide():
 
         Importing data to TSD
         ~~~~~~~~~~~~~~~~~~~~~
-        tacl --env <test,prod> --pnum p11 --data <filename, dirname> --pre 'archive,compress,encrypt' --post 'restore,decompress,decrypt' --recipient <gpg-recipient>
+        tacl --env <test,prod> --data <filename, dirname> --pre 'archive,compress,encrypt' --post 'restore,decompress,decrypt' --recipient <gpg-recipient>
+
+        This will prompt you for your TSD credentials.
+        If you enter the credentials for p11, e.g.,
+        then data will be uploaded to p11.
 
         API docs
         ~~~~~~~~
