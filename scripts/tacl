@@ -115,7 +115,7 @@ import_data() {
         tacl_data \
             --encryptedpw $ENCPW \
             --env $API_ENV --pnum $PNUM \
-            --post $POST --data $INPUT_DATA \
+            --post $POST --data $dest_file \
             --user_name $USERNAME --password $PASSWORD --otp $OTP -
         exit 0
     elif [[ $PRE == *"archive"* ]] && [[ $PRE == *"encrypt"* ]]; then
@@ -128,7 +128,7 @@ import_data() {
         tacl_data \
             --encryptedpw $ENCPW \
             --env $API_ENV --pnum $PNUM \
-            --post $POST --data $INPUT_DATA \
+            --post $POST --data $dest_file \
             --user_name $USERNAME --password $PASSWORD --otp $OTP -
         exit 0
     elif [[ $PRE == *"archive"* ]] && [[ $PRE == *"compress"* ]]; then
@@ -137,7 +137,7 @@ import_data() {
         tar -cf - $INPUT_DATA | gzip -9 |
         tacl_data \
             --env $API_ENV --pnum $PNUM \
-            --post $POST --data $INPUT_DATA \
+            --post $POST --data $dest_file \
             --user_name $USERNAME --password $PASSWORD --otp $OTP -
         exit 0
     fi
