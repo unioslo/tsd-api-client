@@ -9,6 +9,10 @@ if [[ $# -lt 1 ]]; then
     exit 1
 fi
 
+pnum_from_uname() {
+    echo $1 | sed 's/p\(.*\)-\(.*\)/p\1/g'
+}
+
 collect_credentials() {
     read -p 'User > ' USERNAME
     read -s -p 'Password > ' PASSWORD; echo
@@ -35,7 +39,6 @@ import_data() {
     while [[ $# -gt 0 ]]; do
         case $1 in
             --env)       shift; API_ENV=$1; shift ;;
-            --pnum)      shift; PNUM=$1; shift ;;
             --pre)       shift; PRE=$1; shift ;;
             --post)      shift; POST=$1; shift ;;
             --data)      shift; INPUT_DATA=$1; shift ;;
@@ -43,9 +46,16 @@ import_data() {
             *)           shift ;;
         esac
     done
+
     if [[ $POST == '' ]]; then
         POST='none'
     fi
+
+    if [[ $API_ENV == '' ]]; then
+        API_ENV='prod'
+    fi
+
+    PNUM=$(pnum_from_uname $USERNAME)
 
     # Files
     # -----
