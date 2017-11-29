@@ -25,6 +25,14 @@ exit_if_is_directory() {
     fi
 }
 
+optionally_append_extension_to_file() {
+    if [[ $1 == 'none' ]]; then
+        dest_file=$2.$3
+    else
+        dest_file=$2
+    fi
+}
+
 import_data() {
     while [[ $# -gt 0 ]]; do
         case $1 in
@@ -52,33 +60,36 @@ import_data() {
     elif [[ $PRE == 'compress' ]]; then
         echo 'data import with compression'
         exit_if_is_directory $INPUT_DATA
+        optionally_append_extension_to_file $POST $INPUT_DATA 'gz'
         gzip -9 < $INPUT_DATA |
         tacl_data \
             --env $API_ENV --pnum $PNUM \
-            --post $POST --data $INPUT_DATA \
+            --post $POST --data $dest_file \
             --user_name $USERNAME --password $PASSWORD --otp $OTP -
         exit 0
     elif [[ $PRE == 'encrypt' ]]; then
         echo 'data import with encryption'
         exit_if_is_directory $INPUT_DATA
+        optionally_append_extension_to_file $POST $INPUT_DATA 'aes'
         PW=$(openssl rand -base64 10)
         ENCPW=$(echo $PW | gpg -r $recipient --encrypt | openssl base64 -A)
         openssl enc -aes-256-cbc -in $INPUT_DATA -a -pass file:<( echo $PW ) |
         tacl_data \
             --encryptedpw $ENCPW --env $API_ENV --pnum $PNUM \
-            --post $POST --data $INPUT_DATA \
+            --post $POST --data $dest_file \
             --user_name $USERNAME --password $PASSWORD --otp $OTP -
         exit 0
     elif [[ $PRE == *"compress"* ]] && [[ $PRE == *"encrypt"* ]]; then
         echo 'data import with compression and encryption'
         exit_if_is_directory $INPUT_DATA
+        optionally_append_extension_to_file $POST $INPUT_DATA 'gz.aes'
         PW=$(openssl rand -base64 10)
         ENCPW=$(echo $PW | gpg -r $recipient --encrypt | openssl base64 -A)
         gzip -9 < $INPUT_DATA |
         openssl enc -aes-256-cbc -in $INPUT_DATA -a -pass file:<( echo $PW ) |
         tacl_data \
             --encryptedpw $ENCPW --env $API_ENV --pnum $PNUM \
-            --post $POST --data $INPUT_DATA \
+            --post $POST --data $dest_file \
             --user_name $USERNAME --password $PASSWORD --otp $OTP -
         exit 0
 
@@ -87,14 +98,16 @@ import_data() {
 
     elif [[ $PRE == 'archive' ]]; then
         echo 'data import with tar'
+        optionally_append_extension_to_file $POST $INPUT_DATA 'tar'
         tar -cf - $INPUT_DATA |
         tacl_data \
             --env $API_ENV --pnum $PNUM \
-            --post $POST --data $INPUT_DATA \
+            --post $POST --data $dest_file \
             --user_name $USERNAME --password $PASSWORD --otp $OTP -
         exit 0
     elif [[ $PRE == *"archive"* ]] && [[ $PRE == *"compress"* ]] && [[ $PRE == *"encrypt"* ]]; then
         echo 'data import with tar, compress, and encrypt'
+        optionally_append_extension_to_file $POST $INPUT_DATA 'tar.gz.aes'
         PW=$(openssl rand -base64 10)
         ENCPW=$(echo $PW | gpg -r $recipient --encrypt | openssl base64 -A)
         tar -cf - $INPUT_DATA |
@@ -108,6 +121,7 @@ import_data() {
         exit 0
     elif [[ $PRE == *"archive"* ]] && [[ $PRE == *"encrypt"* ]]; then
         echo 'data import with tar and encrypt'
+        optionally_append_extension_to_file $POST $INPUT_DATA 'tar.aes'
         PW=$(openssl rand -base64 10)
         ENCPW=$(echo $PW | gpg -r $recipient --encrypt | openssl base64 -A)
         tar -cf - $INPUT_DATA |
@@ -120,6 +134,7 @@ import_data() {
         exit 0
     elif [[ $PRE == *"archive"* ]] && [[ $PRE == *"compress"* ]]; then
         echo 'data import with tar and gzip'
+        optionally_append_extension_to_file $POST $INPUT_DATA 'tar.gz'
         tar -cf - $INPUT_DATA | gzip -9 |
         tacl_data \
             --env $API_ENV --pnum $PNUM \
