@@ -21,7 +21,8 @@ def get_jwt_basic_auth(env, pnum, api_key):
         return None
 
 
-def get_jwt_tsd_auth(env, pnum, api_key, user_name, password, otp, token_type):
+def get_jwt_tsd_auth(env, pnum, api_key, user_name, password,
+                     otp, token_type):
     headers = {'Content-Type': 'application/json',
                'Authorization': 'Bearer ' + api_key}
     data = {'user_name': user_name, 'password': password, 'otp': otp}

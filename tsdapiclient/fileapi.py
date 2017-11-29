@@ -41,12 +41,12 @@ def streamfile(env, pnum, filename, token,
 
     Returns
     -------
-    str (HTTP status message)
+    requests.response
 
     """
     url = '%s/%s/files/stream' % (ENV[env], pnum)
     headers = {'Authorization': 'Bearer ' + token, 'Filename': filename}
-    if custom_header is not None:
+    if custom_headers is not None:
         new_headers = headers.copy()
         new_headers.update(custom_headers)
     else:
@@ -54,7 +54,7 @@ def streamfile(env, pnum, filename, token,
     print 'PUT: %s' % url
     resp = requests.put(url, data=lazy_reader(filename, chunksize),
                          headers=new_headers)
-    return resp.text
+    return resp
 
 
 def streamstdin(env, pnum, fileinput, filename, token,
@@ -73,12 +73,12 @@ def streamstdin(env, pnum, fileinput, filename, token,
 
     Returns
     -------
-    str (HTTP status message)
+    requests.response
 
     """
     url = '%s/%s/files/stream' % (ENV[env], pnum)
     headers = {'Authorization': 'Bearer ' + token, 'Filename': filename}
-    if custom_header is not None:
+    if custom_headers is not None:
         new_headers = headers.copy()
         new_headers.update(custom_headers)
     else:
@@ -86,4 +86,4 @@ def streamstdin(env, pnum, fileinput, filename, token,
     print 'PUT: %s' % url
     resp = requests.put(url, data=lazy_stdin_handler(fileinput, chunksize),
                          headers=new_headers)
-    return resp.text
+    return resp

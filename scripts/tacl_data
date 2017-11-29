@@ -39,7 +39,7 @@ def print_data_guide():
 
         Importing data to TSD
         ~~~~~~~~~~~~~~~~~~~~~
-        tacl --env <test,prod> --pnum p11 --config <file> --data <filename, dirname> --pre 'archive,compress,encrypt' --post 'restore,decompress,decrypt'
+        tacl --env <test,prod> --pnum p11 --data <filename, dirname> --pre 'archive,compress,encrypt' --post 'restore,decompress,decrypt'
 
         API docs
         ~~~~~~~~
@@ -112,28 +112,35 @@ def main(env, pnum, config, guide, data, fileinput, user_name,
         sys.exit(1)
     _check_present(env, 'env')
     _check_present(pnum, 'pnum')
-    if data:
-        _check_present(config, 'config')
+    if data is not None:
         _check_present(data, 'data')
         _check_present(user_name, 'user_name')
         _check_present(password, 'password')
         _check_present(otp, 'otp')
-        conf = read_config(config)
         try:
             custom_headers = parse_post_processing_expression(post, encryptedpw)
         except Exception:
             print 'Cannot proceed - unclear data pipeline specification'
             return
         try:
-            token = get_jwt_tsd_auth(env, pnum, conf['api_key'], user_name, password, otp, 'import')
+            api_key = read_config()[env]['api_key']
+            token = get_jwt_tsd_auth(env, pnum, api_key, user_name, password, otp, 'import')
         except Exception:
             print 'Authentication failed'
             return
         if token:
             if fileinput is None:
-                print streamfile(env, pnum, data, token, custom_headers=custom_headers)
+                resp = streamfile(env, pnum, data, token, custom_headers=custom_headers)
+                if resp.status_code == 201:
+                    print 'Data imported'
+                else:
+                    print 'Data import failed: ', resp.text
             else:
-                print streamstdin(env, pnum, fileinput, data, token, custom_headers=custom_headers)
+                resp = streamstdin(env, pnum, fileinput, data, token, custom_headers=custom_headers)
+                if resp.status_code == 201:
+                    print 'Data imported'
+                else:
+                    print 'Data import failed: ', resp.text
             return
         else:
             print 'Authentication failed'
