@@ -60,7 +60,7 @@ def print_admin_guide():
 @click.option('--env', default='prod', help='which environment you want to interact with')
 @click.option('--pnum', default=None, help='project numbers')
 @click.option('--signup', is_flag=True, default=False, help='register an API client')
-@click.option('--confirm', default=False, help='confirmation token')
+@click.option('--confirm', default=None, help='confirmation token')
 @click.option('--getapikey', is_flag=True, default=False, help='get a persistent API key')
 @click.option('--delapikey', default=False, help='revoke an API key')
 @click.option('--pwreset', is_flag=True, default=False, help='reset your password')
@@ -97,10 +97,9 @@ def main(env, pnum, signup, confirm, getapikey, delapikey, pwreset, guide,
         update_config(env, 'client_id', resp['client_id'])
         print 'client registered with client_id: %s' % resp['client_id']
         return
-    if confirm:
-        _check_present(client_id, 'client_id')
+    if confirm is not None:
         conf = read_config()[env]
-        resp = do_confirm(env, pnum, conf['client_id'], conf['confirmation_token'])
+        resp = do_confirm(env, pnum, conf['client_id'], confirm)
         if not resp:
             print 'Error in confirmation'
             return
