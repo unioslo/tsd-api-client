@@ -29,7 +29,6 @@ import_data() {
     while [[ $# -gt 0 ]]; do
         case $1 in
             --env)      shift; API_ENV=$1; shift ;;
-            --config)   shift; CONF=$1; shift ;;
             --pnum)     shift; PNUM=$1; shift ;;
             --pre)      shift; PRE=$1; shift ;;
             --post)     shift; POST=$1; shift ;;
@@ -45,33 +44,33 @@ import_data() {
     # -----
 
     if [[ $PRE == '' ]]; then
-        echo 'POST without pre-processing'
         exit_if_is_directory $INPUT_DATA
         tacl_data --env $API_ENV --pnum $PNUM \
-            --config $CONF --data $INPUT_DATA \
+            --post $POST --data $INPUT_DATA \
             --user_name $USERNAME --password $PASSWORD --otp $OTP
         exit 0
     elif [[ $PRE == 'compress' ]]; then
+        echo 'data import with compression'
         exit_if_is_directory $INPUT_DATA
         gzip -9 < $INPUT_DATA |
         tacl_data \
             --env $API_ENV --pnum $PNUM \
-            --config $CONF --post $POST --data $INPUT_DATA \
+            --post $POST --data $INPUT_DATA \
             --user_name $USERNAME --password $PASSWORD --otp $OTP -
         exit 0
     elif [[ $PRE == 'encrypt' ]]; then
-        echo 'POST with encryption'
+        echo 'data import with encryption'
         exit_if_is_directory $INPUT_DATA
         PW=$(openssl rand -base64 10)
         ENCPW=$(echo $PW | gpg -r $recipient --encrypt | openssl base64 -A)
         openssl enc -aes-256-cbc -in $INPUT_DATA -a -pass file:<( echo $PW ) |
         tacl_data \
             --encryptedpw $ENCPW --env $API_ENV --pnum $PNUM \
-            --config $CONF --post $POST --data $INPUT_DATA \
+            --post $POST --data $INPUT_DATA \
             --user_name $USERNAME --password $PASSWORD --otp $OTP -
         exit 0
     elif [[ $PRE == *"compress"* ]] && [[ $PRE == *"encrypt"* ]]; then
-        echo 'POST with compression and encryption'
+        echo 'data import with compression and encryption'
         exit_if_is_directory $INPUT_DATA
         PW=$(openssl rand -base64 10)
         ENCPW=$(echo $PW | gpg -r $recipient --encrypt | openssl base64 -A)
@@ -79,7 +78,7 @@ import_data() {
         openssl enc -aes-256-cbc -in $INPUT_DATA -a -pass file:<( echo $PW ) |
         tacl_data \
             --encryptedpw $ENCPW --env $API_ENV --pnum $PNUM \
-            --config $CONF --post $POST --data $INPUT_DATA \
+            --post $POST --data $INPUT_DATA \
             --user_name $USERNAME --password $PASSWORD --otp $OTP -
         exit 0
 
@@ -87,15 +86,15 @@ import_data() {
     # -----------
 
     elif [[ $PRE == 'archive' ]]; then
-        echo 'POST with tar'
+        echo 'data import with tar'
         tar -cf - $INPUT_DATA |
         tacl_data \
             --env $API_ENV --pnum $PNUM \
-            --config $CONF --post $POST --data $INPUT_DATA \
+            --post $POST --data $INPUT_DATA \
             --user_name $USERNAME --password $PASSWORD --otp $OTP -
         exit 0
     elif [[ $PRE == *"archive"* ]] && [[ $PRE == *"compress"* ]] && [[ $PRE == *"encrypt"* ]]; then
-        echo 'POST with tar, compress, and encrypt'
+        echo 'data import with tar, compress, and encrypt'
         PW=$(openssl rand -base64 10)
         ENCPW=$(echo $PW | gpg -r $recipient --encrypt | openssl base64 -A)
         tar -cf - $INPUT_DATA |
@@ -104,11 +103,11 @@ import_data() {
         tacl_data \
             --encryptedpw $ENCPW \
             --env $API_ENV --pnum $PNUM \
-            --config $CONF --post $POST --data $INPUT_DATA \
+            --post $POST --data $INPUT_DATA \
             --user_name $USERNAME --password $PASSWORD --otp $OTP -
         exit 0
     elif [[ $PRE == *"archive"* ]] && [[ $PRE == *"encrypt"* ]]; then
-        echo 'POST with tar and encrypt'
+        echo 'data import with tar and encrypt'
         PW=$(openssl rand -base64 10)
         ENCPW=$(echo $PW | gpg -r $recipient --encrypt | openssl base64 -A)
         tar -cf - $INPUT_DATA |
@@ -116,26 +115,29 @@ import_data() {
         tacl_data \
             --encryptedpw $ENCPW \
             --env $API_ENV --pnum $PNUM \
-            --config $CONF --post $POST --data $INPUT_DATA \
+            --post $POST --data $INPUT_DATA \
             --user_name $USERNAME --password $PASSWORD --otp $OTP -
         exit 0
     elif [[ $PRE == *"archive"* ]] && [[ $PRE == *"compress"* ]]; then
-        echo 'POST with tar and gzip'
+        echo 'data import with tar and gzip'
         tar -cf - $INPUT_DATA | gzip -9 |
         tacl_data \
             --env $API_ENV --pnum $PNUM \
-            --config $CONF --post $POST --data $INPUT_DATA \
+            --post $POST --data $INPUT_DATA \
             --user_name $USERNAME --password $PASSWORD --otp $OTP -
         exit 0
     fi
 }
 
-if [[ $1 =~ ^('--help'|'--guide') ]]; then
+if [[ $1 =~ ^('--help'|'--guide'|'--show_config'|'--del_config') ]]; then
     if [[ $2 == 'admin' ]]; then
         tacl_admin $1
         exit 0
     elif [[ $2 == 'data' ]]; then
         tacl_data $1
+        exit 0
+    else
+        tacl_admin $@
         exit 0
     fi
 fi
