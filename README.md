@@ -60,14 +60,14 @@ Some example data imports using `tacl`:
 
 ```bash
 # existing tar.gz, store as is
-tacl --pnum p11 --data example.tar.gz
+tacl --data example.tar.gz
 
 # existing tar.gz, decompress and restore server-side
-tacl --pnum p11 --data example.tar.gz --post 'restore,decompress'
+tacl --data example.tar.gz --post 'restore,decompress'
 
 # single file, compress on-the-fly, decompress server-side
-tacl --pnum p11 --data myfile --pre 'compress' --post 'decompress'
+tacl --data myfile --pre 'compress' --post 'decompress'
 
 # existing directory, tar.gz on-the-fly, decompress and restore server-side
-tacl --pnum p11 --data mydir --pre 'archive,compress' --post 'restore,decompress'
+tacl --data mydir --pre 'archive,compress' --post 'restore,decompress'
 ```
