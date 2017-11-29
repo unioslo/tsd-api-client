@@ -11,12 +11,6 @@ _help="\
     data2tsd --signup
     data2tsd <file,directory>
 
-    More info
-    ~~~~~~~~~
-    data2tsd is a wrapper around another tool, called tacl. tacl is
-    a more low-level interface to the same data upload functionality.
-    For more info on that tool, its possibilities, simply type: tacl.
-
 "
 
 if [[ $# -lt 1 ]]; then

@@ -1,12 +1,22 @@
 ## TSD API Client
 
-Python cient library for TSD HTTP API, and a command-line tool `tacl`.
+Python cient library for TSD HTTP API.
 
 ## Design goals
 
 - provide a simple Python library for implementing clients
-- provide a command-line client as a powertool, exposing all options in a simple way
-- non-blocking, efficient, secure data transfer implementations
+- provide two command-line tools:
+    - `tacl`
+        - a powertool, exposing all options in a simple way
+        - simple signup based on TSD 2FA
+        - helper methods for register other API clients
+    - `data2tsd`
+        - a very simple tool that just does the right thing
+        - simple signup based on TSD 2FA
+- all data transfer methods are:
+    - non-blocking
+    - efficient
+    - secure
 
 ## Install
 
@@ -14,13 +24,36 @@ Python cient library for TSD HTTP API, and a command-line tool `tacl`.
 rpm -Uvh <rpm>
 ```
 
-## Usage
+## Choosing a tool
 
-Getting help:
+Consider the following use cases - a TSD user wants to:
+
+1) interactively upload files and/or directories
+2) script uploads
+3) build custom data pipelines
+4) register another application with the TSD API
+
+Which tools to choose? Why?
+
+1) `data2tsd` - simplest possible tool with correct defaults
+2) `tacl` - provides option for non-interactive authentication
+3) `tacl` - exposes all API functionality
+4) `tacl` - provides helper methods that make API client registration easier
+
+## Getting help
 
 ```bash
-tacl --help
-tacl --guide
+tacl --help <admin,data>
+data2tsd --help
+```
+
+## Examples
+
+Importing data with data2tsd:
+
+```bash
+data2tsd myfile
+data2tsd mydirectory
 ```
 
 Some example data imports using `tacl`:
