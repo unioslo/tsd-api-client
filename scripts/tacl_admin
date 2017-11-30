@@ -17,18 +17,12 @@ def print_admin_guide():
         tacl admin
         ~~~~~~~~~~
 
-        1. Register tacl for interactive use
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-        Persons who are already TSD users, can download tacl and register
-        using their TSD credentials.
-
-        tacl --tsdsignup
-
-        Registration is valid for 1 year. To renew, just do the same.
-
-        2. Register tacl for non-interactive use
+        1. Register tacl for non-interactive use
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+        By default, tacl can be used with TSD credentials in an interactive
+        way. If you want to script your uploads with tacl follow this
+        procedure:
 
         tacl --pnum p11 --signup --client_name '<name>' --email '<email>'
         # email tsd-drift@usit.uio.no, asking for your confirmation token
@@ -36,20 +30,20 @@ def print_admin_guide():
         # email tsd-drift@usit.uio.no, asking for verification
         tacl --pnum p11 --getapikey
 
-        3. Register a 3rd-party app with the API
+        2. Register a 3rd-party app with the API
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-        Follow the same steps as in #2.
+        Follow the same steps as in #1.
         To view your credentials do: tacl --show_config
 
-        4. Manage your config
+        3. Manage your config
         ~~~~~~~~~~~~~~~~~~~~~
         tacl --pnum p11 --delapikey <key>
         tacl --pnum p11 --pwreset
         tacl --show_config
         tacl --del_config
 
-        5. API docs
+        4. API docs
         ~~~~~~~~~~~
         test.api.tsd.usit.no/v1/docs/tsd-api-integration.html
 

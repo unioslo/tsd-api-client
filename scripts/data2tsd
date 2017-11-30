@@ -8,7 +8,6 @@ _help="\
 
     Usage
     ~~~~~
-    data2tsd --signup
     data2tsd <file,directory>
 
 "
