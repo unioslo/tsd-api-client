@@ -8,7 +8,13 @@ _help="\
 
     Usage
     ~~~~~
-    data2tsd <file,directory>
+    data2tsd some-file
+    data2tsd some-directory
+
+    If you want to interact with the test API add: '--env test' to
+    your comman, e.g.:
+
+    data2tsd some-file --env test
 
 "
 
