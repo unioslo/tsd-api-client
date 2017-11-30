@@ -20,12 +20,11 @@ def print_admin_guide():
         If you want to interact with the test API add: '--env test' to
         your command.
 
-        1. Register tacl for non-interactive use
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
         By default, tacl can be used with TSD credentials in an interactive
-        way. If you want to script your uploads with tacl follow this
-        procedure:
+        way.
+
+        1. Register a 3rd-party app with the API
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
         tacl --pnum p11 --signup --client_name '<name>' --email '<email>'
         # email tsd-drift@usit.uio.no, asking for your confirmation token
@@ -33,20 +32,16 @@ def print_admin_guide():
         # email tsd-drift@usit.uio.no, asking for verification
         tacl --pnum p11 --getapikey
 
-        2. Register a 3rd-party app with the API
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-        Follow the same steps as in #1.
         To view your credentials do: tacl --show_config
 
-        3. Manage your config
+        2. Manage your config
         ~~~~~~~~~~~~~~~~~~~~~
         tacl --pnum p11 --delapikey <key>
         tacl --pnum p11 --pwreset
         tacl --show_config
         tacl --del_config
 
-        4. API docs
+        3. API docs
         ~~~~~~~~~~~
         test.api.tsd.usit.no/v1/docs/tsd-api-integration.html
 

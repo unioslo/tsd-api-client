@@ -12,7 +12,7 @@ _help="\
     data2tsd some-directory
 
     If you want to interact with the test API add: '--env test' to
-    your comman, e.g.:
+    your command, e.g.:
 
     data2tsd some-file --env test
 
