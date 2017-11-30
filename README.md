@@ -44,6 +44,7 @@ Which tools to choose? Why?
 
 ```bash
 tacl --help <admin,data>
+tacl --guide <admin,data>
 data2tsd --help
 ```
 
