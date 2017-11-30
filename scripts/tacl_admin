@@ -17,6 +17,9 @@ def print_admin_guide():
         tacl admin
         ~~~~~~~~~~
 
+        If you want to interact with the test API add: '--env test' to
+        your command.
+
         1. Register tacl for non-interactive use
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
