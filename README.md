@@ -73,7 +73,7 @@ tacl --data myfile --pre 'compress' --post 'decompress'
 tacl --data mydir --pre 'archive,compress' --post 'restore,decompress'
 ```
 
-Another typical example, is a TSD user that needs to analyse data on Colossus. It is often the case that data needs to be archived and compressed, to make transfer efficient, but that extra space needed to create the compress archive is lacking. In this case one can use `tacl`, with streaming archival and compresssion on the source host, storing the data as a compressed archive in TSD's import area. This can then be copied to Colossus, decompressed, extracted and analysed. The data transfer, and transformation would be accomplished with the following command:
+Another typical example, is a TSD user that needs to analyse data on Colossus. It is often the case that data needs to be archived and compressed, to make transfer efficient, but that extra space needed to create the compressed archive is lacking. In this case one can use `tacl`, with streaming archival and compresssion on the source host, storing the data as a compressed archive in TSD's import area. This can then be copied to Colossus, decompressed, extracted and analysed. The data transfer, and transformation would be accomplished with the following command:
 
 ```bash
 tacl --data directory-with-large-dataset --pre 'archive,compress'
