@@ -22,6 +22,8 @@ Python cient library for TSD HTTP API.
 
 ```bash
 rpm -Uvh <rpm>
+# or
+pip install URL
 ```
 
 ## Choosing a tool

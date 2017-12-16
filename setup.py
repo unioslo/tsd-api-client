@@ -5,7 +5,7 @@ from setuptools import setup
 
 setup(
     name='tsd-api-client',
-    version='0.8.0',
+    version='0.9.0',
     description='A client for the TSD REST API',
     author='Leon du Toit',
     author_email='l.c.d.toit@usit.uio.no',
@@ -15,5 +15,11 @@ setup(
         'scripts/tacl',
         'scripts/tacl_admin',
         'scripts/tacl_data',
-        'scripts/data2tsd']
+        'scripts/data2tsd'],
+    install_requires = [
+        'requests',
+        'click',
+        'pyyaml',
+        's3cmd'
+    ],
 )
