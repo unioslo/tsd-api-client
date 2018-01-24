@@ -65,30 +65,31 @@ import_data() {
     PNUM=$(pnum_from_uname $USERNAME)
 
     # TODO: an alg for choosing chunk size?
-    # TODO: figure out standard bucket name
 
     # Resumable
     # ---------
 
     if [[ $RESUMABLE == 'yes' ]]; then
+        BUCKETNAME="${PNUM}api"
         do_tacl_auth
         if [[ $RID != '' ]]; then
-            s3cmd --upload-id $RID --add-header=token:$JWT put $INPUT_DATA s3://$PNUM
+            s3cmd --upload-id $RID --add-header=token:$JWT put $INPUT_DATA s3://$BUCKETNAME
             exit 0
         fi
-        s3cmd --add-header=token:$JWT put $INPUT_DATA s3://$PNUM
+        s3cmd --add-header=token:$JWT put $INPUT_DATA s3://$BUCKETNAME
         exit 0
     fi
 
     # Sync
     # ----
     if [[ $SYNC == 'yes' ]]; then
+        BUCKETNAME="${PNUM}api"
         do_tacl_auth
         if [[ $RID != '' ]]; then
-            s3cmd --upload-id $RID --add-header=token:$JWT sync $INPUT_DATA s3://$PNUM
+            s3cmd --upload-id $RID --add-header=token:$JWT sync $INPUT_DATA s3://$BUCKETNAME
             exit 0
         fi
-        s3cmd --add-header=token:$JWT sync $INPUT_DATA s3://$PNUM
+        s3cmd --add-header=token:$JWT sync $INPUT_DATA s3://$BUCKETNAME
         exit 0
     fi
 
