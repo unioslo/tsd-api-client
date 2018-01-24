@@ -91,13 +91,13 @@ tacl --data directory-with-large-dataset --pre 'archive,compress'
 # stored as directory-with-large-dataset.tar.gz in the import area
 ```
 
-# uploading a very large file with resume capability
+Uploading a very large file with resume capability:
 ```bash
 tacl --data alargefile --resumable
 # if it fails along the way
 tacl --data alargefile --resumable --rid <resumeid>
 ```
-# synchronise a directory
+Synchronise a directory:
 ```bash
 tacl --data mydir --sync
 # some changes happen to the directory...
