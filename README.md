@@ -2,22 +2,6 @@
 
 Python cient library for TSD HTTP API.
 
-## Design goals
-
-- provide a simple Python library for implementing clients
-- provide two command-line tools:
-    - `tacl`
-        - a powertool, exposing all options in a simple way
-        - simple signup based on TSD 2FA
-        - helper methods for register other API clients
-    - `data2tsd`
-        - a very simple tool that just does the right thing
-        - simple signup based on TSD 2FA
-- all data transfer methods are:
-    - non-blocking
-    - efficient
-    - secure
-
 ## Install
 
 ```bash
@@ -47,7 +31,7 @@ secret_key = <KEY>
 signature_v2 = False
 ```
 
-## Choosing a tool
+## How to use the client
 
 Consider the following use cases - a TSD user wants to:
 
@@ -55,6 +39,8 @@ Consider the following use cases - a TSD user wants to:
 2) script uploads
 3) build custom data pipelines
 4) register another application with the TSD API
+5) upload TBs of data once
+6) synchronise a directory which undergoes incremental changes
 
 Which tools to choose? Why?
 
@@ -62,6 +48,8 @@ Which tools to choose? Why?
 2) `tacl` - provides option for non-interactive authentication
 3) `tacl` - exposes all API functionality
 4) `tacl` - provides helper methods that make API client registration easier
+5) `tacl` - provides resumable uploads
+6) `tacl` - provides incremental sync
 
 ## Getting help
 
@@ -101,4 +89,19 @@ Another typical example, is a TSD user that needs to analyse data on Colossus. I
 ```bash
 tacl --data directory-with-large-dataset --pre 'archive,compress'
 # stored as directory-with-large-dataset.tar.gz in the import area
+```
+
+# uploading a very large file with resume capability
+```bash
+tacl --data alargefile --resumable
+# if it fails along the way
+tacl --data alargefile --resumable --rid <resumeid>
+```
+# synchronise a directory
+```bash
+tacl --data mydir --sync
+# some changes happen to the directory...
+tacl --data mydir --sync
+# the new sync fails to complete due to network interruption...
+tacl --data mydir --sync --rid <resumeid>
 ```
