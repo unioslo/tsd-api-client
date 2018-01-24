@@ -27,6 +27,7 @@ def print_data_guide():
         --data          Path to file or folder you want to upload.
         --resumable     Use a resumable upload protocol.
         --sync          Synchronise a local directory to TSD.
+        --rid           Resume ID - s3cmd prints an ID to use to resume an operation.
 
         Optional data pipeline parameters (not relevant to resume or sync):
         --pre           Comma-separated string specifying pre-upload data processing:
