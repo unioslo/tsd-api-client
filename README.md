@@ -21,9 +21,30 @@ Python cient library for TSD HTTP API.
 ## Install
 
 ```bash
-rpm -Uvh <rpm>
-# or
-pip install URL
+# consider making this a public repo
+# or having a mirror on github
+git clone ssh://git@bitbucket.usit.uio.no:7999/tsd/tsd-api-client.git
+cd tsd-api-client
+python setup.py install
+cd ..
+# install patched version of s3cmd that supports custom headers
+git clone https://github.com/leondutoit/s3cmd.git
+cd s3cmd
+python setup.py install
+```
+
+## Configure s3cmd
+
+```bash
+# in your home directory
+emacs .s3cfg
+host_base = api.tsd.usit.no
+host_bucket = api.tsd.usit.no
+bucket_location = us-east-1 # this is just to prevent error
+use_https = True
+access_key = <KEY>
+secret_key = <KEY>
+signature_v2 = False
 ```
 
 ## Choosing a tool

@@ -48,7 +48,9 @@ def print_data_guide():
 
         # To perform resumable uploads and sync operations
         # you need to configure s3cmd with secret and access
-        # keys - contact tsd-drift about this
+        # keys - contact tsd-drift@usit.uio.no about this
+        # and read the installation and configuration instructions:
+        # https://bitbucket.usit.uio.no/projects/TSD/repos/tsd-api-client/browse/README.md
 
         # start a resumable upload:
         tacl --data my-very-large-file --resumable

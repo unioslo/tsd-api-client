@@ -20,7 +20,6 @@ setup(
     install_requires = [
         'requests',
         'click',
-        'pyyaml',
-        's3cmd'
+        'pyyaml'
     ],
 )
