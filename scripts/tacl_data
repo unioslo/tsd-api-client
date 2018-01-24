@@ -42,10 +42,23 @@ def print_data_guide():
 
         Examples: Importing data to TSD in production
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+        # compose an asynchronous data pipeline:
         tacl --data my-directory --pre 'archive,compress' --post 'restore,decompress'
+
+        # To perform resumable uploads and sync operations
+        # you need to configure s3cmd with secret and access
+        # keys - contact tsd-drift about this
+
+        # start a resumable upload:
         tacl --data my-very-large-file --resumable
+        # if it fails along the way, resume:
         tacl --data my-very-large-file --resumable --rid <resume-id>
+
+        # sync a directory:
         tacl --data my-directory --sync
+        # if it fails along the way, resume:
+        tacl --data my-directory --sync --rid <resume-id>
 
         In all cases you will be prompted you for your TSD credentials:
         username, password, and one-time code.

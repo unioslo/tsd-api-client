@@ -48,20 +48,20 @@ def main(env, pnum, user_name, password, otp, token_type, guide):
         sys.exit(1)
     _check_present(env, 'env')
     _check_present(pnum, 'pnum')
+    try:
+        # tacl_data prefers an api_key found in .tacl_config
+        # by default there is nothing there, and tacl is
+        # able to upload data with TSD 2FA, using API keys
+        # stored in code. If .tacl_config does not contain
+        # keys, then those distributed with the application
+        # are used
         try:
-            # tacl_data prefers an api_key found in .tacl_config
-            # by default there is nothing there, and tacl is
-            # able to upload data with TSD 2FA, using API keys
-            # stored in code. If .tacl_config does not contain
-            # keys, then those distributed with the application
-            # are used
-            try:
-                api_key = read_config()[env]['api_key']
-            except Exception as e:
-                api_key = API_KEYS[env]
-        except Exception:
-            print 'Authentication failed'
-            return
+            api_key = read_config()[env]['api_key']
+        except Exception as e:
+            api_key = API_KEYS[env]
+    except Exception:
+        print 'Authentication failed'
+        return
     if user_name and password and otp and token_type:
         jwt = get_jwt_tsd_auth(env, pnum, API_KEYS[env], user_name,
                                password, otp, token_type)
