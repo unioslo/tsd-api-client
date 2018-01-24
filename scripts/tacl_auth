@@ -1,0 +1,76 @@
+#!/bin env python
+
+"""Script to perform 2FA and get a JWT in return."""
+
+import sys
+
+import click
+
+from tsdapiclient.authapi import get_jwt_tsd_auth
+from tsdapiclient.config import ENV, API_KEYS
+from tsdapiclient.tools import _check_present
+
+
+def print_auth_help():
+    _help = """
+
+        tacl_auth: helper script to perform 2FA
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+        Usage: tacl_auth [OPTIONS]
+
+        Options
+        ~~~~~~~
+
+        Example
+        ~~~~~~~
+        tacl_auth --pnum p11 --user_name p11-name --password somepw \
+            --otp 123456 --token_type import
+
+    """
+    print _help
+
+
+@click.command()
+@click.option('--env', default='test', help='which environment you want to interact with')
+@click.option('--pnum', default=None, help='project numbers')
+@click.option('--user_name', default=None, help='TSD project user name')
+@click.option('--password', default=None, help='TSD password')
+@click.option('--otp', default=None, help='one time passcode')
+@click.option('--token_type', default=None, help='import, export, or admin')
+@click.option('--guide', is_flag=True, default=False, help='print help text')
+def main(env, pnum, user_name, password, otp, token_type, guide):
+    if guide:
+        print_data_guide()
+        return
+    if env not in ['test', 'prod']:
+        print 'unknown env'
+        sys.exit(1)
+    _check_present(env, 'env')
+    _check_present(pnum, 'pnum')
+        try:
+            # tacl_data prefers an api_key found in .tacl_config
+            # by default there is nothing there, and tacl is
+            # able to upload data with TSD 2FA, using API keys
+            # stored in code. If .tacl_config does not contain
+            # keys, then those distributed with the application
+            # are used
+            try:
+                api_key = read_config()[env]['api_key']
+            except Exception as e:
+                api_key = API_KEYS[env]
+        except Exception:
+            print 'Authentication failed'
+            return
+    if user_name and password and otp and token_type:
+        jwt = get_jwt_tsd_auth(env, pnum, API_KEYS[env], user_name,
+                               password, otp, token_type)
+        print jwt
+        sys.exit(0)
+    else:
+        print 'not enough credential input to do auth'
+        sys.exit(1)
+
+
+if __name__ == '__main__':
+    main()

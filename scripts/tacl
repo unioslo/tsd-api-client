@@ -42,6 +42,9 @@ import_data() {
             --pre)       shift; PRE=$1; shift ;;
             --post)      shift; POST=$1; shift ;;
             --data)      shift; INPUT_DATA=$1; shift ;;
+            --resumable) shift; RESUMABLE='yes'; ;;
+            --rid)       shift; RID=$1; shift ;;
+            --sync)      shift; SYNC='yes'; ;;
             --recipient) shift; RECIPIENT=$1; shift ;;
             *)           shift ;;
         esac
@@ -56,6 +59,37 @@ import_data() {
     fi
 
     PNUM=$(pnum_from_uname $USERNAME)
+
+    # TODO: need to have an alg for choosing chunk size
+
+    # Resumable
+    # ---------
+
+    if [[ $RESUMABLE == 'yes' ]]; then
+        # JWT=$(tacl_auth --params)
+        # allow configuration of multipart chunk size?
+        # s3cmd --add-header=token:$JWT put $INPUT_DATA s3://$PNUM
+        # if --resumable and --rid
+        # s3cmd --upload-id <ID> --add-header=token:$JWT put $INPUT_DATA s3://$PNUM
+        # if it breaks, capture the Id
+        # print a statement to the log
+        # almost
+        # cat mpout | grep upload-id | sed 's/\(.*\)--upload-id \(.*.\) put\(.*\) /\2/g' | tr -d '.'
+        # inspect this to see if there is an upload-id
+        # if there is, it means that it is not done
+        # grep for 401 - means timeout
+        # or not authorized
+        # this is not _that_ clean
+        # maybe a lowe level interface?
+    fi
+
+
+    # Sync
+    # ----
+    if [[ $SYNC == 'yes' ]]; then
+        # JWT=$(tacl_auth --params)
+        # s3cmd --add-header=token:$JWT sync $INPUT_DATA s3://$PNUM
+    fi
 
     # Files
     # -----
