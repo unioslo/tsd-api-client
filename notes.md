@@ -19,3 +19,15 @@ bla.tar.gpg.gz
 https://security.stackexchange.com/questions/29106/openssl-recover-key-and-iv-by-passphrase
 https://crypto.stackexchange.com/questions/34884/length-of-encryption-password-aes-256-cbc
 https://www.openssl.org/docs/man1.0.2/apps/enc.html
+
+possible s3cmd log analysis
+
+# possible log investigation
+# cat mpout | grep upload-id | sed 's/\(.*\)--upload-id \(.*.\) put\(.*\) /\2/g' | tr -d '.'
+# inspect this to see if there is an upload-id
+# if there is, it means that it is not done
+# grep for 401 - means timeout
+# or not authorized
+# this is not _that_ clean
+# maybe a lowe level interface?
+

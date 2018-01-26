@@ -15,11 +15,11 @@ setup(
         'scripts/tacl',
         'scripts/tacl_admin',
         'scripts/tacl_data',
+        'scripts/tacl_auth',
         'scripts/data2tsd'],
     install_requires = [
         'requests',
         'click',
-        'pyyaml',
-        's3cmd'
+        'pyyaml'
     ],
 )

@@ -35,6 +35,10 @@ optionally_append_extension_to_file() {
     fi
 }
 
+do_tacl_auth() {
+    JWT=$(tacl_auth --env $API_ENV --pnum $PNUM --user_name $USERNAME --password $PASSWORD --otp $OTP --token_type 'export')
+}
+
 import_data() {
     while [[ $# -gt 0 ]]; do
         case $1 in
@@ -42,6 +46,9 @@ import_data() {
             --pre)       shift; PRE=$1; shift ;;
             --post)      shift; POST=$1; shift ;;
             --data)      shift; INPUT_DATA=$1; shift ;;
+            --resumable) shift; RESUMABLE='yes'; ;;
+            --rid)       shift; RID=$1; shift ;;
+            --sync)      shift; SYNC='yes'; ;;
             --recipient) shift; RECIPIENT=$1; shift ;;
             *)           shift ;;
         esac
@@ -56,6 +63,35 @@ import_data() {
     fi
 
     PNUM=$(pnum_from_uname $USERNAME)
+
+    # TODO: an alg for choosing chunk size?
+
+    # Resumable
+    # ---------
+
+    if [[ $RESUMABLE == 'yes' ]]; then
+        BUCKETNAME="${PNUM}api"
+        do_tacl_auth
+        if [[ $RID != '' ]]; then
+            s3cmd --upload-id $RID --add-header=token:$JWT put $INPUT_DATA s3://$BUCKETNAME
+            exit 0
+        fi
+        s3cmd --add-header=token:$JWT put $INPUT_DATA s3://$BUCKETNAME
+        exit 0
+    fi
+
+    # Sync
+    # ----
+    if [[ $SYNC == 'yes' ]]; then
+        BUCKETNAME="${PNUM}api"
+        do_tacl_auth
+        if [[ $RID != '' ]]; then
+            s3cmd --upload-id $RID --add-header=token:$JWT sync $INPUT_DATA s3://$BUCKETNAME
+            exit 0
+        fi
+        s3cmd --add-header=token:$JWT sync $INPUT_DATA s3://$BUCKETNAME
+        exit 0
+    fi
 
     # Files
     # -----
