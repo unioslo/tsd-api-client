@@ -41,7 +41,7 @@ def print_auth_help():
 @click.option('--guide', is_flag=True, default=False, help='print help text')
 def main(env, pnum, user_name, password, otp, token_type, guide):
     if guide:
-        print_data_guide()
+        print_auth_help()
         return
     if env not in ['test', 'prod']:
         print 'unknown env'
