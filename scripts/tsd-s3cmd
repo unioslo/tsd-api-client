@@ -11,7 +11,7 @@ collect_credentials() {
 }
 
 do_tacl_auth() {
-    read -p 'Choose API environment: type test or prod >' API_ENV
+    read -p 'Choose API environment: type test or prod > ' API_ENV
     JWT=$(tacl_auth --env $API_ENV --pnum $PNUM --user_name $USERNAME --password $PASSWORD --otp $OTP --token_type 'export')
 }
 
