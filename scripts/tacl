@@ -35,10 +35,6 @@ optionally_append_extension_to_file() {
     fi
 }
 
-do_tacl_auth() {
-    JWT=$(tacl_auth --env $API_ENV --pnum $PNUM --user_name $USERNAME --password $PASSWORD --otp $OTP --token_type 'export')
-}
-
 import_data() {
     while [[ $# -gt 0 ]]; do
         case $1 in
