@@ -1,0 +1,39 @@
+#!/bin/bash
+
+pnum_from_uname() {
+    echo $1 | sed 's/p\(.*\)-\(.*\)/p\1/g'
+}
+
+collect_credentials() {
+    read -p 'User > ' USERNAME
+    read -s -p 'Password > ' PASSWORD; echo
+    read -p 'OTP > ' OTP
+}
+
+do_tacl_auth() {
+    read -p 'Choose API environment: type test or prod >' API_ENV
+    JWT=$(tacl_auth --env $API_ENV --pnum $PNUM --user_name $USERNAME --password $PASSWORD --otp $OTP --token_type 'export')
+}
+
+do_authenticated_s3cmd() {
+    collect_credentials
+    PNUM=$(pnum_from_uname $USERNAME)
+    do_tacl_auth
+    if [[ $JWT == 'None' ]]; then echo 'TSD authentiction failed'; exit 1; fi
+    s3cmd --add-header=token:$JWT $args
+}
+
+args="$*"
+
+if [[ $# -lt 1 ]]; then
+    s3cmd
+    exit 0
+fi
+
+if [[ $1 =~ '-h'|'--help' ]]; then
+    s3cmd --help
+    exit 0
+else
+    do_authenticated_s3cmd
+    exit 0
+fi
