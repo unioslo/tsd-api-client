@@ -50,8 +50,8 @@ Which tools to choose? Why?
 2) `tacl` - provides option for non-interactive authentication
 3) `tacl` - exposes all API functionality
 4) `tacl` - provides helper methods that make API client registration easier
-5) `tacl` - provides resumable uploads
-6) `tacl` - provides incremental sync
+5) `tsd-s3cmd` - provides resumable uploads
+6) `tsd-s3cmd` - provides incremental sync
 
 ## Getting help
 
