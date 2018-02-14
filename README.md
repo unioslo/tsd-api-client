@@ -19,6 +19,8 @@ python setup.py install
 
 ## Configure s3cmd
 
+For the test environment the hostname is `test.api.tsd.usit.no` while for prod it is `api.tsd.usit.no`.
+
 ```bash
 # in your home directory
 emacs .s3cfg
