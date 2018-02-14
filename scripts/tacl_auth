@@ -2,13 +2,19 @@
 
 """Script to perform 2FA and get a JWT in return."""
 
+import os
 import sys
+import getpass
 
 import click
 
 from tsdapiclient.authapi import get_jwt_tsd_auth
 from tsdapiclient.config import ENV, API_KEYS
 from tsdapiclient.tools import _check_present
+
+
+HOME = os.path.expanduser('~')
+JWT_CACHE = HOME + '/.tsd-s3cmd-token'
 
 
 def print_auth_help():
@@ -32,6 +38,7 @@ def print_auth_help():
 
 
 @click.command()
+@click.option('--interactive', is_flag=True, default=False, help='runs the authentication flow interactively')
 @click.option('--env', default='test', help='which environment you want to interact with')
 @click.option('--pnum', default=None, help='project numbers')
 @click.option('--user_name', default=None, help='TSD project user name')
@@ -39,10 +46,19 @@ def print_auth_help():
 @click.option('--otp', default=None, help='one time passcode')
 @click.option('--token_type', default=None, help='import, export, or admin')
 @click.option('--guide', is_flag=True, default=False, help='print help text')
-def main(env, pnum, user_name, password, otp, token_type, guide):
+@click.option('--update_cache', is_flag=True, default=False, help='use token cache')
+def main(interactive, env, pnum, user_name, password, otp, token_type, guide,
+         update_cache):
     if guide:
         print_auth_help()
         return
+    if interactive:
+        user_name = raw_input('User name > ')
+        password = getpass.getpass('Password > ')
+        otp = raw_input('OTP > ')
+        env = raw_input('API environment: test or prod > ')
+        token_type = 'export'
+        pnum = user_name.split('-')[0]
     if env not in ['test', 'prod']:
         print 'unknown env'
         sys.exit(1)
@@ -65,6 +81,10 @@ def main(env, pnum, user_name, password, otp, token_type, guide):
     if user_name and password and otp and token_type:
         jwt = get_jwt_tsd_auth(env, pnum, API_KEYS[env], user_name,
                                password, otp, token_type)
+        if update_cache and jwt:
+            with open(JWT_CACHE, 'w') as f:
+                f.write(jwt)
+            sys.exit(0)
         print jwt
         sys.exit(0)
     else:
