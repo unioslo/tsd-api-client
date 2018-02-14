@@ -95,15 +95,15 @@ tacl --data directory-with-large-dataset --pre 'archive,compress'
 
 Uploading a very large file with resume capability:
 ```bash
-tacl --data alargefile --resumable
+tsd-s3cmd --multipart-chunk-size-mb=200 put file s3://p11api
 # if it fails along the way
-tacl --data alargefile --resumable --rid <resumeid>
+tsd-s3cmd --multipart-chunk-size-mb=200 --upload-id <id> put file s3://p11api
 ```
 Synchronise a directory:
 ```bash
-tacl --data mydir --sync
+tsd-s3cmd --multipart-chunk-size-mb=200 sync dir s3://p11api
 # some changes happen to the directory...
-tacl --data mydir --sync
+tsd-s3cmd --multipart-chunk-size-mb=200 sync dir s3://p11api
 # the new sync fails to complete due to network interruption...
-tacl --data mydir --sync --rid <resumeid>
+tsd-s3cmd --multipart-chunk-size-mb=200 --upload-id <id> sync dir s3://p11api
 ```
