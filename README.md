@@ -59,6 +59,7 @@ Which tools to choose? Why?
 tacl --help <admin,data>
 tacl --guide <admin,data>
 data2tsd --help
+tsd-s3cmd --help
 ```
 
 ## Examples
