@@ -1,15 +1,43 @@
 #!/bin/bash
 
-JWT_CACHE="$HOME/.tsd-s3cmd-token"
+collect_credentials() {
+    read -p 'User > ' USERNAME
+    read -s -p 'Password > ' PASSWORD; echo
+    read -p 'OTP > ' OTP
+    read -p 'API environment - test or prod > ' ENV
+}
+
+pnum_from_uname() {
+    echo $1 | sed 's/p\(.*\)-\(.*\)/p\1/g'
+}
+
+do_tacl_auth() {
+    if [[ $S3CMD_CMD == 'ls' ]]; then
+        TOKEN_TYPE='export'
+    else
+        TOKEN_TYPE='import'
+    fi
+    JWT=$(tacl_auth --env $ENV --pnum $PNUM --user_name $USERNAME --password $PASSWORD --otp $OTP --token_type $TOKEN_TYPE)
+}
 
 do_authenticated_s3cmd() {
-    tacl_auth --interactive --update_cache
-    JWT=$(cat $JWT_CACHE)
-    s3cmd --add-header=token:$JWT $args
+    collect_credentials
+    PNUM=$(pnum_from_uname $USERNAME)
+    do_tacl_auth
+    s3cmd --add-header=token:$JWT --add-header=x-project-select:$PNUM $ARGS
     exit 0
 }
 
-args="$*"
+ARGS="$*"
+CMD=("$@")
+
+for i in ${CMD[*]}; do
+    if [[ $i == 'ls' ]]; then
+        S3CMD_CMD='ls'
+    else
+        S3CMD_CMD='other'
+    fi
+done
 
 if [[ $# -lt 1 ]]; then
     s3cmd
