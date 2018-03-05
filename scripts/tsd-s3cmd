@@ -17,6 +17,8 @@ do_tacl_auth() {
     else
         TOKEN_TYPE='import'
     fi
+    KEY=$(tacl_admin --env $ENV --pnum $PNUM --print_tsd_2fa_key)
+    # TODO add key in request below
     JWT=$(tacl_auth --env $ENV --pnum $PNUM --user_name $USERNAME --password $PASSWORD --otp $OTP --token_type $TOKEN_TYPE)
 }
 
@@ -45,6 +47,9 @@ fi
 
 if [[ $1 =~ '-h'|'--help' ]]; then
     s3cmd --help
+    exit 0
+elif [[ $1 == '--register' ]]; then
+    tacl_admin --register_tsd_2fa
     exit 0
 else
     do_authenticated_s3cmd

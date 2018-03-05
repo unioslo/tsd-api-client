@@ -2,10 +2,13 @@
 
 """API client for admin."""
 
+import getpass
+
 import click
 
 from tsdapiclient.administrator import do_signup, do_confirm, \
-        get_api_key, del_api_key, pw_reset
+        get_api_key, del_api_key, pw_reset, get_tsd_api_key, \
+        print_config_tsd_2fa_key
 from tsdapiclient.config import ENV
 from tsdapiclient.configurer import read_config, update_config, print_config
 from tsdapiclient.tools import _check_present
@@ -34,12 +37,20 @@ def print_admin_guide():
 
         To view your credentials do: tacl --show_config
 
-        2. Manage your config
+        2. Register yourself with the API using TSD 2FA
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+        tacl_admin --register_tsd_2fa
+        # you will be prompted for you credentials
+        # a project specific API key will be stored in the config
+
+        3. Manage your config
         ~~~~~~~~~~~~~~~~~~~~~
         tacl --pnum p11 --delapikey <key>
         tacl --pnum p11 --pwreset
         tacl --show_config
         tacl --del_config
+        tacl_admin --env test --pnum p11 --print_tsd_2fa_key
 
         3. API docs
         ~~~~~~~~~~~
@@ -62,8 +73,11 @@ def print_admin_guide():
 @click.option('--email', default=None, help='your email address')
 @click.option('--show_config', is_flag=True, help='print current tacl config')
 @click.option('--del_config', is_flag=True, help='delete current tacl config')
+@click.option('--register_tsd_2fa', is_flag=True, help='one-step API key request - valid for TSD 2FA')
+@click.option('--print_tsd_2fa_key', is_flag=True, help='print project specific TSD 2FA api key')
 def main(env, pnum, signup, confirm, getapikey, delapikey, pwreset, guide,
-         client_name, email, show_config, del_config):
+         client_name, email, show_config, del_config, register_tsd_2fa,
+         print_tsd_2fa_key):
     if guide:
         print_admin_guide()
         return
@@ -77,7 +91,20 @@ def main(env, pnum, signup, confirm, getapikey, delapikey, pwreset, guide,
         print 'unknown env'
         sys.exit(1)
     _check_present(env, 'env')
+    if register_tsd_2fa:
+        user_name = raw_input('username > ')
+        password = getpass.getpass('password > ')
+        otp = raw_input('otp > ')
+        pnum = user_name.split('-')[0]
+        key = get_tsd_api_key(env, pnum, user_name, password, otp)
+        print key
+        update_config(env, pnum, key)
+        print 'updated config with api key registered to %s' % pnum
+        return
     _check_present(pnum, 'pnum')
+    if print_tsd_2fa_key:
+        print_config_tsd_2fa_key(env, pnum)
+        return
     if signup:
         _check_present(client_name, 'client_name')
         _check_present(email, 'email')

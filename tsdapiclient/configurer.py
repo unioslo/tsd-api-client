@@ -58,3 +58,7 @@ def print_config(filename=TACL_CONFIG):
 def delete_config(filename=TACL_CONFIG):
     with open(filename, 'w+') as f:
         f.write(yaml.dump({'test': {}, 'prod': {}}))
+
+def print_config_tsd_2fa_key(env, pnum):
+    # TODO
+    pass
