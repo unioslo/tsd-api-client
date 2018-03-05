@@ -58,5 +58,6 @@ def get_tsd_api_key(env, pnum, user_name, password, otp):
     headers = {'Content-Type': 'application/json'}
     data = {'user_name': user_name, 'password': password, 'otp': otp}
     url = '%s/%s/auth/tsd/api_key' % (ENV[env], pnum)
-    print 'POST: %s' % url
-    return _post(url, headers, data)
+    print 'GET: %s' % url
+    resp = requests.get(url, headers=headers, data=json.dumps(data))
+    return json.loads(resp.text)['api_key']
