@@ -36,6 +36,8 @@ def update_config(env, key, val):
         if not new_env.has_key(key):
             print 'updating %s' % key
             new_config[env].update({key:val})
+        # TODO
+        # need abilty to update pXX
         elif key in ['api_key', 'pass']:
             print 'updating %s' % key
             new_config[env].update({key:val})
@@ -60,5 +62,6 @@ def delete_config(filename=TACL_CONFIG):
         f.write(yaml.dump({'test': {}, 'prod': {}}))
 
 def print_config_tsd_2fa_key(env, pnum):
-    # TODO
-    pass
+    with open(TACL_CONFIG, 'r') as f:
+        cf = yaml.load(f)
+        print cf[env][pnum]

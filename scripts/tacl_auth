@@ -11,6 +11,7 @@ import click
 from tsdapiclient.authapi import get_jwt_tsd_auth
 from tsdapiclient.config import ENV, API_KEYS
 from tsdapiclient.tools import _check_present
+from tsdapiclient.configurer import read_config
 
 
 HOME = os.path.expanduser('~')
@@ -47,8 +48,9 @@ def print_auth_help():
 @click.option('--token_type', default=None, help='import, export, or admin')
 @click.option('--guide', is_flag=True, default=False, help='print help text')
 @click.option('--update_cache', is_flag=True, default=False, help='use token cache')
+@click.option('--tsd_api_key', is_flag=True, default=False, help='use project specific TSD api key')
 def main(interactive, env, pnum, user_name, password, otp, token_type, guide,
-         update_cache):
+         update_cache, tsd_api_key):
     if guide:
         print_auth_help()
         return
@@ -71,15 +73,18 @@ def main(interactive, env, pnum, user_name, password, otp, token_type, guide,
         # stored in code. If .tacl_config does not contain
         # keys, then those distributed with the application
         # are used
-        try:
-            api_key = read_config()[env]['api_key']
-        except Exception as e:
-            api_key = API_KEYS[env]
-    except Exception:
+        if tsd_api_key:
+            api_key = read_config()[env][pnum]
+        else:
+            try:
+                api_key = read_config()[env]['api_key']
+            except Exception as e:
+                api_key = API_KEYS[env]
+    except Exception as e:
         print 'Authentication failed'
         return
     if user_name and password and otp and token_type:
-        jwt = get_jwt_tsd_auth(env, pnum, API_KEYS[env], user_name,
+        jwt = get_jwt_tsd_auth(env, pnum, api_key, user_name,
                                password, otp, token_type)
         if update_cache and jwt:
             with open(JWT_CACHE, 'w') as f:
