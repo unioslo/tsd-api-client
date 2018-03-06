@@ -126,9 +126,10 @@ def parse_post_processing_expression(expr, encryptedpw):
 @click.option('--encryptedpw', default=None, help='encrypted password used in symmetric data encryption')
 @click.option('--pre', default=None, help='pre processing expression', required=False)
 @click.option('--post', default=None, help='post processing expression')
+@click.option('--tsd_api_key', is_flag=True, default=False, help='use project specific TSD api key')
 @click.argument('fileinput', type=click.File('rb'), required=False, default=None)
 def main(env, pnum, config, guide, data, fileinput, user_name,
-         password, otp, encryptedpw, pre, post):
+         password, otp, encryptedpw, pre, post, tsd_api_key):
     if guide:
         print_data_guide()
         return
@@ -154,10 +155,14 @@ def main(env, pnum, config, guide, data, fileinput, user_name,
             # stored in code. If .tacl_config does not contain
             # keys, then those distributed with the application
             # are used
-            try:
-                api_key = read_config()[env]['api_key']
-            except Exception as e:
-                api_key = API_KEYS[env]
+            if tsd_api_key:
+                api_key = read_config()[env][pnum]
+            else:
+                try:
+                    api_key = read_config()[env]['api_key']
+                except Exception as e:
+                    print 'could not find an api key'
+                    return
             token = get_jwt_tsd_auth(env, pnum, api_key, user_name, password, otp, 'import')
         except Exception:
             print 'Authentication failed'
