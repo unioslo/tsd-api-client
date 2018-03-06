@@ -1,5 +1,36 @@
 #!/bin/bash
 
+_guide="\
+
+    tsd-s3cmd
+    ~~~~~~~~~
+
+    Usage: tsd-s3cmd [OPTIONS]
+
+    Getting started
+    ~~~~~~~~~~~~~~~
+
+    1. Create your .s3cfg file using your TSD project's access and secret key.
+       You can find this in: /tsd/pXX/data/durable/s3-api-config
+
+    2. Register your tsd-s3cmd with your TSD project:
+
+        tsd-s3cmd --register
+
+    3. Create a bucket:
+
+        tsd-s3cmd mb s3://mybucket
+
+    4. Upload data:
+
+        tsd-s3cmd put data s3://mybucket
+
+    5. For more help:
+
+        tsd-s3cmd --help
+
+"
+
 collect_credentials() {
     read -p 'API environment - test or prod > ' ENV
     read -p 'User > ' USERNAME
@@ -48,6 +79,9 @@ if [[ $1 =~ '-h'|'--help' ]]; then
     exit 0
 elif [[ $1 == '--register' ]]; then
     tacl_admin --register_tsd_2fa
+    exit 0
+elif [[ $1 == '--guide' ]]; then
+    printf "%s\n" "$_guide"
     exit 0
 else
     do_authenticated_s3cmd
