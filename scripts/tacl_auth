@@ -9,7 +9,7 @@ import getpass
 import click
 
 from tsdapiclient.authapi import get_jwt_tsd_auth
-from tsdapiclient.config import ENV, API_KEYS
+from tsdapiclient.config import ENV
 from tsdapiclient.tools import _check_present
 from tsdapiclient.configurer import read_config
 
@@ -79,7 +79,8 @@ def main(interactive, env, pnum, user_name, password, otp, token_type, guide,
             try:
                 api_key = read_config()[env]['api_key']
             except Exception as e:
-                api_key = API_KEYS[env]
+                print 'could not find an api key'
+                return
     except Exception as e:
         print 'Authentication failed'
         return
