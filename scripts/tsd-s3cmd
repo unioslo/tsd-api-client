@@ -25,14 +25,17 @@ _guide="\
 
         tsd-s3cmd put data s3://mybucket
 
-    5. For more help:
+    5. To interact with the test API:
+
+        tsd-s3cmd --usetest [OPTIONS]
+
+    6. For more help:
 
         tsd-s3cmd --help
 
 "
 
 collect_credentials() {
-    read -p 'API environment - test or prod > ' ENV
     read -p 'User > ' USERNAME
     read -s -p 'Password > ' PASSWORD; echo
     read -p 'OTP > ' OTP
@@ -66,6 +69,13 @@ S3CMD_CMD='other'
 for i in ${CMD[*]}; do
     if [[ $i == 'ls' ]]; then
         S3CMD_CMD='ls'
+    fi
+done
+
+ENV='prod'
+for i in ${CMD[*]}; do
+    if [[ $i == '--usetest' ]]; then
+        ENV='test'
     fi
 done
 

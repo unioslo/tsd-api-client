@@ -5,7 +5,7 @@ from setuptools import setup
 
 setup(
     name='tsd-api-client',
-    version='0.9.2',
+    version='0.9.3',
     description='A client for the TSD REST API',
     author='Leon du Toit',
     author_email='l.c.d.toit@usit.uio.no',
@@ -21,6 +21,6 @@ setup(
     install_requires = [
         'requests',
         'click',
-        'PyYAML'
+        #'PyYAML'
     ],
 )
