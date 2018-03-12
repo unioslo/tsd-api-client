@@ -9,6 +9,7 @@ Python cient library for [TSD HTTP API](https://test.api.tsd.usit.no/v1/docs/tsd
 # or having a mirror on github
 git clone ssh://git@bitbucket.usit.uio.no:7999/tsd/tsd-api-client.git
 cd tsd-api-client
+pip install -r requirements.txt
 python setup.py install
 cd ..
 # install patched version of s3cmd that supports custom headers
