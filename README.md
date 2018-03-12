@@ -45,7 +45,6 @@ tsd-s3cmd --multipart-chunk-size-mb=200 sync dir s3://mybucket
 tsd-s3cmd --multipart-chunk-size-mb=200 sync dir s3://mybucket
 # the new sync fails to complete due to network interruption...
 tsd-s3cmd --multipart-chunk-size-mb=200 --upload-id <id> sync dir s3://mybucket
-```
 
 # For help
 tsd-s3cmd --guide
