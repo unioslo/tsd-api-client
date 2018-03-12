@@ -5,26 +5,18 @@ Python cient library for [TSD HTTP API](https://test.api.tsd.usit.no/v1/docs/tsd
 ## Install
 
 ```bash
-# consider making this a public repo
-# or having a mirror on github
 git clone ssh://git@bitbucket.usit.uio.no:7999/tsd/tsd-api-client.git
 cd tsd-api-client
 pip install -r requirements.txt
-python setup.py install
-cd ..
-# install patched version of s3cmd that supports custom headers
-git clone https://github.com/leondutoit/s3cmd.git
-cd s3cmd
 python setup.py install
 ```
 
 ## Configure s3cmd
 
-For the test environment the hostname is `test.api.tsd.usit.no` while for prod it is `api.tsd.usit.no`.
+For production:
 
 ```bash
-# in your home directory
-emacs .s3cfg
+# create a file called .s3cfg
 host_base = api.tsd.usit.no
 host_bucket = api.tsd.usit.no
 bucket_location = us-east-1 # this is just to prevent error
@@ -34,45 +26,35 @@ secret_key = <KEY>
 signature_v2 = False
 ```
 
-## How to use the client
-
-Consider the following use cases - a TSD user wants to:
-
-1) interactively upload files and/or directories
-2) script uploads
-3) build custom data pipelines
-4) register another application with the TSD API
-5) upload TBs of data once
-6) synchronise a directory which undergoes incremental changes
-
-Which tools to choose? Why?
-
-1) `data2tsd` - simplest possible tool with correct defaults
-2) `tacl` - provides option for non-interactive authentication
-3) `tacl` - exposes all API functionality
-4) `tacl` - provides helper methods that make API client registration easier
-5) `tsd-s3cmd` - provides resumable uploads
-6) `tsd-s3cmd` - provides incremental sync
-
-## Getting help
+## s3 API with tsd-s3cmd
 
 ```bash
-tacl --help <admin,data>
-tacl --guide <admin,data>
-data2tsd --help
+# Register with the API:
+tsd-s3cmd --register
+
+# Uploading a very large file with resume capability:
+tsd-s3cmd mb s3://mybucket
+tsd-s3cmd --multipart-chunk-size-mb=200 put file s3://mybucket
+
+# if it fails along the way
+tsd-s3cmd --multipart-chunk-size-mb=200 --upload-id <id> put file s3://mybucket
+
+# Synchronise a directory:
+tsd-s3cmd --multipart-chunk-size-mb=200 sync dir s3://mybucket
+# some changes happen to the directory...
+tsd-s3cmd --multipart-chunk-size-mb=200 sync dir s3://mybucket
+# the new sync fails to complete due to network interruption...
+tsd-s3cmd --multipart-chunk-size-mb=200 --upload-id <id> sync dir s3://mybucket
+```
+
+# For help
+tsd-s3cmd --guide
 tsd-s3cmd --help
 ```
 
-## Examples
+## File API with tacl
 
-Importing data with data2tsd:
-
-```bash
-data2tsd myfile
-data2tsd mydirectory
-```
-
-General examples of data imports using `tacl`:
+Examples of data imports using `tacl`:
 
 ```bash
 # existing tar.gz, store as is
@@ -95,17 +77,3 @@ tacl --data directory-with-large-dataset --pre 'archive,compress'
 # stored as directory-with-large-dataset.tar.gz in the import area
 ```
 
-Uploading a very large file with resume capability:
-```bash
-tsd-s3cmd --multipart-chunk-size-mb=200 put file s3://p11api
-# if it fails along the way
-tsd-s3cmd --multipart-chunk-size-mb=200 --upload-id <id> put file s3://p11api
-```
-Synchronise a directory:
-```bash
-tsd-s3cmd --multipart-chunk-size-mb=200 sync dir s3://p11api
-# some changes happen to the directory...
-tsd-s3cmd --multipart-chunk-size-mb=200 sync dir s3://p11api
-# the new sync fails to complete due to network interruption...
-tsd-s3cmd --multipart-chunk-size-mb=200 --upload-id <id> sync dir s3://p11api
-```
