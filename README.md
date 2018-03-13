@@ -21,8 +21,8 @@ host_base = api.tsd.usit.no
 host_bucket = api.tsd.usit.no
 bucket_location = us-east-1 # this is just to prevent error
 use_https = True
-access_key = <KEY>
-secret_key = <KEY>
+access_key = <KEY> # /tsd/pXX/data/durable/s3-api-access-keys
+secret_key = <KEY> # /tsd/pXX/data/durable/s3-api-access-keys
 signature_v2 = False
 ```
 

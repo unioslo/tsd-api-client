@@ -11,7 +11,7 @@ _guide="\
     ~~~~~~~~~~~~~~~
 
     1. Create your .s3cfg file using your TSD project's access and secret key.
-       You can find this in: /tsd/pXX/data/durable/s3-api-config
+       You can find this in: /tsd/pXX/data/durable/s3-api-access-keys
 
     2. Register your tsd-s3cmd with your TSD project:
 

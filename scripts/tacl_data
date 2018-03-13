@@ -6,7 +6,7 @@ import sys
 import click
 
 from tsdapiclient.authapi import get_jwt_tsd_auth
-from tsdapiclient.config import ENV, API_KEYS
+from tsdapiclient.config import ENV
 from tsdapiclient.configurer import read_config
 from tsdapiclient.fileapi import streamfile, streamstdin
 from tsdapiclient.tools import _check_present
