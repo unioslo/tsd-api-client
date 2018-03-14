@@ -1,33 +1,6 @@
-maybe
------
-https://stackoverflow.com/questions/44185486/generate-and-stream-compressed-file-with-flask
-https://stackoverflow.com/questions/10405210/create-and-stream-a-large-archive-without-storing-it-in-memory-or-on-disk
-https://github.com/gourneau/SpiderOak-zipstream
-probably
---------
-https://bitbucket.usit.uio.no/projects/TSD/repos/tsd-prace-instruments/browse
 
-tar cf - dir | gpg --encrypt -r <recipient> -o test.gz.gpg
-do not compress and then encrypt
-https://blog.appcanary.com/2016/encrypt-or-compress.html
-bla.tar.gpg.gz
+### AES notes
 
-# and the on the API: decode pw header, gpg decrypt it
-# openssl enc -aes-256-cbc -a -d -pass file:<( echo $PW ) |
-# tar -C t -xvf -
-
-https://security.stackexchange.com/questions/29106/openssl-recover-key-and-iv-by-passphrase
-https://crypto.stackexchange.com/questions/34884/length-of-encryption-password-aes-256-cbc
-https://www.openssl.org/docs/man1.0.2/apps/enc.html
-
-possible s3cmd log analysis
-
-# possible log investigation
-# cat mpout | grep upload-id | sed 's/\(.*\)--upload-id \(.*.\) put\(.*\) /\2/g' | tr -d '.'
-# inspect this to see if there is an upload-id
-# if there is, it means that it is not done
-# grep for 401 - means timeout
-# or not authorized
-# this is not _that_ clean
-# maybe a lowe level interface?
-
+- https://security.stackexchange.com/questions/29106/openssl-recover-key-and-iv-by-passphrase
+- https://crypto.stackexchange.com/questions/34884/length-of-encryption-password-aes-256-cbc
+- https://www.openssl.org/docs/man1.0.2/apps/enc.html

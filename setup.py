@@ -5,11 +5,10 @@ from setuptools import setup
 
 setup(
     name='tsd-api-client',
-    version='0.9.3',
+    version='1.0.0',
     description='A client for the TSD REST API',
     author='Leon du Toit',
     author_email='l.c.d.toit@usit.uio.no',
-    url='https://bitbucket.usit.uio.no/projects/TSD/repos/tsd-api-client',
     packages=['tsdapiclient'],
     scripts=[
         'scripts/tacl',

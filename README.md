@@ -5,7 +5,7 @@ Python cient library for [TSD HTTP API](https://test.api.tsd.usit.no/v1/docs/tsd
 ## Install
 
 ```bash
-git clone ssh://git@bitbucket.usit.uio.no:7999/tsd/tsd-api-client.git
+git clone <repo-url>
 cd tsd-api-client
 pip install -r requirements.txt
 python setup.py install
