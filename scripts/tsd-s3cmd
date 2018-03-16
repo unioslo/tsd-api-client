@@ -10,20 +10,52 @@ _guide="\
     Getting started
     ~~~~~~~~~~~~~~~
 
-    1. Create your .s3cfg file using your TSD project's access and secret key.
-       You can find this in: /tsd/pXX/data/durable/s3-api-access-keys
+    1. Create a .s3cfg in your HOME directory. Your TSD project's
+       access and secret key can be found in: /tsd/pXX/data/durable/s3-api-access-keys
+       The config file should look like this:
 
-    2. Register your tsd-s3cmd with your TSD project:
+        host_base = api.tsd.usit.no
+        host_bucket = api.tsd.usit.no
+        bucket_location = us-east-1 # include this even though not used
+        use_https = True
+        access_key = ACCESS_KEY
+        secret_key = SECRET_KEY
+        signature_v2 = False
+
+    2. Now register your tsd-s3cmd with your TSD project:
 
         tsd-s3cmd --register
+        # choose 'prod'
 
-    3. Create a bucket:
+    This will prompt you for your TSD credentials. To register for p11, for example,
+    enter your p11 credentials. Similar for any other projects. You have to
+    register for each project you have access to. The above command stores an API
+    key in a config file in your HOME directory. API keys are projects specific,
+    and allow you to authenticate. By themselves they do not give access to TSD.
+
+    3. Create a bucket (e.g. named mybucket):
 
         tsd-s3cmd mb s3://mybucket
 
     4. Upload data:
 
-        tsd-s3cmd put data s3://mybucket
+        # to upload a single file
+        tsd-s3cmd put file s3://mybucket
+
+        # if the upload fails for some reason,
+        # tsd-s3cmd will print an id, which you can use
+        # to resume the upload as follows:
+        tsd-s3cmd --upload-id id put file s3://mybucket
+
+        # you can also specify explicit chunk sizes
+        tsd-s3cmd --multipart-chunk-size-mb=200 put data s3://mybucket
+
+        # you can also synchronise directories
+        # this is useful if your directory changes in incremental ways
+        # and you only want to transfer the diff to TSD
+        tsd-s3cmd --multipart-chunk-size-mb=200 sync dir s3://mybucket
+        # restart the sync if it fails
+        tsd-s3cmd --multipart-chunk-size-mb=200 --upload-id id sync dir s3://mybucket
 
     5. To interact with the test API:
 
@@ -32,6 +64,7 @@ _guide="\
     6. For more help:
 
         tsd-s3cmd --help
+        # or browse http://s3tools.org/s3cmd
 
 "
 

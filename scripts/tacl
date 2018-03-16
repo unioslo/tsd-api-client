@@ -168,7 +168,10 @@ fi
 
 args=("$@")
 for i in ${args[*]}; do
-    if [[ $i =~ ^('--signup'|'--confirm'|'--getapikey'|'--delapikey'|'--pwreset') ]]; then
+    if [[ $i == '--register' ]]; then
+        tacl_admin --register_tsd_2fa
+        exit 0
+    elif [[ $i =~ ^('--signup'|'--confirm'|'--getapikey'|'--delapikey'|'--pwreset') ]]; then
         tacl_admin $@
         exit 0
     elif [[ $i == '--data' ]]; then
