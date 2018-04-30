@@ -1,9 +1,15 @@
 
 """TSD File API client."""
 
+import os
+
 import requests
 
 from config import ENV
+
+
+def format_filename(filename):
+    return os.path.basename(filename)
 
 
 def lazy_reader(filename, chunksize):
@@ -45,7 +51,8 @@ def streamfile(env, pnum, filename, token,
 
     """
     url = '%s/%s/files/stream' % (ENV[env], pnum)
-    headers = {'Authorization': 'Bearer ' + token, 'Filename': filename}
+    headers = {'Authorization': 'Bearer ' + token,
+               'Filename': format_filename(filename)}
     if custom_headers is not None:
         new_headers = headers.copy()
         new_headers.update(custom_headers)
@@ -77,7 +84,8 @@ def streamstdin(env, pnum, fileinput, filename, token,
 
     """
     url = '%s/%s/files/stream' % (ENV[env], pnum)
-    headers = {'Authorization': 'Bearer ' + token, 'Filename': filename}
+    headers = {'Authorization': 'Bearer ' + token,
+               'Filename': format_filename(filename)}
     if custom_headers is not None:
         new_headers = headers.copy()
         new_headers.update(custom_headers)
