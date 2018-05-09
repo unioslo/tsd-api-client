@@ -16,7 +16,8 @@ _guide="\
 
         host_base = api.tsd.usit.no
         host_bucket = api.tsd.usit.no
-        bucket_location = us-east-1 # include this even though not used
+        # include the following bucket_location line even though it is not used
+        bucket_location = us-east-1
         use_https = True
         access_key = ACCESS_KEY
         secret_key = SECRET_KEY
