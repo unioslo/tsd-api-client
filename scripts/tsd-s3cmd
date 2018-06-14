@@ -92,7 +92,7 @@ do_authenticated_s3cmd() {
     collect_credentials
     PNUM=$(pnum_from_uname $USERNAME)
     do_tacl_auth
-    s3cmd --add-header=token:$JWT --add-header=x-project-select:$PNUM $ARGS
+    s3cmd --add-header=token:$JWT --add-header=x-project-select:$PNUM ${ARGS[@]}
     exit 0
 }
 
@@ -110,6 +110,8 @@ ENV='prod'
 for i in ${CMD[*]}; do
     if [[ $i == '--usetest' ]]; then
         ENV='test'
+        el=("--usetest")
+        ARGS=("${CMD[@]/$el}")
     fi
 done
 
