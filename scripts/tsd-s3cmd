@@ -81,9 +81,9 @@ pnum_from_uname() {
 
 do_tacl_auth() {
     if [[ $S3CMD_CMD == 'ls' ]]; then
-        TOKEN_TYPE='export'
+        TOKEN_TYPE='s3export'
     else
-        TOKEN_TYPE='import'
+        TOKEN_TYPE='s3import'
     fi
     JWT=$(tacl_auth --tsd_api_key --env $ENV --pnum $PNUM --user_name $USERNAME --password $PASSWORD --otp $OTP --token_type $TOKEN_TYPE)
 }
