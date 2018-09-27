@@ -130,6 +130,13 @@ elif [[ $1 == '--guide' ]]; then
     printf "%s\n" "$_guide"
     exit 0
 else
-    do_authenticated_s3cmd
-    exit 0
+    DRY_RUN="$(s3cmd --dry-run ${ARGS[@]} 2>&1)"
+    EXIT_CODE=$?
+    if [[ "$EXIT_CODE" -eq 0 ]]; then
+        do_authenticated_s3cmd
+        exit 0
+    else
+        echo "$DRY_RUN"
+        exit "$EXIT_CODE"
+    fi
 fi
