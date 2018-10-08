@@ -84,7 +84,7 @@ def parse_post_processing_expression(expr, encryptedpw):
 
     """
     if expr == 'none':
-        return {'Content-Type': 'application/octet-stream'}
+        return {'Content-Type': 'application/octet-stream', 'Pragma': 'set-owner'}
     elif expr == 'decrypt':
         return {'Content-Type': 'application/aes',
                 'Aes-Key': encryptedpw}
