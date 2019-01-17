@@ -37,6 +37,8 @@ def print_data_guide():
                             - 'decrypt': decrypt data
         --recipient     GPG recipient - only when using 'encrypt' or 'decrypt' in pre and/or post
                         expression.
+        --group         Name of the TSD file group which should have permissions on the upload.
+
 
         Examples: Importing data to TSD in production
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -45,8 +47,11 @@ def print_data_guide():
         tacl --register
         # choose 'prod'
 
-        # upload and store a file
+        # upload a file
         tacl --data example.tar.gz
+
+        # upload a file, limit group access upon storage
+        tacl --data example.tar.gz --group p11-restricted-group
 
         # upload a file, decompress and restore server-side
         tacl --data example.tar.gz --post 'restore,decompress'
@@ -121,9 +126,10 @@ def parse_post_processing_expression(expr, encryptedpw):
 @click.option('--pre', default=None, help='pre processing expression', required=False)
 @click.option('--post', default=None, help='post processing expression')
 @click.option('--tsd_api_key', is_flag=True, default=False, help='use project specific TSD api key')
+@click.option('--group', default=None, help='which group should have permission on upload')
 @click.argument('fileinput', type=click.File('rb'), required=False, default=None)
 def main(env, pnum, config, guide, data, fileinput, user_name,
-         password, otp, encryptedpw, pre, post, tsd_api_key):
+         password, otp, encryptedpw, pre, post, tsd_api_key, group):
     if guide:
         print_data_guide()
         return
@@ -137,6 +143,8 @@ def main(env, pnum, config, guide, data, fileinput, user_name,
         _check_present(user_name, 'user_name')
         _check_present(password, 'password')
         _check_present(otp, 'otp')
+        if not group:
+            group = pnum + '-member-group'
         try:
             custom_headers = parse_post_processing_expression(post, encryptedpw)
         except Exception:
@@ -163,13 +171,15 @@ def main(env, pnum, config, guide, data, fileinput, user_name,
             return
         if token:
             if fileinput is None:
-                resp = streamfile(env, pnum, data, token, custom_headers=custom_headers)
+                resp = streamfile(env, pnum, data, token,
+                                  custom_headers=custom_headers, group=group)
                 if resp.status_code == 201:
                     print 'Data imported'
                 else:
                     print 'Data import failed: ', resp.text
             else:
-                resp = streamstdin(env, pnum, fileinput, data, token, custom_headers=custom_headers)
+                resp = streamstdin(env, pnum, fileinput, data, token,
+                                   custom_headers=custom_headers, group=group)
                 if resp.status_code == 201:
                     print 'Data imported'
                 else:

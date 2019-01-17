@@ -43,6 +43,7 @@ import_data() {
             --post)      shift; POST=$1; shift ;;
             --data)      shift; INPUT_DATA=$1; shift ;;
             --recipient) shift; RECIPIENT=$1; shift ;;
+            --group)     shift; GROUP=$1; shift ;;
             *)           shift ;;
         esac
     done
@@ -57,12 +58,16 @@ import_data() {
 
     PNUM=$(pnum_from_uname $USERNAME)
 
+    if [[ $GROUP == '' ]]; then
+        GROUP="$PNUM-member-group"
+    fi
+
     # Files
     # -----
 
     if [[ $PRE == '' ]]; then
         exit_if_is_directory $INPUT_DATA
-        tacl_data --tsd_api_key --env $API_ENV --pnum $PNUM \
+        tacl_data --tsd_api_key --env $API_ENV --pnum $PNUM --group $GROUP \
             --post $POST --data $INPUT_DATA \
             --user_name $USERNAME --password $PASSWORD --otp $OTP
         exit 0
@@ -72,7 +77,7 @@ import_data() {
         optionally_append_extension_to_file $POST $INPUT_DATA 'gz'
         gzip -9 < $INPUT_DATA |
         tacl_data --tsd_api_key \
-            --env $API_ENV --pnum $PNUM \
+            --env $API_ENV --pnum $PNUM --group $GROUP \
             --post $POST --data $dest_file \
             --user_name $USERNAME --password $PASSWORD --otp $OTP -
         exit 0
@@ -84,7 +89,7 @@ import_data() {
         ENCPW=$(echo $PW | gpg -r $RECIPIENT --encrypt | openssl base64 -A)
         openssl enc -aes-256-cbc -in $INPUT_DATA -a -pass file:<( echo $PW ) |
         tacl_data --tsd_api_key \
-            --encryptedpw $ENCPW --env $API_ENV --pnum $PNUM \
+            --encryptedpw $ENCPW --env $API_ENV --pnum $PNUM --group $GROUP \
             --post $POST --data $dest_file \
             --user_name $USERNAME --password $PASSWORD --otp $OTP -
         exit 0
@@ -97,7 +102,7 @@ import_data() {
         gzip -9 < $INPUT_DATA |
         openssl enc -aes-256-cbc -in $INPUT_DATA -a -pass file:<( echo $PW ) |
         tacl_data --tsd_api_key \
-            --encryptedpw $ENCPW --env $API_ENV --pnum $PNUM \
+            --encryptedpw $ENCPW --env $API_ENV --pnum $PNUM --group $GROUP \
             --post $POST --data $dest_file \
             --user_name $USERNAME --password $PASSWORD --otp $OTP -
         exit 0
@@ -110,7 +115,7 @@ import_data() {
         optionally_append_extension_to_file $POST $INPUT_DATA 'tar'
         tar -cf - $INPUT_DATA |
         tacl_data --tsd_api_key \
-            --env $API_ENV --pnum $PNUM \
+            --env $API_ENV --pnum $PNUM --group $GROUP \
             --post $POST --data $dest_file \
             --user_name $USERNAME --password $PASSWORD --otp $OTP -
         exit 0
@@ -124,7 +129,7 @@ import_data() {
         openssl enc -aes-256-cbc -a -pass file:<( echo $PW ) |
         tacl_data --tsd_api_key \
             --encryptedpw $ENCPW \
-            --env $API_ENV --pnum $PNUM \
+            --env $API_ENV --pnum $PNUM --group $GROUP \
             --post $POST --data $dest_file \
             --user_name $USERNAME --password $PASSWORD --otp $OTP -
         exit 0
@@ -137,7 +142,7 @@ import_data() {
         openssl enc -aes-256-cbc -a -pass file:<( echo $PW ) |
         tacl_data --tsd_api_key \
             --encryptedpw $ENCPW \
-            --env $API_ENV --pnum $PNUM \
+            --env $API_ENV --pnum $PNUM --group $GROUP \
             --post $POST --data $dest_file \
             --user_name $USERNAME --password $PASSWORD --otp $OTP -
         exit 0
@@ -146,7 +151,7 @@ import_data() {
         optionally_append_extension_to_file $POST $INPUT_DATA 'tar.gz'
         tar -cf - $INPUT_DATA | gzip -9 |
         tacl_data --tsd_api_key \
-            --env $API_ENV --pnum $PNUM \
+            --env $API_ENV --pnum $PNUM --group $GROUP \
             --post $POST --data $dest_file \
             --user_name $USERNAME --password $PASSWORD --otp $OTP -
         exit 0
