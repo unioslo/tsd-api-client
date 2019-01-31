@@ -20,6 +20,6 @@ setup(
     install_requires = [
         'requests',
         'click',
-        #'PyYAML'
+        'PyYAML'
     ],
 )
