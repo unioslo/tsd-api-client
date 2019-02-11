@@ -1,6 +1,6 @@
 ## TSD API Client
 
-Python cient library for [TSD HTTP API](https://test.api.tsd.usit.no/v1/docs/tsd-api-integration.html).
+Python client for [TSD HTTP API](https://test.api.tsd.usit.no/v1/docs/tsd-api-integration.html).
 
 ## Install
 
