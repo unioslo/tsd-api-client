@@ -24,7 +24,7 @@ def print_data_guide():
         ~~~~~~~
 
         --env           Either 'test' or 'prod' environment. Defaults to 'prod'.
-        --data          Path to file or folder you want to upload.
+        --import        Path to file or folder you want to upload.
 
         Optional data pipeline parameters (not relevant to resume or sync):
         --pre           Comma-separated string specifying pre-upload data processing:
@@ -48,22 +48,22 @@ def print_data_guide():
         # choose 'prod'
 
         # upload a file
-        tacl --data example.tar.gz
+        tacl --import example.tar.gz
 
         # upload a file, limit group access upon storage
-        tacl --data example.tar.gz --group p11-restricted-group
+        tacl --import example.tar.gz --group p11-restricted-group
 
         # upload a file, decompress and restore server-side
-        tacl --data example.tar.gz --post 'restore,decompress'
+        tacl --import example.tar.gz --post 'restore,decompress'
 
         # upload a file, compress on-the-fly, decompress server-side
-        tacl --data myfile --pre 'compress' --post 'decompress'
+        tacl --import myfile --pre 'compress' --post 'decompress'
 
         # upload a directory, tar.gz on-the-fly
-        tacl --data mydir --pre 'archive,compress'
+        tacl --import mydir --pre 'archive,compress'
 
         # upload a directory, tar.gz on-the-fly, decompress and restore server-side
-        tacl --data mydir --pre 'archive,compress' --post 'restore,decompress'
+        tacl --import mydir --pre 'archive,compress' --post 'restore,decompress'
 
         API docs
         ~~~~~~~~
