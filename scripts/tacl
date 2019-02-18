@@ -42,6 +42,7 @@ import_data() {
             --pre)       shift; PRE=$1; shift ;;
             --post)      shift; POST=$1; shift ;;
             --data)      shift; INPUT_DATA=$1; shift ;;
+            --import)    shift; INPUT_DATA=$1; shift ;;
             --recipient) shift; RECIPIENT=$1; shift ;;
             --group)     shift; GROUP=$1; shift ;;
             *)           shift ;;
@@ -179,7 +180,7 @@ for i in ${args[*]}; do
     elif [[ $i =~ ^('--signup'|'--confirm'|'--getapikey'|'--delapikey'|'--pwreset') ]]; then
         tacl_admin $@
         exit 0
-    elif [[ $i == '--data' ]]; then
+    elif [[ $i =~ ^('--data'|'--import') ]]; then
         collect_credentials
         import_data $@
         exit 0
