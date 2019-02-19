@@ -8,7 +8,7 @@ import click
 from tsdapiclient.authapi import get_jwt_tsd_auth
 from tsdapiclient.config import ENV
 from tsdapiclient.configurer import read_config
-from tsdapiclient.fileapi import streamfile, streamstdin
+from tsdapiclient.fileapi import streamfile, streamstdin, export_list, export_get
 from tsdapiclient.tools import _check_present
 
 
@@ -25,6 +25,8 @@ def print_data_guide():
 
         --env           Either 'test' or 'prod' environment. Defaults to 'prod'.
         --import        Path to file or folder you want to upload.
+        --export-list   List files available for export.
+        --export        Name of the file you want to download.
 
         Optional data pipeline parameters (not relevant to resume or sync):
         --pre           Comma-separated string specifying pre-upload data processing:
@@ -64,6 +66,12 @@ def print_data_guide():
 
         # upload a directory, tar.gz on-the-fly, decompress and restore server-side
         tacl --import mydir --pre 'archive,compress' --post 'restore,decompress'
+
+        # list files available for export
+        tacl --export-list
+
+        # export a zip file
+        tacl --export mydir.zip
 
         API docs
         ~~~~~~~~
@@ -117,19 +125,22 @@ def parse_post_processing_expression(expr, encryptedpw):
 @click.option('--env', default='test', help='which environment you want to interact with')
 @click.option('--pnum', default=None, help='project numbers')
 @click.option('--config', default=None, help='path to config file')
-@click.option('--guide', is_flag=True, default=False, help='print help text')
-@click.option('--data', default=None, help='path to file')
+@click.option('--guide', is_flag=True, default=False, required=False, help='print help text')
+@click.option('--data', default=None, required=False, help='path to file')
 @click.option('--user_name', default=None, help='TSD project user name')
 @click.option('--password', default=None, help='TSD password')
 @click.option('--otp', default=None, help='one time passcode')
-@click.option('--encryptedpw', default=None, help='encrypted password used in symmetric data encryption')
-@click.option('--pre', default=None, help='pre processing expression', required=False)
-@click.option('--post', default=None, help='post processing expression')
+@click.option('--encryptedpw', default=None, required=False, help='encrypted password used in symmetric data encryption')
+@click.option('--pre', default=None, required=False, help='pre processing expression')
+@click.option('--post', default='none', required=False, help='post processing expression')
 @click.option('--tsd_api_key', is_flag=True, default=False, help='use project specific TSD api key')
-@click.option('--group', default=None, help='which group should have permission on upload')
+@click.option('--group', default=None, required=False, help='which group should have permission on upload')
+@click.option('--show', is_flag=True, default=None, required=False, help='list files available for export')
+@click.option('--export', default=None, required=False, help='download a file')
 @click.argument('fileinput', type=click.File('rb'), required=False, default=None)
-def main(env, pnum, config, guide, data, fileinput, user_name,
-         password, otp, encryptedpw, pre, post, tsd_api_key, group):
+def main(env, pnum, config, guide, data, user_name,
+         password, otp, encryptedpw, pre, post, tsd_api_key, group,
+         show, export, fileinput):
     if guide:
         print_data_guide()
         return
@@ -138,8 +149,7 @@ def main(env, pnum, config, guide, data, fileinput, user_name,
         sys.exit(1)
     _check_present(env, 'env')
     _check_present(pnum, 'pnum')
-    if data is not None:
-        _check_present(data, 'data')
+    if data or show or export:
         _check_present(user_name, 'user_name')
         _check_present(password, 'password')
         _check_present(otp, 'otp')
@@ -165,25 +175,36 @@ def main(env, pnum, config, guide, data, fileinput, user_name,
                 except Exception as e:
                     print 'could not find an api key'
                     return
-            token = get_jwt_tsd_auth(env, pnum, api_key, user_name, password, otp, 'import')
+            if data or fileinput:
+                token_type = 'import'
+            elif show or export:
+                token_type = 'export'
+            token = get_jwt_tsd_auth(env, pnum, api_key, user_name, password, otp, token_type)
         except Exception:
             print 'Authentication failed'
             return
         if token:
-            if fileinput is None:
+            if not fileinput and data:
                 resp = streamfile(env, pnum, data, token,
                                   custom_headers=custom_headers, group=group)
                 if resp.status_code == 201:
                     print 'Data imported'
                 else:
                     print 'Data import failed: ', resp.text
-            else:
+            elif fileinput:
                 resp = streamstdin(env, pnum, fileinput, data, token,
                                    custom_headers=custom_headers, group=group)
                 if resp.status_code == 201:
                     print 'Data imported'
                 else:
                     print 'Data import failed: ', resp.text
+            elif show:
+                export_list(env, pnum, token)
+                return
+            elif export:
+                filename = export
+                export_get(env, pnum, filename, token)
+                return
             return
         else:
             print 'Authentication failed'
