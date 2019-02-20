@@ -70,6 +70,14 @@ _guide="\
     located at /tsd/pXX/data/durable/s3-api/export-bucket. This folder is only
     accessible by member of the pXX-export-group.
 
+    Please note that after adding your files or folders to the export-bucket
+    you should make them 'world' readable. This only makes the files readable
+    for the members of the pXX-export-group, and for the s3 API, not the world:
+
+        chmod o+r /tsd/pXX/data/durable/file-export/myfile
+
+    Then outside TSD:
+
         tsd-s3cmd ls s3://export-bucket
         tsd-s3cmd get s3://export-bucket/myfile
 
