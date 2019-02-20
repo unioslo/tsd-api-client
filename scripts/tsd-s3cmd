@@ -96,7 +96,8 @@ pnum_from_uname() {
 }
 
 do_tacl_auth() {
-    if [[ $S3CMD_CMD == 'ls' ]]; then
+    echo $S3CMD_CMD
+    if [[ $S3CMD_CMD =~ 'ls'|'get' ]]; then
         TOKEN_TYPE='s3export'
     else
         TOKEN_TYPE='s3import'
@@ -117,8 +118,8 @@ CMD=("$@")
 
 S3CMD_CMD='other'
 for i in ${CMD[*]}; do
-    if [[ $i == 'ls' ]]; then
-        S3CMD_CMD='ls'
+    if [[ $i =~ 'ls'|'get' ]]; then
+        S3CMD_CMD=$i
     fi
 done
 
