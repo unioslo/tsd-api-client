@@ -7,12 +7,14 @@ _guide="\
 
     Usage: tsd-s3cmd [OPTIONS]
 
-    Getting started
-    ~~~~~~~~~~~~~~~
+    Using the s3 API
+    ~~~~~~~~~~~~~~~~
 
-    1. Create a .s3cfg in your HOME directory. Your TSD project's
-       access and secret key can be found in: /tsd/pXX/data/durable/s3-api-access-keys
-       The config file should look like this:
+    1. Create a .s3cfg in your HOME directory.
+
+    Your TSD project's access and secret key can be found in:
+    /tsd/pXX/data/durable/s3-api-access-keys. The config file
+    should look like this:
 
         host_base = api.tsd.usit.no
         host_bucket = api.tsd.usit.no
@@ -40,32 +42,46 @@ _guide="\
 
     4. Upload data:
 
-        # to upload a single file
+    To upload a single file
+
         tsd-s3cmd put file s3://mybucket
 
-        # if the upload fails for some reason,
-        # tsd-s3cmd will print an id, which you can use
-        # to resume the upload as follows:
+    If the upload fails for some reason, tsd-s3cmd will print an id, which you can use
+    to resume the upload as follows:
+
         tsd-s3cmd --upload-id id put file s3://mybucket
 
-        # you can also specify explicit chunk sizes
+    You can also specify explicit chunk sizes
+
         tsd-s3cmd --multipart-chunk-size-mb=200 put data s3://mybucket
 
-        # you can also synchronise directories
-        # this is useful if your directory changes in incremental ways
-        # and you only want to transfer the diff to TSD
+    You can also synchronise directories this is useful if your directory
+    changes in incremental ways and you only want to transfer the diff to TSD
+
         tsd-s3cmd --multipart-chunk-size-mb=200 sync dir s3://mybucket
-        # restart the sync if it fails
+
+    Restart the sync if it fails
+
         tsd-s3cmd --multipart-chunk-size-mb=200 --upload-id id sync dir s3://mybucket
 
-    5. To interact with the test API:
+    5. Download data
+
+    Data can only be exported from the 'export-bucket'. This is a folder in TSD,
+    located at /tsd/pXX/data/durable/s3-api/export-bucket. This folder is only
+    accessible by member of the pXX-export-group.
+
+        tsd-s3cmd ls s3://export-bucket
+        tsd-s3cmd get s3://export-bucket/myfile
+
+    6. To interact with the test API:
 
         tsd-s3cmd --usetest [OPTIONS]
 
-    6. For more help:
+    7. For more help:
 
         tsd-s3cmd --help
-        # or browse http://s3tools.org/s3cmd
+
+    Or browse http://s3tools.org/s3cmd
 
 "
 
