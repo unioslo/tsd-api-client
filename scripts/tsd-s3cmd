@@ -104,7 +104,6 @@ pnum_from_uname() {
 }
 
 do_tacl_auth() {
-    echo $S3CMD_CMD
     if [[ $S3CMD_CMD =~ 'ls'|'get' ]]; then
         TOKEN_TYPE='s3export'
     else
