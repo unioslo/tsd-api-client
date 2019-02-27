@@ -85,7 +85,13 @@ _guide="\
 
         tsd-s3cmd --usetest [OPTIONS]
 
-    7. For more help:
+    7. If you have a long-lasting upload which requires batch programming
+    You can request an import token, save it, and use s3cmd directly. For
+    guidance on how to do this, do e.g.:
+
+        tsd-s3cmd --print-token-for put
+
+    8. For more help:
 
         tsd-s3cmd --help
 
@@ -120,6 +126,14 @@ do_authenticated_s3cmd() {
     exit 0
 }
 
+print_token() {
+    collect_credentials
+    PNUM=$(pnum_from_uname $USERNAME)
+    do_tacl_auth
+    echo "To use this token without using tsd-s3cmd execute your command as follows:"
+    echo "s3cmd --add-header=token:$JWT --add-header=x-project-select:$PNUM COMMAND"
+}
+
 ARGS="$*"
 CMD=("$@")
 
@@ -152,6 +166,9 @@ elif [[ $1 == '--register' ]]; then
     exit 0
 elif [[ $1 == '--guide' ]]; then
     printf "%s\n" "$_guide"
+    exit 0
+elif [[ $1 == '--print-token-for' ]]; then
+    print_token
     exit 0
 else
     do_authenticated_s3cmd
