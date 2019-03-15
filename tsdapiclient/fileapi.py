@@ -175,7 +175,7 @@ def export_get(env, pnum, filename, token, chunksize=4096):
     return filename
 
 
-def get_resumable(env, pnum, token, filename, dev_url=None):
+def get_resumable(env, pnum, token, filename, upload_id=None, dev_url=None):
     """
     List uploads which can be resumed.
 
@@ -190,8 +190,12 @@ def get_resumable(env, pnum, token, filename, dev_url=None):
     dict, {filename, chunk_size, max_chunk, id}
 
     """
-    #url = '%s/%s/files/resumables/%s' % (ENV[env], pnum, filename)
-    url = 'http://localhost:3003/p11/files/resumables/%s' % filename
+    url = '%s/%s/files/resumables/%s' % (ENV[env], pnum, filename)
+    if upload_id:
+        url = '%s?id=%s' % (url, filename, upload_id)
+    elif dev_url:
+        url = dev_url
+    print 'get_resumable', url
     headers = {'Authorization': 'Bearer ' + token}
     resp = requests.get(url, headers=headers)
     data = json.loads(resp.text)
@@ -199,8 +203,8 @@ def get_resumable(env, pnum, token, filename, dev_url=None):
 
 
 def initiate_resumable(env, pnum, filename, token, chunksize=None,
-                       new=None, group=None, verify=False, dev_url=None,
-                       stop_at=None):
+                       new=None, group=None, verify=False, upload_id=None,
+                       dev_url=None, stop_at=None):
     """
     Performs a resumable upload, either by resuming a broken one,
     or by starting a new one.
@@ -221,7 +225,10 @@ def initiate_resumable(env, pnum, filename, token, chunksize=None,
     """
     to_resume = False
     if not new:
-        data = get_resumable(env, pnum, token, filename)
+        if not upload_id:
+            data = get_resumable(env, pnum, token, filename)
+        else:
+            data = get_resumable(env, pnum, token, filename, upload_id)
         if not data['id']:
             print 'no resumable found, starting new resumable upload'
         elif filename == data['filename']:
@@ -230,18 +237,19 @@ def initiate_resumable(env, pnum, filename, token, chunksize=None,
     if to_resume:
         resp = continue_resumable(env, pnum, filename, token, to_resume, group, verify, dev_url)
         if not resp:
-            pass
-            #start_resumable
+            return
     else:
         resp = start_resumable(env, pnum, filename, token, chunksize, group, dev_url, stop_at)
 
 
-def complete_resumable(env, pnum, filename, token, resumable,
-                       group=None, dev_url=None):
-    #url = '%s/%s/files/resumables/%s' % (ENV[env], pnum, filename)
-    upload_id = resumable['id']
-    params = '?group=p11-member-group&id=%s&chunk=end' % upload_id
-    url = 'http://localhost:3003/p11/files/stream/%s%s' % (filename, params)
+def _resumable_url(env, pnum, filename, dev_url=None):
+    if not dev_url:
+        url = '%s/%s/files/stream/%s' % (ENV[env], pnum, filename)
+    else:
+        url = dev_url
+
+
+def _complete_resumable(filename, token, url):
     headers = {'Authorization': 'Bearer ' + token}
     resp = requests.patch(url, headers=headers)
     return json.loads(resp.text)
@@ -249,8 +257,28 @@ def complete_resumable(env, pnum, filename, token, resumable,
 
 def start_resumable(env, pnum, filename, token, chunksize,
                     group=None, dev_url=None, stop_at=None):
-    #url = '%s/%s/files/resumables/%s' % (ENV[env], pnum, filename)
-    url = 'http://localhost:3003/p11/files/stream/' + filename
+    """
+    Start a new resumable upload, reding a file, chunk-by-chunk
+    and performaing a PATCH request per chunk.
+
+    Parameters
+    ----------
+    env: str, 'test' or 'prod'
+    pnum: str, project number
+    filename: str, filename
+    token: str, JWT
+    chunksize: int, number of bytes to read and send per request
+    group: str, group which should own the file
+    dev_url: str, pass a complete url (useful for development)
+    stop_at: int, chunk number at which to stop upload (useful for development)
+
+    Returns
+    -------
+    dict
+
+    """
+    url = _resumable_url(env, pnum, filename, dev_url)
+    print 'start_resumable', url
     headers = {'Authorization': 'Bearer ' + token}
     chunk_num = 1
     for chunk in lazy_reader(filename, chunksize):
@@ -268,14 +296,39 @@ def start_resumable(env, pnum, filename, token, chunksize,
                 return
         chunk_num += 1
     resumable = data
-    resp = complete_resumable(env, pnum, filename, token, resumable, group)
+    if not group:
+        group = '%s-member-group' % pnum
+    parmaterised_url = '%s?chunk=%s&id=%s&group=%s' % (url, 'end', upload_id, group)
+    resp = _complete_resumable(filename, token, parmaterised_url)
     return resp
 
 
 def continue_resumable(env, pnum, filename, token, to_resume,
                        group=None, verify=False, dev_url=None):
-    #url = '%s/%s/files/resumables/%s' % (ENV[env], pnum, filename)
-    url = 'http://localhost:3003/p11/files/stream/' + filename
+    """
+    Continue a resumable upload, reding a file, from the
+    appopriate byte offset, chunk-by-chunk and performaing
+    a PATCH request per chunk. Optional chunk md5 verification
+    before resume.
+
+    Parameters
+    ----------
+    env: str, 'test' or 'prod'
+    pnum: str, project number
+    filename: str, filename
+    token: str, JWT
+    chunksize: int, number of bytes to read and send per request
+    group: str, group which should own the file
+    verify: bool, if True then last chunk md5 is checked between client and server
+    dev_url: str, pass a complete url (useful for development)
+
+    Returns
+    -------
+    dict
+
+    """
+    url = _resumable_url(env, pnum, filename, dev_url)
+    print 'continue_resumable', url
     headers = {'Authorization': 'Bearer ' + token}
     max_chunk = to_resume['max_chunk']
     chunksize = to_resume['chunk_size']
@@ -292,5 +345,6 @@ def continue_resumable(env, pnum, filename, token, to_resume,
         upload_id = data['id']
         chunk_num += 1
     resumable = data
-    resp = complete_resumable(env, pnum, filename, token, resumable, group)
+    parmaterised_url = '%s?chunk=%s&id=%s&group=%s' % (url, 'end', upload_id, group)
+    resp = _complete_resumable(filename, token, parmaterised_url)
     return resp
