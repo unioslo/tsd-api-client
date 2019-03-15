@@ -238,7 +238,7 @@ def initiate_resumable(env, pnum, filename, token, chunksize=None,
     to_resume = False
     if not new:
         if not upload_id:
-            data = get_resumable(env, pnum, token, filename, dev_url)
+            data = get_resumable(env, pnum, token, filename, upload_id, dev_url)
         else:
             data = get_resumable(env, pnum, token, filename, upload_id, dev_url)
         if not data['id']:
