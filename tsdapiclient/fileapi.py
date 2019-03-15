@@ -26,8 +26,7 @@ def lazy_reader(filename, chunksize, previous_offset=None,
                 assert md5.hexdigest() == server_chunk_md5
                 print 'chunks match yay'
             except AssertionError:
-                print 'cannot resume upload - client/server chunks do not match'
-                yield False
+                raise Exception('cannot resume upload - client/server chunks do not match')
         if next_offset:
             f.seek(next_offset)
         while True:
@@ -175,6 +174,14 @@ def export_get(env, pnum, filename, token, chunksize=4096):
     return filename
 
 
+def _resumable_url(env, pnum, filename, dev_url=None):
+    if not dev_url:
+        url = '%s/%s/files/stream/%s' % (ENV[env], pnum, filename)
+    else:
+        url = dev_url
+    return url
+
+
 def get_resumable(env, pnum, token, filename, upload_id=None, dev_url=None):
     """
     List uploads which can be resumed.
@@ -190,12 +197,12 @@ def get_resumable(env, pnum, token, filename, upload_id=None, dev_url=None):
     dict, {filename, chunk_size, max_chunk, id}
 
     """
-    url = '%s/%s/files/resumables/%s' % (ENV[env], pnum, filename)
-    if upload_id:
-        url = '%s?id=%s' % (url, filename, upload_id)
-    elif dev_url:
+    if not dev_url:
+        url = '%s/%s/files/resumables/%s' % (ENV[env], pnum, filename)
+    else:
         url = dev_url
-    print 'get_resumable', url
+    if upload_id:
+        url = '%s?id=%s' % (url, upload_id)
     headers = {'Authorization': 'Bearer ' + token}
     resp = requests.get(url, headers=headers)
     data = json.loads(resp.text)
@@ -231,27 +238,26 @@ def initiate_resumable(env, pnum, filename, token, chunksize=None,
     to_resume = False
     if not new:
         if not upload_id:
-            data = get_resumable(env, pnum, token, filename)
+            data = get_resumable(env, pnum, token, filename, dev_url)
         else:
-            data = get_resumable(env, pnum, token, filename, upload_id)
+            data = get_resumable(env, pnum, token, filename, upload_id, dev_url)
         if not data['id']:
             print 'no resumable found, starting new resumable upload'
-        elif filename == data['filename']:
+        else:
             print data
             to_resume = data
+    if dev_url:
+            dev_url = dev_url.replace('resumables', 'stream')
     if to_resume:
-        resp = continue_resumable(env, pnum, filename, token, to_resume, group, verify, dev_url)
-        if not resp:
+        try:
+            return continue_resumable(env, pnum, filename, token,
+                                      to_resume, group, verify, dev_url)
+        except Exception as e:
+            print e.message
             return
     else:
-        resp = start_resumable(env, pnum, filename, token, chunksize, group, dev_url, stop_at)
-
-
-def _resumable_url(env, pnum, filename, dev_url=None):
-    if not dev_url:
-        url = '%s/%s/files/stream/%s' % (ENV[env], pnum, filename)
-    else:
-        url = dev_url
+        return start_resumable(env, pnum, filename, token, chunksize,
+                               group, dev_url, stop_at)
 
 
 def _complete_resumable(filename, token, url):
@@ -283,7 +289,6 @@ def start_resumable(env, pnum, filename, token, chunksize,
 
     """
     url = _resumable_url(env, pnum, filename, dev_url)
-    print 'start_resumable', url
     headers = {'Authorization': 'Bearer ' + token}
     chunk_num = 1
     for chunk in lazy_reader(filename, chunksize):
@@ -333,7 +338,6 @@ def continue_resumable(env, pnum, filename, token, to_resume,
 
     """
     url = _resumable_url(env, pnum, filename, dev_url)
-    print 'continue_resumable', url
     headers = {'Authorization': 'Bearer ' + token}
     max_chunk = to_resume['max_chunk']
     chunksize = to_resume['chunk_size']
@@ -350,6 +354,8 @@ def continue_resumable(env, pnum, filename, token, to_resume,
         upload_id = data['id']
         chunk_num += 1
     resumable = data
+    if not group:
+        group = '%s-member-group' % pnum
     parmaterised_url = '%s?chunk=%s&id=%s&group=%s' % (url, 'end', upload_id, group)
     resp = _complete_resumable(filename, token, parmaterised_url)
     return resp
