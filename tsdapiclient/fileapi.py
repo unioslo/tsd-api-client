@@ -214,9 +214,14 @@ def initiate_resumable(env, pnum, filename, token, chunksize=None,
     env: str- 'test' or 'prod'
     pnum: str - project numnber
     filename: str
-    token: JWT
+    token: str, JWT
     chunksize: int, user specified chunkszie in bytes
     new: boolean, flag to enable resume
+    group: str, group owner after upload
+    verify: boolean, verify md5 chunk integrity before resume
+    upload_id: str
+    dev_url: str, pass a complete url (useful for development)
+    stop_at: int, chunk number at which to stop upload (useful for development)
 
     Returns
     -------
