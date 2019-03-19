@@ -303,7 +303,7 @@ def start_resumable(env, pnum, filename, token, chunksize,
         if stop_at:
             if chunk_num == stop_at:
                 print 'stopping at chunk %d' % chunk_num
-                return
+                return data
         chunk_num += 1
     resumable = data
     if not group:
