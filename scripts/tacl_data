@@ -23,10 +23,13 @@ def print_data_guide():
         Options
         ~~~~~~~
 
-        --env           Either 'test' or 'prod' environment. Defaults to 'prod'.
-        --import        Path to file or folder you want to upload.
-        --export-list   List files available for export.
-        --export        Name of the file you want to download.
+        --env               Either 'test' or 'prod' environment. Defaults to 'prod'.
+        --import            Path to file or folder you want to upload.
+        --upload-id         Resume a specific upload, providing the upload ID.
+        --resume-list       Get an overview of all resumable uploads.
+        --resume-delete     Delete an incomplete resumable upload.
+        --export-list       List files available for export.
+        --export            Name of the file you want to download.
 
         Optional data pipeline parameters (not relevant to resume or sync):
         --pre           Comma-separated string specifying pre-upload data processing:
@@ -42,36 +45,36 @@ def print_data_guide():
         --group         Name of the TSD file group which should have permissions on the upload.
 
 
-        Examples: Importing data to TSD in production
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        Register your API client
+        ~~~~~~~~~~~~~~~~~~~~~~~~
 
-        # make sure you register with TSD
-        tacl --register
-        # choose 'prod'
+        tacl --register # choose 'prod'
 
-        # upload a file
+
+        Importing data to TSD
+        ~~~~~~~~~~~~~~~~~~~~~
+
         tacl --import example.tar.gz
-
-        # upload a file, limit group access upon storage
         tacl --import example.tar.gz --group p11-restricted-group
-
-        # upload a file, decompress and restore server-side
         tacl --import example.tar.gz --post 'restore,decompress'
-
-        # upload a file, compress on-the-fly, decompress server-side
         tacl --import myfile --pre 'compress' --post 'decompress'
-
-        # upload a directory, tar.gz on-the-fly
         tacl --import mydir --pre 'archive,compress'
-
-        # upload a directory, tar.gz on-the-fly, decompress and restore server-side
         tacl --import mydir --pre 'archive,compress' --post 'restore,decompress'
 
-        # list files available for export
-        tacl --export-list
 
-        # export a zip file
+        Working with resumable uploads
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+        tacl --import myfile --upload-id 52928fed-8c29-4135-88e9-27f2c0bec526
+        tacl --resume-list
+        tacl --resume-delete --upload-id 52928fed-8c29-4135-88e9-27f2c0bec526
+
+        Exporting data from TSD
+        ~~~~~~~~~~~~~~~~~~~~~~~
+
+        tacl --export-list
         tacl --export mydir.zip
+
 
         API docs
         ~~~~~~~~
