@@ -182,7 +182,7 @@ def _resumable_url(env, pnum, filename, dev_url=None):
     return url
 
 
-def get_resumable(env, pnum, token, filename, upload_id=None, dev_url=None):
+def get_resumable(env, pnum, token, filename=None, upload_id=None, dev_url=None):
     """
     List uploads which can be resumed.
 
@@ -198,7 +198,10 @@ def get_resumable(env, pnum, token, filename, upload_id=None, dev_url=None):
 
     """
     if not dev_url:
-        url = '%s/%s/files/resumables/%s' % (ENV[env], pnum, filename)
+        if filename:
+            url = '%s/%s/files/resumables/%s' % (ENV[env], pnum, filename)
+        else:
+            url = '%s/%s/files/resumables' % (ENV[env], pnum)
     else:
         url = dev_url
     if upload_id:
