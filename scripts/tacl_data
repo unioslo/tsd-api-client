@@ -2,13 +2,15 @@
 
 """API client for data uploads."""
 
+import os
 import sys
 import click
 
 from tsdapiclient.authapi import get_jwt_tsd_auth
 from tsdapiclient.config import ENV
 from tsdapiclient.configurer import read_config
-from tsdapiclient.fileapi import streamfile, streamstdin, export_list, export_get
+from tsdapiclient.fileapi import streamfile, streamstdin, export_list, export_get, \
+                                 get_resumable, initiate_resumable
 from tsdapiclient.tools import _check_present
 
 
@@ -140,10 +142,13 @@ def parse_post_processing_expression(expr, encryptedpw):
 @click.option('--group', default=None, required=False, help='which group should have permission on upload')
 @click.option('--show', is_flag=True, default=None, required=False, help='list files available for export')
 @click.option('--export', default=None, required=False, help='download a file')
+@click.option('--upload-id', default=None, required=False, help='')
+@click.option('--resume-list', is_flag=True, required=False, help='')
+@click.option('--resume-delete', default=None, required=False, help='')
 @click.argument('fileinput', type=click.File('rb'), required=False, default=None)
 def main(env, pnum, config, guide, data, user_name,
          password, otp, encryptedpw, pre, post, tsd_api_key, group,
-         show, export, fileinput):
+         show, export, upload_id, resume_list, resume_delete, fileinput):
     if guide:
         print_data_guide()
         return
@@ -188,8 +193,14 @@ def main(env, pnum, config, guide, data, user_name,
             return
         if token:
             if not fileinput and data:
-                resp = streamfile(env, pnum, data, token,
-                                  custom_headers=custom_headers, group=group)
+                # if a file is larger than 1gb make it resumable
+                if upload_id or os.stat(data).st_size > 1000*1000*1000:
+                    resume_chunksize = 1000*1000*200 # 200mb
+                    resp = initiate_resumable(env, pnum, data, token, resume_chunksize, group=group,
+                                              verify=True, upload_id=upload_id)
+                else:
+                    resp = streamfile(env, pnum, data, token,
+                                      custom_headers=custom_headers, group=group)
                 if resp.status_code == 201:
                     print 'Data imported'
                 else:
@@ -208,6 +219,12 @@ def main(env, pnum, config, guide, data, user_name,
                 filename = export
                 export_get(env, pnum, filename, token)
                 return
+            elif resume_list:
+                overview = get_resumable(env, pnum, token)
+                print overview
+                return
+            elif resume_delete:
+                pass # implement in client
             return
         else:
             print 'Authentication failed'
