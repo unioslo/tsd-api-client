@@ -142,9 +142,9 @@ def parse_post_processing_expression(expr, encryptedpw):
 @click.option('--group', default=None, required=False, help='which group should have permission on upload')
 @click.option('--show', is_flag=True, default=None, required=False, help='list files available for export')
 @click.option('--export', default=None, required=False, help='download a file')
-@click.option('--upload-id', default=None, required=False, help='')
-@click.option('--resume-list', is_flag=True, required=False, help='')
-@click.option('--resume-delete', default=None, required=False, help='')
+@click.option('--upload-id', default=None, required=False, help='resumable upload ID')
+@click.option('--resume-list', is_flag=True, required=False, help='list all uploads which can be resumed')
+@click.option('--resume-delete', default=None, required=False, help='delete a resumable upload')
 @click.argument('fileinput', type=click.File('rb'), required=False, default=None)
 def main(env, pnum, config, guide, data, user_name,
          password, otp, encryptedpw, pre, post, tsd_api_key, group,
