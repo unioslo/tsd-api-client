@@ -2,3 +2,4 @@ requests
 click
 pyyaml
 https://github.com/leondutoit/s3cmd/archive/v20180312.tar.gz
+progress

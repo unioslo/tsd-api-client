@@ -35,6 +35,10 @@ optionally_append_extension_to_file() {
     fi
 }
 
+do_resumable() {
+    echo 'resume all the things'
+}
+
 import_data() {
     while [[ $# -gt 0 ]]; do
         case $1 in
@@ -67,6 +71,7 @@ import_data() {
     # -----
 
     if [[ $PRE == '' ]]; then
+        # branch into resumables here
         exit_if_is_directory $INPUT_DATA
         tacl_data --tsd_api_key --env $API_ENV --pnum $PNUM --group $GROUP \
             --post $POST --data $INPUT_DATA \
