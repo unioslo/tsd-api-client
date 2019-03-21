@@ -10,7 +10,8 @@ from tsdapiclient.authapi import get_jwt_tsd_auth
 from tsdapiclient.config import ENV
 from tsdapiclient.configurer import read_config
 from tsdapiclient.fileapi import streamfile, streamstdin, export_list, export_get, \
-                                 get_resumable, initiate_resumable, print_resumables_list
+                                 get_resumable, initiate_resumable, print_resumables_list, \
+                                 delete_resumable, delete_all_resumables
 from tsdapiclient.tools import _check_present
 
 
@@ -73,7 +74,7 @@ def print_data_guide():
         tacl --import myfile # files larger than 1gb will automatically be resumable
         tacl --import myfile --upload-id 52928fed-8c29-4135-88e9-27f2c0bec526
         tacl --resume-list
-        tacl --resume-delete --upload-id 52928fed-8c29-4135-88e9-27f2c0bec526
+        tacl --resume-delete myfile --upload-id 52928fed-8c29-4135-88e9-27f2c0bec526
         tacl --resume-delete-all
 
         Exporting data from TSD
@@ -151,7 +152,7 @@ def parse_post_processing_expression(expr, encryptedpw):
 @click.option('--resume-list', is_flag=True, required=False, help='list all uploads which can be resumed')
 @click.option('--resume-delete', default=None, required=False, help='delete an incomplete resumable upload')
 @click.option('--chunk-size', default=None, required=False, help='chunk size for resumable upload')
-@click.option('--resume-delete-all', default=None, required=False, help='delete all incomplete resumable uploads')
+@click.option('--resume-delete-all', is_flag=True, required=False, help='delete all incomplete resumable uploads')
 @click.argument('fileinput', type=click.File('rb'), required=False, default=None)
 def main(env, pnum, config, guide, data, user_name,
          password, otp, encryptedpw, pre, post, tsd_api_key, group,
@@ -234,9 +235,12 @@ def main(env, pnum, config, guide, data, user_name,
                 print_resumables_list(overview)
                 return
             elif resume_delete:
-                pass # implement in client
+                filename = resume_delete
+                delete_resumable(env, pnum, token, filename, upload_id)
+                return
             elif resume_delete_all:
-                pass # implement in client
+                delete_all_resumables(env, pnum, token)
+                return
             return
         else:
             print 'Authentication failed'
