@@ -183,6 +183,7 @@ def _resumable_url(env, pnum, filename, dev_url=None):
 
 
 def _init_progress_bar(current_chunk, chunksize, filename):
+    # this is an approximation, better than nothing
     fsize = os.stat(filename).st_size
     num_chunks = fsize / chunksize
     return Bar('Progress', index=current_chunk, max=num_chunks, suffix='%(percent)d%%')

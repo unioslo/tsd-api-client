@@ -149,13 +149,14 @@ def parse_post_processing_expression(expr, encryptedpw):
 @click.option('--export', default=None, required=False, help='download a file')
 @click.option('--upload-id', default=None, required=False, help='resumable upload ID')
 @click.option('--resume-list', is_flag=True, required=False, help='list all uploads which can be resumed')
-@click.option('--resume-delete', default=None, required=False, help='delete a resumable upload')
+@click.option('--resume-delete', default=None, required=False, help='delete an incomplete resumable upload')
 @click.option('--chunk-size', default=None, required=False, help='chunk size for resumable upload')
+@click.option('--resume-delete-all', default=None, required=False, help='delete all incomplete resumable uploads')
 @click.argument('fileinput', type=click.File('rb'), required=False, default=None)
 def main(env, pnum, config, guide, data, user_name,
          password, otp, encryptedpw, pre, post, tsd_api_key, group,
          show, export, upload_id, resume_list, resume_delete, fileinput,
-         chunk_size):
+         chunk_size, resume_delete_all):
     if guide:
         print_data_guide()
         return
