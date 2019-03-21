@@ -10,7 +10,7 @@ from tsdapiclient.authapi import get_jwt_tsd_auth
 from tsdapiclient.config import ENV
 from tsdapiclient.configurer import read_config
 from tsdapiclient.fileapi import streamfile, streamstdin, export_list, export_get, \
-                                 get_resumable, initiate_resumable
+                                 get_resumable, initiate_resumable, print_resumables_list
 from tsdapiclient.tools import _check_present
 
 
@@ -165,7 +165,7 @@ def main(env, pnum, config, guide, data, user_name,
         sys.exit(1)
     _check_present(env, 'env')
     _check_present(pnum, 'pnum')
-    if data or show or export or resume_list or resume_delete:
+    if data or show or export or resume_list or resume_delete or resume_delete_all:
         _check_present(user_name, 'user_name')
         _check_present(password, 'password')
         _check_present(otp, 'otp')
@@ -191,7 +191,7 @@ def main(env, pnum, config, guide, data, user_name,
                 except Exception as e:
                     print 'could not find an api key'
                     return
-            if data or fileinput or resume_list or resume_delete:
+            if data or fileinput or resume_list or resume_delete or resume_delete_all:
                 token_type = 'import'
             elif show or export:
                 token_type = 'export'
@@ -231,7 +231,7 @@ def main(env, pnum, config, guide, data, user_name,
                 return
             elif resume_list:
                 overview = get_resumable(env, pnum, token)
-                print overview
+                print_resumables_list(overview)
                 return
             elif resume_delete:
                 pass # implement in client
