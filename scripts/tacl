@@ -35,8 +35,20 @@ optionally_append_extension_to_file() {
     fi
 }
 
-do_resumable() {
-    echo 'resume all the things'
+do_file_upload() {
+    exit_if_is_directory $INPUT_DATA
+    if [[ ! -z $UPLOAD_ID ]]; then
+        tacl_data --tsd_api_key --env $API_ENV --pnum $PNUM --group $GROUP \
+            --post $POST --data $INPUT_DATA \
+            --user_name $USERNAME --password $PASSWORD --otp $OTP \
+            --upload-id $UPLOAD_ID
+        exit 0
+    else
+        tacl_data --tsd_api_key --env $API_ENV --pnum $PNUM --group $GROUP \
+            --post $POST --data $INPUT_DATA \
+            --user_name $USERNAME --password $PASSWORD --otp $OTP
+        exit 0
+    fi
 }
 
 import_data() {
@@ -49,6 +61,7 @@ import_data() {
             --import)    shift; INPUT_DATA=$1; shift ;;
             --recipient) shift; RECIPIENT=$1; shift ;;
             --group)     shift; GROUP=$1; shift ;;
+            --upload-id) shift; UPLOAD_ID=$1; shift ;;
             *)           shift ;;
         esac
     done
@@ -71,12 +84,7 @@ import_data() {
     # -----
 
     if [[ $PRE == '' ]]; then
-        # branch into resumables here
-        exit_if_is_directory $INPUT_DATA
-        tacl_data --tsd_api_key --env $API_ENV --pnum $PNUM --group $GROUP \
-            --post $POST --data $INPUT_DATA \
-            --user_name $USERNAME --password $PASSWORD --otp $OTP
-        exit 0
+        do_file_upload
     elif [[ $PRE == 'compress' ]]; then
         echo 'data import with compression'
         exit_if_is_directory $INPUT_DATA
