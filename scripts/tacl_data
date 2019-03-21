@@ -204,13 +204,13 @@ def main(env, pnum, config, guide, data, user_name,
                         chunk_size = 1000*1000*chunk_size
                     resp = initiate_resumable(env, pnum, data, token, chunksize=chunk_size,
                                               group=group, verify=True, upload_id=upload_id)
+                    print 'Data imported'
+                    return
                 else:
                     resp = streamfile(env, pnum, data, token,
                                       custom_headers=custom_headers, group=group)
-                if resp.status_code == 201:
                     print 'Data imported'
-                else:
-                    print 'Data import failed: ', resp.text
+                    return
             elif fileinput:
                 resp = streamstdin(env, pnum, fileinput, data, token,
                                    custom_headers=custom_headers, group=group)

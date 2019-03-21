@@ -6,6 +6,7 @@ import json
 import hashlib
 
 import requests
+from progress.bar import Bar
 
 from config import ENV
 
@@ -24,7 +25,6 @@ def lazy_reader(filename, chunksize, previous_offset=None,
             md5 = hashlib.md5(last_chunk_data)
             try:
                 assert md5.hexdigest() == server_chunk_md5
-                print 'chunks match yay'
             except AssertionError:
                 raise Exception('cannot resume upload - client/server chunks do not match')
         if next_offset:
@@ -182,6 +182,12 @@ def _resumable_url(env, pnum, filename, dev_url=None):
     return url
 
 
+def _init_progress_bar(current_chunk, chunksize, filename):
+    fsize = os.stat(filename).st_size
+    num_chunks = fsize / chunksize
+    return Bar('Progress', index=current_chunk, max=num_chunks, suffix='%(percent)d%%')
+
+
 def get_resumable(env, pnum, token, filename=None, upload_id=None, dev_url=None):
     """
     List uploads which can be resumed.
@@ -245,9 +251,8 @@ def initiate_resumable(env, pnum, filename, token, chunksize=None,
         else:
             data = get_resumable(env, pnum, token, filename, upload_id, dev_url)
         if not data['id']:
-            print 'no resumable found, starting new resumable upload'
+            pass
         else:
-            print data
             to_resume = data
     if dev_url:
             dev_url = dev_url.replace('resumables', 'stream')
@@ -263,9 +268,10 @@ def initiate_resumable(env, pnum, filename, token, chunksize=None,
                                group, dev_url, stop_at)
 
 
-def _complete_resumable(filename, token, url):
+def _complete_resumable(filename, token, url, bar):
     headers = {'Authorization': 'Bearer ' + token}
     resp = requests.patch(url, headers=headers)
+    bar.finish()
     return json.loads(resp.text)
 
 
@@ -301,8 +307,11 @@ def start_resumable(env, pnum, filename, token, chunksize,
             parmaterised_url = '%s?chunk=%s&id=%s' % (url, str(chunk_num), upload_id)
         resp = requests.patch(parmaterised_url, data=chunk, headers=headers)
         data = json.loads(resp.text)
-        print data
-        upload_id = data['id']
+        if chunk_num == 1:
+            upload_id = data['id']
+            print 'Upload id: %s' % upload_id
+            bar = _init_progress_bar(chunk_num, chunksize, filename)
+        bar.next()
         if stop_at:
             if chunk_num == stop_at:
                 print 'stopping at chunk %d' % chunk_num
@@ -312,7 +321,7 @@ def start_resumable(env, pnum, filename, token, chunksize,
     if not group:
         group = '%s-member-group' % pnum
     parmaterised_url = '%s?chunk=%s&id=%s&group=%s' % (url, 'end', upload_id, group)
-    resp = _complete_resumable(filename, token, parmaterised_url)
+    resp = _complete_resumable(filename, token, parmaterised_url, bar)
     return resp
 
 
@@ -349,16 +358,18 @@ def continue_resumable(env, pnum, filename, token, to_resume,
     upload_id = to_resume['id']
     server_chunk_md5 = str(to_resume['md5sum'])
     chunk_num = max_chunk + 1
+    print 'Resuming upload with id: %s' % upload_id
+    bar = _init_progress_bar(chunk_num, chunksize, filename)
     for chunk in lazy_reader(filename, chunksize, previous_offset, next_offset, verify, server_chunk_md5):
         parmaterised_url = '%s?chunk=%s&id=%s' % (url, str(chunk_num), upload_id)
         resp = requests.patch(parmaterised_url, data=chunk, headers=headers)
+        bar.next()
         data = json.loads(resp.text)
-        print data
         upload_id = data['id']
         chunk_num += 1
     resumable = data
     if not group:
         group = '%s-member-group' % pnum
     parmaterised_url = '%s?chunk=%s&id=%s&group=%s' % (url, 'end', upload_id, group)
-    resp = _complete_resumable(filename, token, parmaterised_url)
+    resp = _complete_resumable(filename, token, parmaterised_url, bar)
     return resp
