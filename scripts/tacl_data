@@ -235,6 +235,8 @@ def main(env, pnum, config, guide, data, user_name,
                 return
             elif resume_delete:
                 pass # implement in client
+            elif resume_delete_all:
+                pass # implement in client
             return
         else:
             print 'Authentication failed'
