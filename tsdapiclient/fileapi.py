@@ -207,10 +207,13 @@ def print_resumables_list(data, filename=None, upload_id=None):
     else:
         the_list = data['resumables']
         the_list.sort(resumables_cmp)
+        colnames =['Upload ID', 'Server-side data size', 'Filename']
+        values = []
         for r in the_list:
-            fmt_str = 'upload id: %s, server-side data size: %s, filename: %s'
             mb = humanfriendly.format_size(r['next_offset'])
-            print fmt_str % (r['id'], mb, r['filename'])
+            row = [r['id'], mb, r['filename']]
+            values.append(row)
+        print humanfriendly.tables.format_pretty_table(values, colnames)
 
 
 def get_resumable(env, pnum, token, filename=None, upload_id=None, dev_url=None):

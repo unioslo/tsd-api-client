@@ -194,10 +194,46 @@ export_data() {
         exit 0
     else
         tacl_data --tsd_api_key --env $API_ENV --pnum $PNUM --export $FILENAME \
-        --user_name $USERNAME --password $PASSWORD --otp $OTP
+            --user_name $USERNAME --password $PASSWORD --otp $OTP
         exit 0
     fi
     exit 0
+}
+
+manage_resumables() {
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --env)                  shift; API_ENV=$1; shift ;;
+            --resume-list)          shift; LISTALL="true"; ;;
+            --resume-delete)        shift; RDEL="true"; shift ;;
+            --resume-delete-all)    shift; RDELALL="true"; shift ;;
+            --upload-id)            shift; UPLOAD_ID=$1; shift ;;
+            *)                      shift ;;
+        esac
+    done
+
+    if [[ $API_ENV == '' ]]; then
+        API_ENV='prod'
+    fi
+
+    PNUM=$(pnum_from_uname $USERNAME)
+
+    if [[ $LISTALL == "true" ]]; then
+        tacl_data --tsd_api_key --env $API_ENV --pnum $PNUM \
+            --user_name $USERNAME --password $PASSWORD --otp $OTP \
+            --resume-list
+        exit 0
+    elif [[ $RDEL == "true" ]]; then
+        tacl_data --tsd_api_key --env $API_ENV --pnum $PNUM \
+            --user_name $USERNAME --password $PASSWORD --otp $OTP \
+            --resume-delete --upload-id $UPLOAD_ID
+        exit 0
+    elif [[ $RDELALL == "true" ]]; then
+        tacl_data --tsd_api_key --env $API_ENV --pnum $PNUM \
+            --user_name $USERNAME --password $PASSWORD --otp $OTP \
+            --resume-delete-all
+        exit 0
+    fi
 }
 
 if [[ $1 =~ ^('--help'|'--guide'|'--show_config'|'--del_config') ]]; then
@@ -228,6 +264,10 @@ for i in ${args[*]}; do
     elif [[ $i =~ ^('--export-list'|'--export') ]]; then
         collect_credentials
         export_data $@
+        exit 0
+    elif [[ $i =~ ^('--resume-list'|'--resume-delete'|'--resume-delete-all') ]]; then
+        collect_credentials
+        manage_resumables $@
         exit 0
     fi
 done
