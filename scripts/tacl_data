@@ -165,7 +165,7 @@ def main(env, pnum, config, guide, data, user_name,
         sys.exit(1)
     _check_present(env, 'env')
     _check_present(pnum, 'pnum')
-    if data or show or export:
+    if data or show or export or resume_list or resume_delete:
         _check_present(user_name, 'user_name')
         _check_present(password, 'password')
         _check_present(otp, 'otp')
@@ -191,7 +191,7 @@ def main(env, pnum, config, guide, data, user_name,
                 except Exception as e:
                     print 'could not find an api key'
                     return
-            if data or fileinput:
+            if data or fileinput or resume_list or resume_delete:
                 token_type = 'import'
             elif show or export:
                 token_type = 'export'
