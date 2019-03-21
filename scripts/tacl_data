@@ -30,6 +30,7 @@ def print_data_guide():
         --upload-id         Resume a specific upload, providing the upload ID.
         --resume-list       Get an overview of all resumable uploads.
         --resume-delete     Delete an incomplete resumable upload.
+        --chunk-size        Optional chunk size (in Megabytes) specification for resumable uploads.
         --export-list       List files available for export.
         --export            Name of the file you want to download.
 
@@ -67,7 +68,7 @@ def print_data_guide():
         Working with resumable uploads
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-        tacl --import myfile --upload-id 52928fed-8c29-4135-88e9-27f2c0bec526
+        tacl --import myfile --upload-id 52928fed-8c29-4135-88e9-27f2c0bec526 --chunk-size 100
         tacl --resume-list
         tacl --resume-delete --upload-id 52928fed-8c29-4135-88e9-27f2c0bec526
 
@@ -145,10 +146,12 @@ def parse_post_processing_expression(expr, encryptedpw):
 @click.option('--upload-id', default=None, required=False, help='resumable upload ID')
 @click.option('--resume-list', is_flag=True, required=False, help='list all uploads which can be resumed')
 @click.option('--resume-delete', default=None, required=False, help='delete a resumable upload')
+@click.option('--chunk-size', default=None, required=False, help='chunk size for resumable upload')
 @click.argument('fileinput', type=click.File('rb'), required=False, default=None)
 def main(env, pnum, config, guide, data, user_name,
          password, otp, encryptedpw, pre, post, tsd_api_key, group,
-         show, export, upload_id, resume_list, resume_delete, fileinput):
+         show, export, upload_id, resume_list, resume_delete, fileinput,
+         chunk_size):
     if guide:
         print_data_guide()
         return
@@ -193,11 +196,14 @@ def main(env, pnum, config, guide, data, user_name,
             return
         if token:
             if not fileinput and data:
-                # if a file is larger than 1gb make it resumable
                 if upload_id or os.stat(data).st_size > 1000*1000*1000:
-                    resume_chunksize = 1000*1000*200 # 200mb
-                    resp = initiate_resumable(env, pnum, data, token, resume_chunksize, group=group,
-                                              verify=True, upload_id=upload_id)
+                    if not chunk_size:
+                        chunk_size = 1000*1000*50
+                    else:
+                        # user specifies MB input
+                        chunk_size = 1000*1000*chunk_size
+                    resp = initiate_resumable(env, pnum, data, token, chunksize=chunk_size,
+                                              group=group, verify=True, upload_id=upload_id)
                 else:
                     resp = streamfile(env, pnum, data, token,
                                       custom_headers=custom_headers, group=group)
