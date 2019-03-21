@@ -401,3 +401,34 @@ def continue_resumable(env, pnum, filename, token, to_resume,
     parmaterised_url = '%s?chunk=%s&id=%s&group=%s' % (url, 'end', upload_id, group)
     resp = _complete_resumable(filename, token, parmaterised_url, bar)
     return resp
+
+
+def delete_resumable(env, pnum, token, filename, upload_id, dev_url=None):
+    """
+    Delete a specific incomplete resumable.
+
+    Parameters
+    ----------
+    env: str, 'test' or 'prod'
+    pnum: str, project number
+    token: str, JWT
+    filename: str, filename
+    upload_id: str, uuid
+    dev_url: str, pass a complete url (useful for development)
+
+    Returns
+    -------
+    dict
+
+    """
+    if dev_url:
+        url = dev_url
+    else:
+        url = '%s/%s/files/resumables/%s?id=%s' % (ENV[env], pnum, filename, upload_id)
+    resp = requests.delete(url, headers={'Authorization': 'Bearer ' + token})
+    print 'Upload: %s, for filename %s deleted' % (upload_id, filename)
+    return json.loads(resp.text)
+
+
+def delete_all_resumables(env, pnum, token, dev_url=None):
+    pass

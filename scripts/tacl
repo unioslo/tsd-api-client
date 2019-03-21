@@ -205,7 +205,7 @@ manage_resumables() {
         case $1 in
             --env)                  shift; API_ENV=$1; shift ;;
             --resume-list)          shift; LISTALL="true"; ;;
-            --resume-delete)        shift; RDEL="true"; shift ;;
+            --resume-delete)        shift; RDEL=$1; shift ;;
             --resume-delete-all)    shift; RDELALL="true"; shift ;;
             --upload-id)            shift; UPLOAD_ID=$1; shift ;;
             *)                      shift ;;
@@ -223,10 +223,10 @@ manage_resumables() {
             --user_name $USERNAME --password $PASSWORD --otp $OTP \
             --resume-list
         exit 0
-    elif [[ $RDEL == "true" ]]; then
+    elif [[ ! -z $RDEL ]]; then
         tacl_data --tsd_api_key --env $API_ENV --pnum $PNUM \
             --user_name $USERNAME --password $PASSWORD --otp $OTP \
-            --resume-delete --upload-id $UPLOAD_ID
+            --resume-delete $RDEL --upload-id $UPLOAD_ID
         exit 0
     elif [[ $RDELALL == "true" ]]; then
         tacl_data --tsd_api_key --env $API_ENV --pnum $PNUM \
