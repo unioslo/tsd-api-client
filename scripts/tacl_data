@@ -25,27 +25,29 @@ def print_data_guide():
         Options
         ~~~~~~~
 
-        --env               Either 'test' or 'prod' environment. Defaults to 'prod'.
-        --import            Path to file or folder you want to upload.
-        --upload-id         Resume a specific upload, providing the upload ID.
-        --resume-list       Get an overview of all resumable uploads.
-        --resume-delete     Delete an incomplete resumable upload.
-        --chunk-size        Optional chunk size (in Megabytes) specification for resumable uploads.
-        --export-list       List files available for export.
-        --export            Name of the file you want to download.
+        --env                   Either 'test' or 'prod' environment. Defaults to 'prod'.
+        --import                Path to file or folder you want to upload.
+        --upload-id             Resume a specific upload, providing the upload ID.
+        --resume-list           Get an overview of all resumable uploads.
+        --resume-delete         Delete a specific incomplete resumable upload.
+        --resume-delete-all     Delete all incomplete resumable upload.
+        --chunk-size            Optional chunk size (in Megabytes) specification for resumable uploads.
+        --export-list           List files available for export.
+        --export                Name of the file you want to download.
 
         Optional data pipeline parameters (not relevant to resume or sync):
-        --pre           Comma-separated string specifying pre-upload data processing:
-                            - 'archive': create a tarball
-                            - 'compress': use gzip compression
-                            - 'encrypt': encrypt data using AES
-        --post          Comma-separated string specifying post-upload data processing (server-side):
-                            - 'restore': restore the tarball to a directory
-                            - 'decompress': decompress data
-                            - 'decrypt': decrypt data
-        --recipient     GPG recipient - only when using 'encrypt' or 'decrypt' in pre and/or post
-                        expression.
-        --group         Name of the TSD file group which should have permissions on the upload.
+
+        --pre                   Comma-separated string specifying pre-upload data processing:
+                                    - 'archive': create a tarball
+                                    - 'compress': use gzip compression
+                                    - 'encrypt': encrypt data using AES
+        --post                  Comma-separated string specifying post-upload data processing (server-side):
+                                    - 'restore': restore the tarball to a directory
+                                    - 'decompress': decompress data
+                                    - 'decrypt': decrypt data
+        --recipient             GPG recipient - only when using 'encrypt' or 'decrypt' in pre and/or post
+                                expression.
+        --group                 Name of the TSD file group which should have permissions on the upload.
 
 
         Register your API client
@@ -68,9 +70,11 @@ def print_data_guide():
         Working with resumable uploads
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-        tacl --import myfile --upload-id 52928fed-8c29-4135-88e9-27f2c0bec526 --chunk-size 100
+        tacl --import myfile # files larger than 1gb will automatically be resumable
+        tacl --import myfile --upload-id 52928fed-8c29-4135-88e9-27f2c0bec526
         tacl --resume-list
         tacl --resume-delete --upload-id 52928fed-8c29-4135-88e9-27f2c0bec526
+        tacl --resume-delete-all
 
         Exporting data from TSD
         ~~~~~~~~~~~~~~~~~~~~~~~
@@ -200,8 +204,7 @@ def main(env, pnum, config, guide, data, user_name,
                     if not chunk_size:
                         chunk_size = 1000*1000*50
                     else:
-                        # user specifies MB input
-                        chunk_size = 1000*1000*chunk_size
+                        chunk_size = 1000*1000*chunk_size # user specifies MB input
                     resp = initiate_resumable(env, pnum, data, token, chunksize=chunk_size,
                                               group=group, verify=True, upload_id=upload_id)
                     print 'Data imported'
