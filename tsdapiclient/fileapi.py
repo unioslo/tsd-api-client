@@ -426,9 +426,28 @@ def delete_resumable(env, pnum, token, filename, upload_id, dev_url=None):
     else:
         url = '%s/%s/files/resumables/%s?id=%s' % (ENV[env], pnum, filename, upload_id)
     resp = requests.delete(url, headers={'Authorization': 'Bearer ' + token})
-    print 'Upload: %s, for filename %s deleted' % (upload_id, filename)
+    print 'Upload: %s, for filename: %s deleted' % (upload_id, filename)
     return json.loads(resp.text)
 
 
 def delete_all_resumables(env, pnum, token, dev_url=None):
-    pass
+    """
+    Delete all incomplete resumables.
+
+    Parameters
+    ----------
+    env: str, 'test' or 'prod'
+    pnum: str, project number
+    token: str, JWT
+    dev_url: str, pass a complete url (useful for development)
+
+    Returns
+    -------
+    dict
+
+    """
+    overview = get_resumable(env, pnum, token, dev_url)
+    all_resumables = overview['resumables']
+    for r in all_resumables:
+        delete_resumable(env, pnum, token, r['filename'], r['id'])
+    return
