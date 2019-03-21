@@ -6,6 +6,7 @@ import json
 import hashlib
 
 import requests
+import humanfriendly
 from progress.bar import Bar
 
 from config import ENV
@@ -187,6 +188,29 @@ def _init_progress_bar(current_chunk, chunksize, filename):
     fsize = os.stat(filename).st_size
     num_chunks = fsize / chunksize
     return Bar('Progress', index=current_chunk, max=num_chunks, suffix='%(percent)d%%')
+
+
+def resumables_cmp(a, b):
+    a = a['next_offset']
+    b = b['next_offset']
+    if a < b:
+        return 1
+    elif a < b:
+        return -1
+    else:
+        return -1
+
+
+def print_resumables_list(data, filename=None, upload_id=None):
+    if filename and upload_id:
+        pass # not implemented
+    else:
+        the_list = data['resumables']
+        the_list.sort(resumables_cmp)
+        for r in the_list:
+            fmt_str = 'upload id: %s, server-side data size: %s, filename: %s'
+            mb = humanfriendly.format_size(r['next_offset'])
+            print fmt_str % (r['id'], mb, r['filename'])
 
 
 def get_resumable(env, pnum, token, filename=None, upload_id=None, dev_url=None):
