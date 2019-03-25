@@ -150,6 +150,17 @@ def streamstdin(env, pnum, fileinput, filename, token,
     return resp
 
 
+def print_export_list(data):
+    colnames = ['Filename', 'Modified', 'Size', 'Exportable']
+    values = []
+    for entry in data['files']:
+        size = humanfriendly.format_size(entry['size'])
+        row = [entry['filename'], entry['modified_date'], size, entry['exportable']]
+        values.append(row)
+    print humanfriendly.tables.format_pretty_table(values, colnames)
+
+
+
 def export_list(env, pnum, token):
     """
     Get the list of files available for export.
@@ -167,11 +178,9 @@ def export_list(env, pnum, token):
     """
     url = '%s/%s/files/export' % (ENV[env], pnum)
     headers = {'Authorization': 'Bearer ' + token}
-    print 'GET: %s' % url
     resp = requests.get(url, headers=headers)
     data = json.loads(resp.text)
-    for entry in data['files']:
-        print entry
+    return data
 
 
 def export_get(env, pnum, filename, token, chunksize=4096,

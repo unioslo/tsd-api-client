@@ -11,7 +11,7 @@ from tsdapiclient.config import ENV
 from tsdapiclient.configurer import read_config
 from tsdapiclient.fileapi import streamfile, streamstdin, export_list, export_get, \
                                  get_resumable, initiate_resumable, print_resumables_list, \
-                                 delete_resumable, delete_all_resumables
+                                 delete_resumable, delete_all_resumables, print_export_list
 from tsdapiclient.tools import _check_present
 
 
@@ -227,7 +227,8 @@ def main(env, pnum, config, guide, data, user_name,
                 else:
                     print 'Data import failed: ', resp.text
             elif show:
-                export_list(env, pnum, token)
+                data = export_list(env, pnum, token)
+                print_export_list(data)
                 return
             elif export:
                 filename = export
