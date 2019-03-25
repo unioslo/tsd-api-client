@@ -35,6 +35,7 @@ def print_data_guide():
         --chunk-size            Optional chunk size (in Megabytes) specification for resumable uploads.
         --export-list           List files available for export.
         --export                Name of the file you want to download.
+        --download-id           Unique identifier used to resume a download.
 
         Optional data pipeline parameters (not relevant to resume or sync):
 
@@ -82,6 +83,7 @@ def print_data_guide():
 
         tacl --export-list
         tacl --export mydir.zip
+        tacl --export mydir.zip --download-id 869b432d7703e62134fcca775c98ba38 # to resume a partial download
 
 
         API docs
@@ -153,11 +155,12 @@ def parse_post_processing_expression(expr, encryptedpw):
 @click.option('--resume-delete', default=None, required=False, help='delete an incomplete resumable upload')
 @click.option('--chunk-size', default=None, required=False, help='chunk size for resumable upload')
 @click.option('--resume-delete-all', is_flag=True, required=False, help='delete all incomplete resumable uploads')
+@click.option('--download-id', default=None, required=False, help='Etag used to ensure intergity when resuming a download')
 @click.argument('fileinput', type=click.File('rb'), required=False, default=None)
 def main(env, pnum, config, guide, data, user_name,
          password, otp, encryptedpw, pre, post, tsd_api_key, group,
          show, export, upload_id, resume_list, resume_delete, fileinput,
-         chunk_size, resume_delete_all):
+         chunk_size, resume_delete_all, download_id):
     if guide:
         print_data_guide()
         return
@@ -228,7 +231,7 @@ def main(env, pnum, config, guide, data, user_name,
                 return
             elif export:
                 filename = export
-                export_get(env, pnum, filename, token)
+                export_get(env, pnum, filename, token, etag=download_id)
                 return
             elif resume_list:
                 overview = get_resumable(env, pnum, token)

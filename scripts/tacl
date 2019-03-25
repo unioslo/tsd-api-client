@@ -178,6 +178,7 @@ export_data() {
             --env)          shift; API_ENV=$1; shift ;;
             --export-list)  shift; SHOW="true"; ;;
             --export)       shift; FILENAME=$1; shift ;;
+            --download-id)  shift; ETAG=$1; shift ;;
             *)              shift ;;
         esac
     done
@@ -193,9 +194,14 @@ export_data() {
             --user_name $USERNAME --password $PASSWORD --otp $OTP
         exit 0
     else
-        tacl_data --tsd_api_key --env $API_ENV --pnum $PNUM --export $FILENAME \
-            --user_name $USERNAME --password $PASSWORD --otp $OTP
-        exit 0
+        if [[ ! -z $ETAG  ]]; then
+            tacl_data --tsd_api_key --env $API_ENV --pnum $PNUM --export $FILENAME \
+                --user_name $USERNAME --password $PASSWORD --otp $OTP --download-id $ETAG
+        else
+            tacl_data --tsd_api_key --env $API_ENV --pnum $PNUM --export $FILENAME \
+                --user_name $USERNAME --password $PASSWORD --otp $OTP
+            exit 0
+        fi
     fi
     exit 0
 }
