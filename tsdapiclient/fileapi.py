@@ -12,6 +12,33 @@ from progress.bar import Bar
 from config import ENV
 
 
+def _init_progress_bar(current_chunk, chunksize, filename):
+    # this is an approximation, better than nothing
+    fsize = os.stat(filename).st_size
+    num_chunks = fsize / chunksize
+    return Bar('Progress', index=current_chunk, max=num_chunks, suffix='%(percent)d%%')
+
+
+def _init_export_progress_bar(current_file_size, total_file_size, chunksize):
+    if current_file_size is not None:
+        if chunksize < current_file_size:
+            index = current_file_size/chunksize
+            _max = total_file_size/chunksize
+        else:
+            chunksize = current_file_size
+            index = current_file_size/chunksize
+            _max = total_file_size/chunksize
+    else:
+        if chunksize > total_file_size:
+            index = 0
+            chunksize = total_file_size
+            _max = total_file_size/chunksize
+        else:
+            index = 0
+            _max = total_file_size/chunksize
+    return Bar('Progress', index=index, max=_max, suffix='%(percent)d%%')
+
+
 def format_filename(filename):
     return os.path.basename(filename)
 
@@ -147,7 +174,8 @@ def export_list(env, pnum, token):
         print entry
 
 
-def export_get(env, pnum, filename, token, chunksize=4096):
+def export_get(env, pnum, filename, token, chunksize=4096,
+               etag=None, dev_url=None):
     """
     Download a file to the current directory.
 
@@ -158,20 +186,41 @@ def export_get(env, pnum, filename, token, chunksize=4096):
     filename: str
     token: JWT
     chunksize: bytes per iteration
+    etag: str
+    dev_url: development url
 
     Returns
     -------
     str
 
     """
-    url = '%s/%s/files/export/%s' % (ENV[env], pnum, filename)
+    filemode = 'wb'
+    current_file_size = None
     headers = {'Authorization': 'Bearer ' + token}
-    print 'GET: %s' % url
+    if etag:
+        filemode = 'ab'
+        if os.path.lexists(filename):
+            current_file_size = os.stat(filename).st_size
+            headers['Range'] = 'bytes=%d-' % current_file_size
+        else:
+            headers['Range'] = 'bytes=0-'
+    if dev_url:
+        url = dev_url
+    else:
+        url = '%s/%s/files/export/%s' % (ENV[env], pnum, filename)
+    resp = requests.head(url, headers=headers)
+    download_id = resp.headers['Etag']
+    total_file_size = int(resp.headers['Content-Length'])
+    print 'Download id: %s' % download_id
+    bar = _init_export_progress_bar(current_file_size, total_file_size, chunksize)
     with requests.get(url, headers=headers, stream=True) as r:
-        with open(filename, 'wb') as f:
+        with open(filename, filemode) as f:
             for chunk in r.iter_content(chunk_size=chunksize):
                 if chunk:
                     f.write(chunk)
+                    bar.next()
+            bar.next()
+    bar.finish()
     return filename
 
 
@@ -181,13 +230,6 @@ def _resumable_url(env, pnum, filename, dev_url=None):
     else:
         url = dev_url
     return url
-
-
-def _init_progress_bar(current_chunk, chunksize, filename):
-    # this is an approximation, better than nothing
-    fsize = os.stat(filename).st_size
-    num_chunks = fsize / chunksize
-    return Bar('Progress', index=current_chunk, max=num_chunks, suffix='%(percent)d%%')
 
 
 def resumables_cmp(a, b):
