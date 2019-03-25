@@ -44,7 +44,8 @@ def format_filename(filename):
 
 
 def lazy_reader(filename, chunksize, previous_offset=None,
-                next_offset=None, verify=None, server_chunk_md5=None):
+                next_offset=None, verify=None, server_chunk_md5=None,
+                with_progress=False):
     with open(filename, 'rb+') as f:
         if verify:
             f.seek(previous_offset)
@@ -57,9 +58,15 @@ def lazy_reader(filename, chunksize, previous_offset=None,
                 raise Exception('cannot resume upload - client/server chunks do not match')
         if next_offset:
             f.seek(next_offset)
+        if with_progress:
+            bar = _init_progress_bar(1, chunksize, filename)
         while True:
+            if with_progress:
+                bar.next()
             data = f.read(chunksize)
             if not data:
+                if with_progress:
+                    bar.finish()
                 break
             else:
                 yield data
@@ -106,9 +113,8 @@ def streamfile(env, pnum, filename, token,
         new_headers.update(custom_headers)
     else:
         new_headers = headers
-    print 'PUT: %s' % url
-    resp = requests.put(url, data=lazy_reader(filename, chunksize),
-                         headers=new_headers)
+    resp = requests.put(url, data=lazy_reader(filename, chunksize, with_progress=True),
+                        headers=new_headers)
     return resp
 
 
