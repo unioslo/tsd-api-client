@@ -7,11 +7,15 @@ import sys
 import getpass
 
 import click
+import requests
 
 from tsdapiclient.authapi import get_jwt_tsd_auth
 from tsdapiclient.config import ENV
-from tsdapiclient.tools import _check_present
+from tsdapiclient.tools import _check_present, user_agent
 from tsdapiclient.configurer import read_config
+
+
+requests.utils.default_user_agent = user_agent
 
 
 HOME = os.path.expanduser('~')

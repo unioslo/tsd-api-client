@@ -5,14 +5,16 @@
 import getpass
 
 import click
+import requests
 
 from tsdapiclient.administrator import do_signup, do_confirm, \
         get_api_key, del_api_key, pw_reset, get_tsd_api_key
 from tsdapiclient.config import ENV
 from tsdapiclient.configurer import read_config, update_config, print_config, \
                                     print_config_tsd_2fa_key
-from tsdapiclient.tools import _check_present
+from tsdapiclient.tools import _check_present, user_agent
 
+requests.utils.default_user_agent = user_agent
 
 def print_admin_guide():
     guide_text = """\

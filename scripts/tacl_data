@@ -4,7 +4,9 @@
 
 import os
 import sys
+
 import click
+import requests
 
 from tsdapiclient.authapi import get_jwt_tsd_auth
 from tsdapiclient.config import ENV
@@ -12,7 +14,10 @@ from tsdapiclient.configurer import read_config
 from tsdapiclient.fileapi import streamfile, streamstdin, export_list, export_get, \
                                  get_resumable, initiate_resumable, print_resumables_list, \
                                  delete_resumable, delete_all_resumables, print_export_list
-from tsdapiclient.tools import _check_present
+from tsdapiclient.tools import _check_present, user_agent
+
+
+requests.utils.default_user_agent = user_agent
 
 
 def print_data_guide():
