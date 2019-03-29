@@ -98,10 +98,10 @@ def print_data_guide():
         After you have registered your client with TSD, you can perform data import
         tasks without Two Factor Authentication, if your IP address has been
         whitelisted with TSD. To request this, contact tsd-drift@usit.uio.no. To
-        use basic auth, simply add the --basic flag to your commands:
+        use basic auth, simply add the --pnum pXX flag to your commands:
 
-        tacl --basic --import mydata
-        tacl --basic --resume-list
+        tacl --pnum p11 --import mydata
+        tacl --pnum p11 --resume-list
 
         Please note this will not work with data export.
 
