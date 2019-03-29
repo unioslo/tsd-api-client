@@ -5,6 +5,7 @@
 import os
 import sys
 
+
 import click
 import requests
 
@@ -14,7 +15,7 @@ from tsdapiclient.configurer import read_config
 from tsdapiclient.fileapi import streamfile, streamstdin, export_list, export_get, \
                                  get_resumable, initiate_resumable, print_resumables_list, \
                                  delete_resumable, delete_all_resumables, print_export_list
-from tsdapiclient.tools import _check_present, user_agent
+from tsdapiclient.tools import _check_present, user_agent, check_if_key_has_expired
 
 
 requests.utils.default_user_agent = user_agent
@@ -224,6 +225,16 @@ def main(env, pnum, config, guide, data, user_name,
                 except Exception as e:
                     print 'could not find an api key'
                     return
+            # try to determine if the API key has expired
+            # only possible with new style JWT keys
+            try:
+                has_exired = check_if_key_has_expired(api_key)
+                if has_exired:
+                    print 'Your API key has expired'
+                    print 'Register your client again'
+                    return
+            except Exception:
+                pass # cannot figure it out :(
             if data or fileinput or resume_list or resume_delete or resume_delete_all:
                 token_type = 'import'
             elif show or export:
