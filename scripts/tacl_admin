@@ -73,8 +73,8 @@ def print_admin_guide():
 @click.option('--guide', is_flag=True, default=False, help='print help text')
 @click.option('--client_name', default=None, help='your client\'s name')
 @click.option('--email', default=None, help='your email address')
-@click.option('--show_config', is_flag=True, help='print current tacl config')
-@click.option('--del_config', is_flag=True, help='delete current tacl config')
+@click.option('--show-config', is_flag=True, help='print current tacl config')
+@click.option('--del-config', is_flag=True, help='delete current tacl config')
 @click.option('--register_tsd_2fa', is_flag=True, help='one-step API key request - valid for TSD 2FA')
 @click.option('--print_tsd_2fa_key', is_flag=True, help='print project specific TSD 2FA api key')
 def main(env, pnum, signup, confirm, getapikey, delapikey, pwreset, guide,

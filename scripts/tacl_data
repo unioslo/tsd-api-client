@@ -20,9 +20,8 @@ from tsdapiclient.tools import _check_present, user_agent
 requests.utils.default_user_agent = user_agent
 
 
-def print_data_guide():
-    guide_text = """\
-
+def print_basic_help():
+    help_text = """
         TSD API client command-line tool: tacl
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -55,7 +54,12 @@ def print_data_guide():
         --recipient             GPG recipient - only when using 'encrypt' or 'decrypt' in pre and/or post
                                 expression.
         --group                 Name of the TSD file group which should have permissions on the upload.
+    """
+    print help_text
 
+
+def print_data_guide():
+    guide_text = """\
 
         Register your API client
         ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -112,6 +116,7 @@ def print_data_guide():
 
     """
     print guide_text
+
 
 def parse_post_processing_expression(expr, encryptedpw):
     """
@@ -176,12 +181,15 @@ def parse_post_processing_expression(expr, encryptedpw):
 @click.option('--chunk-size', default=None, required=False, help='chunk size for resumable upload')
 @click.option('--resume-delete-all', is_flag=True, required=False, help='delete all incomplete resumable uploads')
 @click.option('--download-id', default=None, required=False, help='Etag used to ensure intergity when resuming a download')
-@click.option('--basic', default=None, required=False, help='Flag to enable API key based authentication')
+@click.option('--help', is_flag=True, required=False, help='basic help')
 @click.argument('fileinput', type=click.File('rb'), required=False, default=None)
 def main(env, pnum, config, guide, data, user_name,
          password, otp, encryptedpw, pre, post, tsd_api_key, group,
          show, export, upload_id, resume_list, resume_delete, fileinput,
-         chunk_size, resume_delete_all, download_id, basic):
+         chunk_size, resume_delete_all, download_id, help):
+    if help:
+        print_basic_help()
+        return
     if guide:
         print_data_guide()
         return

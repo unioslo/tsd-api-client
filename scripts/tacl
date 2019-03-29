@@ -257,18 +257,24 @@ manage_resumables() {
     fi
 }
 
-if [[ $1 =~ ^('--help'|'--guide'|'--show_config'|'--del_config') ]]; then
-    if [[ $2 == 'admin' ]]; then
-        tacl_admin $1
-        exit 0
-    elif [[ $2 == 'data' ]]; then
-        tacl_data $1
-        exit 0
-    else
-        tacl_admin $@
-        exit 0
-    fi
+
+if [[ $1 == '--help' ]]; then
+    tacl_data --help
+    exit 0
+elif [[ $1 == '--data-guide' ]]; then
+    tacl_data --guide
+    exit 0
+elif [[ $1 == '--admin-guide' ]]; then
+    tacl_admin --guide
+    exit 0
+elif [[ $1 == '--show-config' ]]; then
+    tacl_admin --show-config
+    exit 0
+elif [[ $1 == '--del-config' ]]; then
+    tacl_admin --del-config
+    exit 0
 fi
+
 
 args=("$@")
 for i in ${args[*]}; do

@@ -12,6 +12,15 @@ pip install -r requirements.txt
 python setup.py install
 ```
 
+## tacl
+
+To use the TSD File API, use `tacl`:
+
+```bash
+tacl --help
+tacl --data-guide
+```
+
 ## tsd-s3cmd
 
 To use the TSD s3 API, use `tsd-s3cmd`:
@@ -19,12 +28,4 @@ To use the TSD s3 API, use `tsd-s3cmd`:
 ```bash
 tsd-s3cmd --guide
 tsd-s3cmd --help
-```
-
-## tacl
-
-To use the TSD File API, use `tacl`:
-
-```bash
-tacl --guide data
 ```
