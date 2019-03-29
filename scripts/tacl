@@ -14,9 +14,13 @@ pnum_from_uname() {
 }
 
 collect_credentials() {
-    read -p 'User > ' USERNAME
-    read -s -p 'Password > ' PASSWORD; echo
-    read -p 'OTP > ' OTP
+    if [[ $@ == *"--pnum"* ]]; then
+        USERNAME=null; PASSWORD=null; OTP=null
+    else
+        read -p 'User > ' USERNAME
+        read -s -p 'Password > ' PASSWORD; echo
+        read -p 'OTP > ' OTP
+    fi
 }
 
 exit_if_is_directory() {
@@ -62,6 +66,7 @@ import_data() {
             --recipient) shift; RECIPIENT=$1; shift ;;
             --group)     shift; GROUP=$1; shift ;;
             --upload-id) shift; UPLOAD_ID=$1; shift ;;
+            --pnum)      shift; PNUM=$1; shift ;;
             *)           shift ;;
         esac
     done
@@ -74,7 +79,10 @@ import_data() {
         API_ENV='prod'
     fi
 
-    PNUM=$(pnum_from_uname $USERNAME)
+    if [[ -z $PNUM ]]; then
+        echo pnum not set, collecting from uname
+        PNUM=$(pnum_from_uname $USERNAME)
+    fi
 
     if [[ $GROUP == '' ]]; then
         GROUP="$PNUM-member-group"
@@ -217,6 +225,7 @@ manage_resumables() {
             --resume-delete)        shift; RDEL=$1; shift ;;
             --resume-delete-all)    shift; RDELALL="true"; shift ;;
             --upload-id)            shift; UPLOAD_ID=$1; shift ;;
+            --pnum)                 shift; PNUM=$1; shift ;;
             *)                      shift ;;
         esac
     done
@@ -225,7 +234,10 @@ manage_resumables() {
         API_ENV='prod'
     fi
 
-    PNUM=$(pnum_from_uname $USERNAME)
+    if [[ -z $PNUM ]]; then
+        echo pnum not set, collecting from uname
+        PNUM=$(pnum_from_uname $USERNAME)
+    fi
 
     if [[ $LISTALL == "true" ]]; then
         tacl_data --tsd_api_key --env $API_ENV --pnum $PNUM \
@@ -267,15 +279,15 @@ for i in ${args[*]}; do
         tacl_admin $@
         exit 0
     elif [[ $i =~ ^('--data'|'--import') ]]; then
-        collect_credentials
+        collect_credentials $@
         import_data $@
         exit 0
     elif [[ $i =~ ^('--export-list'|'--export') ]]; then
-        collect_credentials
+        collect_credentials $@
         export_data $@
         exit 0
     elif [[ $i =~ ^('--resume-list'|'--resume-delete'|'--resume-delete-all') ]]; then
-        collect_credentials
+        collect_credentials $@
         manage_resumables $@
         exit 0
     fi

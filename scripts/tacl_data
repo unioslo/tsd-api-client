@@ -8,7 +8,7 @@ import sys
 import click
 import requests
 
-from tsdapiclient.authapi import get_jwt_tsd_auth
+from tsdapiclient.authapi import get_jwt_tsd_auth, get_jwt_basic_auth
 from tsdapiclient.config import ENV
 from tsdapiclient.configurer import read_config
 from tsdapiclient.fileapi import streamfile, streamstdin, export_list, export_get, \
@@ -83,6 +83,7 @@ def print_data_guide():
         tacl --resume-delete myfile --upload-id 52928fed-8c29-4135-88e9-27f2c0bec526
         tacl --resume-delete-all
 
+
         Exporting data from TSD
         ~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -90,6 +91,19 @@ def print_data_guide():
         tacl --export mydir.zip
         tacl --export mydir.zip --download-id 869b432d7703e62134fcca775c98ba38 # to resume a partial download
 
+
+        Using basic authentication for automation
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+        After you have registered your client with TSD, you can perform data import
+        tasks without Two Factor Authentication, if your IP address has been
+        whitelisted with TSD. To request this, contact tsd-drift@usit.uio.no. To
+        use basic auth, simply add the --basic flag to your commands:
+
+        tacl --basic --import mydata
+        tacl --basic --resume-list
+
+        Please note this will not work with data export.
 
 
         API docs
@@ -162,11 +176,12 @@ def parse_post_processing_expression(expr, encryptedpw):
 @click.option('--chunk-size', default=None, required=False, help='chunk size for resumable upload')
 @click.option('--resume-delete-all', is_flag=True, required=False, help='delete all incomplete resumable uploads')
 @click.option('--download-id', default=None, required=False, help='Etag used to ensure intergity when resuming a download')
+@click.option('--basic', default=None, required=False, help='Flag to enable API key based authentication')
 @click.argument('fileinput', type=click.File('rb'), required=False, default=None)
 def main(env, pnum, config, guide, data, user_name,
          password, otp, encryptedpw, pre, post, tsd_api_key, group,
          show, export, upload_id, resume_list, resume_delete, fileinput,
-         chunk_size, resume_delete_all, download_id):
+         chunk_size, resume_delete_all, download_id, basic):
     if guide:
         print_data_guide()
         return
@@ -205,7 +220,11 @@ def main(env, pnum, config, guide, data, user_name,
                 token_type = 'import'
             elif show or export:
                 token_type = 'export'
-            token = get_jwt_tsd_auth(env, pnum, api_key, user_name, password, otp, token_type)
+            token = None
+            if user_name != 'null':
+                token = get_jwt_tsd_auth(env, pnum, api_key, user_name, password, otp, token_type)
+            if not token:
+                token = get_jwt_basic_auth(env, pnum, api_key)
         except Exception:
             print 'Authentication failed'
             return
