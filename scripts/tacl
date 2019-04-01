@@ -80,7 +80,6 @@ import_data() {
     fi
 
     if [[ -z $PNUM ]]; then
-        echo pnum not set, collecting from uname
         PNUM=$(pnum_from_uname $USERNAME)
     fi
 
@@ -235,7 +234,6 @@ manage_resumables() {
     fi
 
     if [[ -z $PNUM ]]; then
-        echo pnum not set, collecting from uname
         PNUM=$(pnum_from_uname $USERNAME)
     fi
 
