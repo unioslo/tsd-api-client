@@ -1,7 +1,7 @@
 
 ## Setting up automated data import
 
-To import data to your TSD project(s) in an automated way, you firstly need to organise access for you machine(s) to the TSD API, by proividing an IP address/range. If you machine(s) are located on a Uninett network, then TSD's current security policy allows enabling access without issue. If not, then you will have to provide a description of how you secure your machine(s) and include it in the risk analysis of your project.
+To import data to your TSD project(s) in an automated way, you firstly need to organise access for your machine(s) to the TSD API, by proividing an IP address/range. If your machine(s) are located on a Uninett network, then TSD's current security policy allows enabling access without issue. If not, then you will have to provide a description of how you secure your machine(s) and include it in the risk analysis of your project.
 
 Given that this level of access is taken care of, and that you have obtained TSD credentials for your project(s), you can set up automated data import in the following way. Suppose you have installed the `tsd-api-client` and you have credentials for TSD projects pXX and pYY.
 
