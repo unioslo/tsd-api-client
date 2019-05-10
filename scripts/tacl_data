@@ -212,7 +212,7 @@ def get_token(tsd_api_key, env, pnum, data, fileinput,
 @click.option('--chunk-size', default=None, required=False, help='chunk size for resumable upload')
 @click.option('--resume-delete-all', is_flag=True, required=False, help='delete all incomplete resumable uploads')
 @click.option('--download-id', default=None, required=False, help='Etag used to ensure intergity when resuming a download')
-@click.option('--cluster', is_flag=True, required=False, help='upload to cluster filesystem')
+@click.option('--backend', default='files', required=False, help='upload to cluster filesystem')
 @click.option('--help', is_flag=True, required=False, help='basic help')
 @click.argument('fileinput', type=click.File('rb'), required=False, default=None)
 def main(env, pnum, config, guide, data, user_name,
@@ -230,10 +230,6 @@ def main(env, pnum, config, guide, data, user_name,
         sys.exit(1)
     _check_present(env, 'env')
     _check_present(pnum, 'pnum')
-    if cluster:
-        backend = 'cluster'
-    else:
-        backend = 'files'
     if data or show or export or resume_list or resume_delete or resume_delete_all:
         _check_present(user_name, 'user_name')
         _check_present(password, 'password')
