@@ -162,7 +162,7 @@ def parse_post_processing_expression(expr, encryptedpw):
 
 def get_token(tsd_api_key, env, pnum, data, fileinput,
               resume_list, resume_delete, resume_delete_all,
-              show, export, user_name):
+              show, export, user_name, backend):
     try:
         api_key = read_config()[env][pnum]
         try:
@@ -177,6 +177,8 @@ def get_token(tsd_api_key, env, pnum, data, fileinput,
             token_type = 'import'
         elif show or export:
             token_type = 'export'
+        elif backend == 'cluster' and pnum == 'p01':
+            token_type = 'admin'
         token = None
         if user_name != 'null':
             token = get_jwt_tsd_auth(env, pnum, api_key, user_name, password, otp, token_type)
@@ -210,12 +212,13 @@ def get_token(tsd_api_key, env, pnum, data, fileinput,
 @click.option('--chunk-size', default=None, required=False, help='chunk size for resumable upload')
 @click.option('--resume-delete-all', is_flag=True, required=False, help='delete all incomplete resumable uploads')
 @click.option('--download-id', default=None, required=False, help='Etag used to ensure intergity when resuming a download')
+@click.option('--cluster', is_flag=True, required=False, help='upload to cluster filesystem')
 @click.option('--help', is_flag=True, required=False, help='basic help')
 @click.argument('fileinput', type=click.File('rb'), required=False, default=None)
 def main(env, pnum, config, guide, data, user_name,
          password, otp, encryptedpw, pre, post, tsd_api_key, group,
          show, export, upload_id, resume_list, resume_delete, fileinput,
-         chunk_size, resume_delete_all, download_id, help):
+         chunk_size, resume_delete_all, download_id, cluster, help):
     if help:
         print_basic_help()
         return
@@ -227,6 +230,10 @@ def main(env, pnum, config, guide, data, user_name,
         sys.exit(1)
     _check_present(env, 'env')
     _check_present(pnum, 'pnum')
+    if cluster:
+        backend = 'cluster'
+    else:
+        backend = 'files'
     if data or show or export or resume_list or resume_delete or resume_delete_all:
         _check_present(user_name, 'user_name')
         _check_present(password, 'password')
@@ -240,7 +247,7 @@ def main(env, pnum, config, guide, data, user_name,
             return
         token = get_token(tsd_api_key, env, pnum, data, fileinput,
                           resume_list, resume_delete, resume_delete_all,
-                          show, export, user_name)
+                          show, export, user_name, backend)
         if not token:
             print 'Authentication failed'
             return
@@ -252,50 +259,49 @@ def main(env, pnum, config, guide, data, user_name,
                     else:
                         chunk_size = 1000*1000*chunk_size # user specifies MB input
                     resp = initiate_resumable(env, pnum, data, token, chunksize=chunk_size,
-                                              group=group, verify=True, upload_id=upload_id)
-                    print 'Data imported'
+                                              group=group, verify=True, upload_id=upload_id,
+                                              backend=backend)
                     return
                 else:
-                    resp = streamfile(env, pnum, data, token,
-                                      custom_headers=custom_headers, group=group)
-                    print 'Data imported'
+                    resp = streamfile(env, pnum, data, token, custom_headers=custom_headers,
+                                      group=group, backend=backend)
                     return
             elif fileinput:
-                resp = streamstdin(env, pnum, fileinput, data, token,
-                                   custom_headers=custom_headers, group=group)
+                resp = streamstdin(env, pnum, fileinput, data, token, custom_headers=custom_headers,
+                                   group=group, backend=backend)
                 if resp.status_code == 201:
-                    print 'Data imported'
+                    return
                 else:
                     print 'Data import failed: ', resp.text
             elif show:
-                data = export_list(env, pnum, token)
+                data = export_list(env, pnum, token, backend=backend)
                 print_export_list(data)
                 return
             elif export:
                 filename = export
-                export_get(env, pnum, filename, token, etag=download_id)
+                export_get(env, pnum, filename, token, etag=download_id, backend=backend)
                 return
             elif resume_list:
-                overview = get_resumable(env, pnum, token)
+                overview = get_resumable(env, pnum, token, backend=backend)
                 print_resumables_list(overview)
                 return
             elif resume_delete:
                 filename = resume_delete
-                delete_resumable(env, pnum, token, filename, upload_id)
+                delete_resumable(env, pnum, token, filename, upload_id, backend=backend)
                 return
             elif resume_delete_all:
-                delete_all_resumables(env, pnum, token)
+                delete_all_resumables(env, pnum, token, backend=backend)
                 return
             elif resume_list:
-                overview = get_resumable(env, pnum, token)
+                overview = get_resumable(env, pnum, token, backend=backend)
                 print_resumables_list(overview)
                 return
             elif resume_delete:
                 filename = resume_delete
-                delete_resumable(env, pnum, token, filename, upload_id)
+                delete_resumable(env, pnum, token, filename, upload_id, backend=backend)
                 return
             elif resume_delete_all:
-                delete_all_resumables(env, pnum, token)
+                delete_all_resumables(env, pnum, token, backend=backend)
                 return
             return
     else:
