@@ -232,6 +232,9 @@ def main(env, pnum, config, guide, data, user_name,
     _check_present(pnum, 'pnum')
     if backend is None or backend == '':
         backend = 'files' # default to HNAS
+    if backend not in ['files', 'cluster']:
+        print 'unknown backend, legal values: files, cluster'
+        sys.exit(1)
     if data or show or export or resume_list or resume_delete or resume_delete_all:
         _check_present(user_name, 'user_name')
         _check_present(password, 'password')
