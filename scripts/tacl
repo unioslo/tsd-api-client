@@ -277,8 +277,9 @@ elif [[ $1 == '--del-config' ]]; then
     exit 0
 fi
 
-
+set -x
 args=("$@")
+BACKEND='files' # default
 for i in ${args[*]}; do
     if [[ $i == '--register' ]]; then
         tacl_admin --register_tsd_2fa
