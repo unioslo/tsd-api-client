@@ -3,8 +3,8 @@
 if [[ $# -lt 1 ]]; then
     echo ""
     echo "  Missing arguments, exiting"
-    echo "  tacl --help <admin,data> for help"
-    echo "  tacl --guide <admin,data> for a longer explanation"
+    echo "  tacl --help for help"
+    echo "  tacl --data-guide for a longer explanation"
     echo ""
     exit 1
 fi
@@ -45,12 +45,13 @@ do_file_upload() {
         tacl_data --tsd_api_key --env $API_ENV --pnum $PNUM --group $GROUP \
             --post $POST --data $INPUT_DATA \
             --user_name $USERNAME --password $PASSWORD --otp $OTP \
-            --upload-id $UPLOAD_ID
+            --upload-id $UPLOAD_ID --backend $BACKEND
         exit 0
     else
         tacl_data --tsd_api_key --env $API_ENV --pnum $PNUM --group $GROUP \
             --post $POST --data $INPUT_DATA \
-            --user_name $USERNAME --password $PASSWORD --otp $OTP
+            --user_name $USERNAME --password $PASSWORD --otp $OTP \
+            --backend $BACKEND
         exit 0
     fi
 }
@@ -67,6 +68,7 @@ import_data() {
             --group)     shift; GROUP=$1; shift ;;
             --upload-id) shift; UPLOAD_ID=$1; shift ;;
             --pnum)      shift; PNUM=$1; shift ;;
+            --backend)   shift; BACKEND=$1; shift ;;
             *)           shift ;;
         esac
     done
@@ -99,7 +101,7 @@ import_data() {
         gzip -9 < $INPUT_DATA |
         tacl_data --tsd_api_key \
             --env $API_ENV --pnum $PNUM --group $GROUP \
-            --post $POST --data $dest_file \
+            --post $POST --data $dest_file --backend $BACKEND \
             --user_name $USERNAME --password $PASSWORD --otp $OTP -
         exit 0
     elif [[ $PRE == 'encrypt' ]]; then
@@ -111,7 +113,7 @@ import_data() {
         openssl enc -aes-256-cbc -in $INPUT_DATA -a -pass file:<( echo $PW ) |
         tacl_data --tsd_api_key \
             --encryptedpw $ENCPW --env $API_ENV --pnum $PNUM --group $GROUP \
-            --post $POST --data $dest_file \
+            --post $POST --data $dest_file --backend $BACKEND \
             --user_name $USERNAME --password $PASSWORD --otp $OTP -
         exit 0
     elif [[ $PRE == *"compress"* ]] && [[ $PRE == *"encrypt"* ]]; then
@@ -124,7 +126,7 @@ import_data() {
         openssl enc -aes-256-cbc -in $INPUT_DATA -a -pass file:<( echo $PW ) |
         tacl_data --tsd_api_key \
             --encryptedpw $ENCPW --env $API_ENV --pnum $PNUM --group $GROUP \
-            --post $POST --data $dest_file \
+            --post $POST --data $dest_file --backend $BACKEND \
             --user_name $USERNAME --password $PASSWORD --otp $OTP -
         exit 0
 
@@ -137,7 +139,7 @@ import_data() {
         tar -cf - $INPUT_DATA |
         tacl_data --tsd_api_key \
             --env $API_ENV --pnum $PNUM --group $GROUP \
-            --post $POST --data $dest_file \
+            --post $POST --data $dest_file --backend $BACKEND \
             --user_name $USERNAME --password $PASSWORD --otp $OTP -
         exit 0
     elif [[ $PRE == *"archive"* ]] && [[ $PRE == *"compress"* ]] && [[ $PRE == *"encrypt"* ]]; then
@@ -151,7 +153,7 @@ import_data() {
         tacl_data --tsd_api_key \
             --encryptedpw $ENCPW \
             --env $API_ENV --pnum $PNUM --group $GROUP \
-            --post $POST --data $dest_file \
+            --post $POST --data $dest_file --backend $BACKEND \
             --user_name $USERNAME --password $PASSWORD --otp $OTP -
         exit 0
     elif [[ $PRE == *"archive"* ]] && [[ $PRE == *"encrypt"* ]]; then
@@ -164,7 +166,7 @@ import_data() {
         tacl_data --tsd_api_key \
             --encryptedpw $ENCPW \
             --env $API_ENV --pnum $PNUM --group $GROUP \
-            --post $POST --data $dest_file \
+            --post $POST --data $dest_file --backend $BACKEND \
             --user_name $USERNAME --password $PASSWORD --otp $OTP -
         exit 0
     elif [[ $PRE == *"archive"* ]] && [[ $PRE == *"compress"* ]]; then
@@ -173,7 +175,7 @@ import_data() {
         tar -cf - $INPUT_DATA | gzip -9 |
         tacl_data --tsd_api_key \
             --env $API_ENV --pnum $PNUM --group $GROUP \
-            --post $POST --data $dest_file \
+            --post $POST --data $dest_file --backend $BACKEND \
             --user_name $USERNAME --password $PASSWORD --otp $OTP -
         exit 0
     fi
@@ -186,6 +188,7 @@ export_data() {
             --export-list)  shift; SHOW="true"; ;;
             --export)       shift; FILENAME=$1; shift ;;
             --download-id)  shift; ETAG=$1; shift ;;
+            --backend)      shift; BACKEND=$1; shift ;;
             *)              shift ;;
         esac
     done
@@ -198,18 +201,18 @@ export_data() {
 
     if [[ $SHOW == "true" ]]; then
         tacl_data --tsd_api_key --env $API_ENV --pnum $PNUM --show \
-            --user_name $USERNAME --password $PASSWORD --otp $OTP
+            --backend $BACKEND --user_name $USERNAME --password $PASSWORD --otp $OTP
         exit 0
     else
         tacl_data --tsd_api_key --env $API_ENV --pnum $PNUM --export $FILENAME \
-            --user_name $USERNAME --password $PASSWORD --otp $OTP
+            --backend $BACKEND --user_name $USERNAME --password $PASSWORD --otp $OTP
         exit 0
         if [[ ! -z $ETAG  ]]; then
             tacl_data --tsd_api_key --env $API_ENV --pnum $PNUM --export $FILENAME \
-                --user_name $USERNAME --password $PASSWORD --otp $OTP --download-id $ETAG
+                --backend $BACKEND --user_name $USERNAME --password $PASSWORD --otp $OTP --download-id $ETAG
         else
             tacl_data --tsd_api_key --env $API_ENV --pnum $PNUM --export $FILENAME \
-                --user_name $USERNAME --password $PASSWORD --otp $OTP
+                --backend $BACKEND --user_name $USERNAME --password $PASSWORD --otp $OTP
             exit 0
         fi
     fi
@@ -225,6 +228,7 @@ manage_resumables() {
             --resume-delete-all)    shift; RDELALL="true"; shift ;;
             --upload-id)            shift; UPLOAD_ID=$1; shift ;;
             --pnum)                 shift; PNUM=$1; shift ;;
+            --backend)              shift; BACKEND=$1; shift ;;
             *)                      shift ;;
         esac
     done
@@ -240,17 +244,17 @@ manage_resumables() {
     if [[ $LISTALL == "true" ]]; then
         tacl_data --tsd_api_key --env $API_ENV --pnum $PNUM \
             --user_name $USERNAME --password $PASSWORD --otp $OTP \
-            --resume-list
+            --backend $BACKEND --resume-list
         exit 0
     elif [[ ! -z $RDEL ]]; then
         tacl_data --tsd_api_key --env $API_ENV --pnum $PNUM \
             --user_name $USERNAME --password $PASSWORD --otp $OTP \
-            --resume-delete $RDEL --upload-id $UPLOAD_ID
+            --backend $BACKEND --resume-delete $RDEL --upload-id $UPLOAD_ID
         exit 0
     elif [[ $RDELALL == "true" ]]; then
         tacl_data --tsd_api_key --env $API_ENV --pnum $PNUM \
             --user_name $USERNAME --password $PASSWORD --otp $OTP \
-            --resume-delete-all
+            --backend $BACKEND --resume-delete-all
         exit 0
     fi
 }
