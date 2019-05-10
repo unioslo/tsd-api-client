@@ -277,7 +277,7 @@ elif [[ $1 == '--del-config' ]]; then
     exit 0
 fi
 
-set -x
+
 args=("$@")
 BACKEND='files' # default
 for i in ${args[*]}; do
