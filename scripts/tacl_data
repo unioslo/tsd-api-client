@@ -160,6 +160,34 @@ def parse_post_processing_expression(expr, encryptedpw):
         raise Exception
 
 
+def get_token(tsd_api_key, env, pnum, data, fileinput,
+              resume_list, resume_delete, resume_delete_all,
+              show, export, user_name):
+    try:
+        api_key = read_config()[env][pnum]
+        try:
+            has_exired = check_if_key_has_expired(api_key)
+            if has_exired:
+                print 'Your API key has expired'
+                print 'Register your client again'
+                return
+        except Exception:
+            pass # cannot figure it out :(
+        if data or fileinput or resume_list or resume_delete or resume_delete_all:
+            token_type = 'import'
+        elif show or export:
+            token_type = 'export'
+        token = None
+        if user_name != 'null':
+            token = get_jwt_tsd_auth(env, pnum, api_key, user_name, password, otp, token_type)
+        if not token:
+            token = get_jwt_basic_auth(env, pnum, api_key)
+        return token
+    except Exception:
+        print 'Authentication failed'
+        return None
+
+
 @click.command()
 @click.option('--env', default='test', help='which environment you want to interact with')
 @click.option('--pnum', default=None, help='project numbers')
@@ -210,44 +238,13 @@ def main(env, pnum, config, guide, data, user_name,
         except Exception:
             print 'Cannot proceed - unclear data pipeline specification'
             return
-        try:
-            # tacl_data prefers an api_key found in .tacl_config
-            # by default there is nothing there, and tacl is
-            # able to upload data with TSD 2FA, using API keys
-            # stored in code. If .tacl_config does not contain
-            # keys, then those distributed with the application
-            # are used
-            if tsd_api_key:
-                api_key = read_config()[env][pnum]
-            else:
-                try:
-                    api_key = read_config()[env]['api_key']
-                except Exception as e:
-                    print 'could not find an api key'
-                    return
-            # try to determine if the API key has expired
-            # only possible with new style JWT keys
-            try:
-                has_exired = check_if_key_has_expired(api_key)
-                if has_exired:
-                    print 'Your API key has expired'
-                    print 'Register your client again'
-                    return
-            except Exception:
-                pass # cannot figure it out :(
-            if data or fileinput or resume_list or resume_delete or resume_delete_all:
-                token_type = 'import'
-            elif show or export:
-                token_type = 'export'
-            token = None
-            if user_name != 'null':
-                token = get_jwt_tsd_auth(env, pnum, api_key, user_name, password, otp, token_type)
-            if not token:
-                token = get_jwt_basic_auth(env, pnum, api_key)
-        except Exception:
+        token = get_token(tsd_api_key, env, pnum, data, fileinput,
+                          resume_list, resume_delete, resume_delete_all,
+                          show, export, user_name)
+        if not token:
             print 'Authentication failed'
             return
-        if token:
+        else:
             if not fileinput and data:
                 if upload_id or os.stat(data).st_size > 1000*1000*1000:
                     if not chunk_size:
@@ -300,9 +297,6 @@ def main(env, pnum, config, guide, data, user_name,
             elif resume_delete_all:
                 delete_all_resumables(env, pnum, token)
                 return
-            return
-        else:
-            print 'Authentication failed'
             return
     else:
         print 'Didn\'t do anything - missing input?'
