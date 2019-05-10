@@ -186,8 +186,6 @@ def get_token(tsd_api_key, env, pnum, data, fileinput,
             token = get_jwt_basic_auth(env, pnum, api_key)
         return token
     except Exception as e:
-        print e
-        print 'Authentication failed'
         return None
 
 
