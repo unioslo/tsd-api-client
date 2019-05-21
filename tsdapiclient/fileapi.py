@@ -36,6 +36,8 @@ def _init_export_progress_bar(current_file_size, total_file_size, chunksize):
         else:
             index = 0
             _max = total_file_size/chunksize
+    if _max == 0:
+        _max == 0.0001 # so we dont divide by zero
     return Bar('Progress', index=index, max=_max, suffix='%(percent)d%%')
 
 
