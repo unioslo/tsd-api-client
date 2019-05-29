@@ -16,6 +16,9 @@ def _init_progress_bar(current_chunk, chunksize, filename):
     # this is an approximation, better than nothing
     fsize = os.stat(filename).st_size
     num_chunks = fsize / chunksize
+    if fsize < chunksize:
+        current_chunk = 1
+        num_chunks = 1
     return Bar('Progress', index=current_chunk, max=num_chunks, suffix='%(percent)d%%')
 
 
@@ -64,7 +67,10 @@ def lazy_reader(filename, chunksize, previous_offset=None,
             bar = _init_progress_bar(1, chunksize, filename)
         while True:
             if with_progress:
-                bar.next()
+                try:
+                    bar.next()
+                except ZeroDivisionError:
+                    pass
             data = f.read(chunksize)
             if not data:
                 if with_progress:
