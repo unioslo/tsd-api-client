@@ -16,7 +16,7 @@ def _check_present(_input, name):
 
 
 def user_agent(name='tsd-api-client'):
-    version = '1.7.3'
+    version = '1.8.2'
     try:
         user = os.environ.get('USER')
     except (Exception, OSError) as e:

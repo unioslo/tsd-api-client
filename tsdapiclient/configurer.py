@@ -12,7 +12,7 @@ TACL_CONFIG = HOME + '/.tacl_config'
 
 def read_config(filename=TACL_CONFIG):
     with open(filename, 'rw') as f:
-        config = yaml.load(f)
+        config = yaml.safe_load(f)
     return config
 
 
