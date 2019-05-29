@@ -12,13 +12,13 @@ TACL_CONFIG = HOME + '/.tacl_config'
 
 def read_config(filename=TACL_CONFIG):
     with open(filename, 'rw') as f:
-        config = yaml.safe_load(f)
+        config = yaml.load(f, Loader=yaml.Loader)
     return config
 
 
 def write_config(data, filename=TACL_CONFIG):
     with open(filename, 'w') as f:
-        f.write(yaml.dump(data))
+        f.write(yaml.dump(data, Dumper=yaml.Dumper))
 
 
 def update_config(env, key, val):
@@ -62,9 +62,9 @@ def print_config(filename=TACL_CONFIG):
 
 def delete_config(filename=TACL_CONFIG):
     with open(filename, 'w+') as f:
-        f.write(yaml.dump({'test': {}, 'prod': {}}))
+        f.write(yaml.dump({'test': {}, 'prod': {}}, Dumper=yaml.Dumper))
 
 def print_config_tsd_2fa_key(env, pnum):
     with open(TACL_CONFIG, 'r') as f:
-        cf = yaml.load(f)
+        cf = yaml.load(f, Loader=yaml.Loader)
         print cf[env][pnum]
