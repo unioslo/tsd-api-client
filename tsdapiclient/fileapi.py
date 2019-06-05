@@ -230,7 +230,7 @@ def export_get(env, pnum, filename, token, chunksize=4096,
     if dev_url:
         url = dev_url
     else:
-        url = '%s/%s/files/%s/%s' % (ENV[env], pnum, backend, filename)
+        url = '%s/%s/%s/export/%s' % (ENV[env], pnum, backend, filename)
     resp = requests.head(url, headers=headers)
     download_id = resp.headers['Etag']
     total_file_size = int(resp.headers['Content-Length'])
