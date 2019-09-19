@@ -8,8 +8,8 @@ from config import ENV
 
 def get_jwt_basic_auth(env, pnum, api_key):
     headers = {'Content-Type': 'application/json',
-               'Authorization': 'Bearer ' + api_key}
-    url = '%s/%s/auth/basic/token' % (ENV[env], pnum)
+               'Authorization': 'Bearer {0}'.format(api_key)}
+    url = '{0}/{1}/auth/basic/token'.format(ENV[env], pnum)
     try:
         resp = requests.post(url, headers=headers)
     except Exception:
@@ -24,9 +24,9 @@ def get_jwt_basic_auth(env, pnum, api_key):
 def get_jwt_tsd_auth(env, pnum, api_key, user_name, password,
                      otp, token_type):
     headers = {'Content-Type': 'application/json',
-               'Authorization': 'Bearer ' + api_key}
+               'Authorization': 'Bearer {0}'.format(api_key)}
     data = {'user_name': user_name, 'password': password, 'otp': otp}
-    url = '%s/%s/auth/tsd/token?type=%s' % (ENV[env], pnum, token_type)
+    url = '{0}/{1}/auth/tsd/token?type={2}' % (ENV[env], pnum, token_type)
     try:
         resp = requests.post(url, data=json.dumps(data), headers=headers)
     except Exception:
