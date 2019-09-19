@@ -29,13 +29,16 @@ def update_config(env, key, val):
     except IOError:
         config = {'test': {}, 'prod': {}}
     try:
-        if config.has_key(env):
+        if config and config.get(env):
             curr_env = config[env]
             new_env = curr_env.copy()
         else:
             new_env = {}
-        new_config = config.copy()
-        if not new_env.has_key(key):
+        if config:
+            new_config = config.copy()
+        else:
+            new_config = {'test': {}, 'prod': {}}
+        if not new_env.get(key):
             print('updating {0}'.format(key))
             new_config[env].update({key:val})
         elif key in ['api_key', 'pass']:

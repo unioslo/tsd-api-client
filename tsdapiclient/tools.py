@@ -21,7 +21,7 @@ def user_agent(name='tsd-api-client'):
         user = os.environ.get('USER')
     except (Exception, OSError) as e:
         user = 'not-found'
-    hu = hashlib.md5(user).hexdigest()
+    hu = hashlib.md5(user.encode('utf-8')).hexdigest()
     return '{0}-{1}-{2}'.format(name, version, hu)
 
 
