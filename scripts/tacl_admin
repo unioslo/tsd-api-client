@@ -59,7 +59,7 @@ def print_admin_guide():
         test.api.tsd.usit.no/v1/docs/tsd-api-integration.html
 
     """
-    print guide_text
+    print(guide_text)
 
 
 @click.command()
@@ -90,7 +90,7 @@ def main(env, pnum, signup, confirm, getapikey, delapikey, pwreset, guide,
         delete_config()
         return
     if env not in ['test', 'prod']:
-        print 'unknown env'
+        print('unknown env')
         sys.exit(1)
     _check_present(env, 'env')
     if register_tsd_2fa:
@@ -101,7 +101,7 @@ def main(env, pnum, signup, confirm, getapikey, delapikey, pwreset, guide,
         pnum = user_name.split('-')[0]
         key = get_tsd_api_key(env, pnum, user_name, password, otp)
         update_config(env, pnum, key)
-        print 'updated config with api key registered to %s' % pnum
+        print('updated config with api key registered to {0}'.format(pnum))
         return
     _check_present(pnum, 'pnum')
     if print_tsd_2fa_key:
@@ -112,45 +112,45 @@ def main(env, pnum, signup, confirm, getapikey, delapikey, pwreset, guide,
         _check_present(email, 'email')
         resp = do_signup(env, pnum, client_name, email)
         if not resp:
-            print 'Error in signup'
+            print('Error in signup')
             return
         update_config(env, 'client_name', client_name)
         update_config(env, 'email', email)
         update_config(env, 'client_id', resp['client_id'])
-        print 'client registered with client_id: %s' % resp['client_id']
+        print('client registered with client_id: {0}'.format(resp['client_id']))
         return
     if confirm is not None:
         conf = read_config()[env]
         resp = do_confirm(env, pnum, conf['client_id'], confirm)
         if not resp:
-            print 'Error in confirmation'
+            print('Error in confirmation')
             return
         update_config(env, 'pass', resp['pass'])
-        print 'client confirmed, password stored in tacl config'
+        print('client confirmed, password stored in tacl config')
         return
     if getapikey:
         conf = read_config()[env]
         resp = get_api_key(env, pnum, conf['client_id'], conf['pass'])
         if not resp:
-            print 'Error getting API key'
+            print('Error getting API key')
             return
         update_config(env, 'api_key', resp['api_key'])
-        print 'API key stored in config'
+        print('API key stored in config')
         return
     if delapikey:
         conf = read_config()[env]
         resp = del_api_key(env, pnum, conf['client_id'], conf['pass'], delapikey)
         # TODO inspect response
-        print 'API key deleted'
+        print('API key deleted')
         return
     if pwreset:
         conf = read_config()[env]
         resp = pw_reset(env, pnum, conf['client_id'], conf['pass'])
         if not resp:
-            print 'Error in password reset'
+            print('Error in password reset')
             return
         update_config(env, 'pass', resp['pass'])
-        print 'new password stored in tacl config'
+        print('new password stored in tacl config')
         return
 
 
