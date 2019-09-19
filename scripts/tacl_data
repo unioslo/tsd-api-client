@@ -113,7 +113,7 @@ def print_data_guide():
 
         API docs
         ~~~~~~~~
-        test.api.tsd.usit.no/v1/docs/tsd-api-integration.html
+        https://data.tsd.usit.no/api/tsd-api-integration.html
 
     """
     print guide_text
@@ -225,7 +225,7 @@ def main(env, pnum, config, guide, data, user_name,
         print_data_guide()
         return
     if env not in ['test', 'prod']:
-        print 'unknown env'
+        print('unknown env')
         sys.exit(1)
     _check_present(env, 'env')
     _check_present(pnum, 'pnum')
