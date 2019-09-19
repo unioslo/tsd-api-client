@@ -111,10 +111,10 @@ def streamfile(env, pnum, filename, token,
 
     """
     if not group:
-        url = '%s/%s/%s/stream' % (ENV[env], pnum, backend)
+        url = '{0}/{1}/{2}/stream'.format(ENV[env], pnum, backend)
     elif group:
-        url = '%s/%s/%s/stream?group=%s' % (ENV[env], pnum, backend, group)
-    headers = {'Authorization': 'Bearer ' + token,
+        url = '{0}/{1}/{2}/stream?group={3}'.format(ENV[env], pnum, backend, group)
+    headers = {'Authorization': 'Bearer {0}'.format(token),
                'Filename': format_filename(filename)}
     if custom_headers is not None:
         new_headers = headers.copy()
@@ -148,19 +148,19 @@ def streamstdin(env, pnum, fileinput, filename, token,
 
     """
     if not group:
-        url = '%s/%s/%s/stream' % (ENV[env], pnum, backend)
+        url = '{0}/{1}/{2}/stream'.format(ENV[env], pnum, backend)
     elif group:
-        url = '%s/%s/%s/stream?group=%s' % (ENV[env], pnum, backend, group)
-    headers = {'Authorization': 'Bearer ' + token,
+        url = '{0}/{1}/{2}/stream?group={3}'.format(ENV[env], pnum, backend, group)
+    headers = {'Authorization': 'Bearer {0}'.format(token),
                'Filename': format_filename(filename)}
     if custom_headers is not None:
         new_headers = headers.copy()
         new_headers.update(custom_headers)
     else:
         new_headers = headers
-    print 'PUT: %s' % url
+    print('PUT: {0}'.format(url))
     resp = requests.put(url, data=lazy_stdin_handler(fileinput, chunksize),
-                         headers=new_headers)
+                        headers=new_headers)
     return resp
 
 
@@ -190,8 +190,8 @@ def export_list(env, pnum, token, backend='files'):
     str
 
     """
-    url = '%s/%s/%s/export' % (ENV[env], pnum, backend)
-    headers = {'Authorization': 'Bearer ' + token}
+    url = '{0}/{1}/{2}/export'.format(ENV[env], pnum, backend)
+    headers = {'Authorization': 'Bearer '.format(token)}
     resp = requests.get(url, headers=headers)
     data = json.loads(resp.text)
     return data
@@ -219,18 +219,18 @@ def export_get(env, pnum, filename, token, chunksize=4096,
     """
     filemode = 'wb'
     current_file_size = None
-    headers = {'Authorization': 'Bearer ' + token}
+    headers = {'Authorization': 'Bearer {0}'.format(token)}
     if etag:
         filemode = 'ab'
         if os.path.lexists(filename):
             current_file_size = os.stat(filename).st_size
-            headers['Range'] = 'bytes=%d-' % current_file_size
+            headers['Range'] = 'bytes={0}-'.format(current_file_size)
         else:
             headers['Range'] = 'bytes=0-'
     if dev_url:
         url = dev_url
     else:
-        url = '%s/%s/%s/export/%s' % (ENV[env], pnum, backend, filename)
+        url = '{0}/{1}/{2}/export/{3}'.format(ENV[env], pnum, backend, filename)
     resp = requests.head(url, headers=headers)
     try:
         download_id = resp.headers['Etag']
@@ -253,7 +253,7 @@ def export_get(env, pnum, filename, token, chunksize=4096,
 
 def _resumable_url(env, pnum, filename, dev_url=None, backend='files'):
     if not dev_url:
-        url = '%s/%s/%s/stream/%s' % (ENV[env], pnum, backend, filename)
+        url = '{0}/{1}/{2}/stream/{3}'.format(ENV[env], pnum, backend, filename)
     else:
         url = dev_url
     return url
@@ -310,14 +310,14 @@ def get_resumable(env, pnum, token, filename=None, upload_id=None,
     """
     if not dev_url:
         if filename:
-            url = '%s/%s/%s/resumables/%s' % (ENV[env], pnum, backend, filename)
+            url = '{0}/{1}/{2}/resumables/{3}'.format(ENV[env], pnum, backend, filename)
         else:
-            url = '%s/%s/%s/resumables' % (ENV[env], pnum, backend)
+            url = '{0}/{1}/{2}/resumables'.format(ENV[env], pnum, backend)
     else:
         url = dev_url
     if upload_id:
-        url = '%s?id=%s' % (url, upload_id)
-    headers = {'Authorization': 'Bearer ' + token}
+        url = '{0}?id={1}'.format(url, upload_id)
+    headers = {'Authorization': 'Bearer {0}'.format(token)}
     resp = requests.get(url, headers=headers)
     data = json.loads(resp.text)
     return data
@@ -377,7 +377,7 @@ def initiate_resumable(env, pnum, filename, token, chunksize=None,
 
 
 def _complete_resumable(filename, token, url, bar):
-    headers = {'Authorization': 'Bearer ' + token}
+    headers = {'Authorization': 'Bearer {0}'.format(token)}
     resp = requests.patch(url, headers=headers)
     bar.finish()
     return json.loads(resp.text)
@@ -407,29 +407,29 @@ def start_resumable(env, pnum, filename, token, chunksize,
 
     """
     url = _resumable_url(env, pnum, filename, dev_url, backend)
-    headers = {'Authorization': 'Bearer ' + token}
+    headers = {'Authorization': 'Bearer {0}'.format(token)}
     chunk_num = 1
     for chunk in lazy_reader(filename, chunksize):
         if chunk_num == 1:
-            parmaterised_url = '%s?chunk=%s' % (url, str(chunk_num))
+            parmaterised_url = '{0}?chunk={1}'.format(url, str(chunk_num))
         else:
-            parmaterised_url = '%s?chunk=%s&id=%s' % (url, str(chunk_num), upload_id)
+            parmaterised_url = '{0}?chunk={1}&id={2}'.format(url, str(chunk_num), upload_id)
         resp = requests.patch(parmaterised_url, data=chunk, headers=headers)
         data = json.loads(resp.text)
         if chunk_num == 1:
             upload_id = data['id']
-            print 'Upload id: %s' % upload_id
+            print('Upload id: {0}'.format(upload_id))
             bar = _init_progress_bar(chunk_num, chunksize, filename)
         bar.next()
         if stop_at:
             if chunk_num == stop_at:
-                print 'stopping at chunk %d' % chunk_num
+                print('stopping at chunk {0}'.format(chunk_num))
                 return data
         chunk_num += 1
     resumable = data
     if not group:
-        group = '%s-member-group' % pnum
-    parmaterised_url = '%s?chunk=%s&id=%s&group=%s' % (url, 'end', upload_id, group)
+        group = '{0}-member-group'.format(pnum)
+    parmaterised_url = '{0}?chunk={1}&id={2}&group={3}'.format(url, 'end', upload_id, group)
     resp = _complete_resumable(filename, token, parmaterised_url, bar)
     return resp
 
@@ -460,7 +460,7 @@ def continue_resumable(env, pnum, filename, token, to_resume,
 
     """
     url = _resumable_url(env, pnum, filename, dev_url, backend)
-    headers = {'Authorization': 'Bearer ' + token}
+    headers = {'Authorization': 'Bearer {0}'.format(token)}
     max_chunk = to_resume['max_chunk']
     chunksize = to_resume['chunk_size']
     previous_offset = to_resume['previous_offset']
@@ -468,10 +468,10 @@ def continue_resumable(env, pnum, filename, token, to_resume,
     upload_id = to_resume['id']
     server_chunk_md5 = str(to_resume['md5sum'])
     chunk_num = max_chunk + 1
-    print 'Resuming upload with id: %s' % upload_id
+    print('Resuming upload with id: {0}'.format(upload_id))
     bar = _init_progress_bar(chunk_num, chunksize, filename)
     for chunk in lazy_reader(filename, chunksize, previous_offset, next_offset, verify, server_chunk_md5):
-        parmaterised_url = '%s?chunk=%s&id=%s' % (url, str(chunk_num), upload_id)
+        parmaterised_url = '{0}?chunk={1}&id={2}'.format(url, str(chunk_num), upload_id)
         resp = requests.patch(parmaterised_url, data=chunk, headers=headers)
         bar.next()
         data = json.loads(resp.text)
@@ -479,8 +479,8 @@ def continue_resumable(env, pnum, filename, token, to_resume,
         chunk_num += 1
     resumable = data
     if not group:
-        group = '%s-member-group' % pnum
-    parmaterised_url = '%s?chunk=%s&id=%s&group=%s' % (url, 'end', upload_id, group)
+        group = '{0}-member-group'.format(pnum)
+    parmaterised_url = '{0}?chunk={1}&id={2}&group={3}'.format(url, 'end', upload_id, group)
     resp = _complete_resumable(filename, token, parmaterised_url, bar)
     return resp
 
@@ -507,9 +507,9 @@ def delete_resumable(env, pnum, token, filename, upload_id,
     if dev_url:
         url = dev_url
     else:
-        url = '%s/%s/%s/resumables/%s?id=%s' % (ENV[env], pnum, backend, filename, upload_id)
-    resp = requests.delete(url, headers={'Authorization': 'Bearer ' + token})
-    print 'Upload: %s, for filename: %s deleted' % (upload_id, filename)
+        url = '{0}/{1}/{2}/resumables/{3}?id={4}'.format(ENV[env], pnum, backend, filename, upload_id)
+    resp = requests.delete(url, headers={'Authorization': 'Bearer {0}'.format(token)})
+    print('Upload: {0}, for filename: {1} deleted'.format(upload_id, filename))
     return json.loads(resp.text)
 
 
