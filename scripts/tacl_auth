@@ -39,7 +39,7 @@ def print_auth_help():
             --otp 123456 --token_type import
 
     """
-    print _help
+    print(_help)
 
 
 @click.command()
@@ -66,7 +66,7 @@ def main(interactive, env, pnum, user_name, password, otp, token_type, guide,
         token_type = 'export'
         pnum = user_name.split('-')[0]
     if env not in ['test', 'prod']:
-        print 'unknown env'
+        print('unknown env')
         sys.exit(1)
     _check_present(env, 'env')
     _check_present(pnum, 'pnum')
@@ -83,10 +83,10 @@ def main(interactive, env, pnum, user_name, password, otp, token_type, guide,
             try:
                 api_key = read_config()[env]['api_key']
             except Exception as e:
-                print 'could not find an api key'
+                print('could not find an api key')
                 return
     except Exception as e:
-        print 'Authentication failed'
+        print('Authentication failed')
         return
     if user_name and password and otp and token_type:
         jwt = get_jwt_tsd_auth(env, pnum, api_key, user_name,
@@ -95,10 +95,10 @@ def main(interactive, env, pnum, user_name, password, otp, token_type, guide,
             with open(JWT_CACHE, 'w') as f:
                 f.write(jwt)
             sys.exit(0)
-        print jwt
+        print(jwt)
         sys.exit(0)
     else:
-        print 'not enough credential input to do auth'
+        print('not enough credential input to do auth')
         sys.exit(1)
 
 
