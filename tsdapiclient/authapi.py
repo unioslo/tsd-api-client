@@ -4,7 +4,7 @@
 import json
 import requests
 
-from config import ENV
+from client_config import ENV
 
 def get_jwt_basic_auth(env, pnum, api_key):
     headers = {'Content-Type': 'application/json',

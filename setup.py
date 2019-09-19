@@ -1,5 +1,5 @@
-#!/usr/bin/env python
-# Ref: https://docs.python.org/2/distutils/setupscript.html
+#!/usr/bin/env python3
+
 
 from setuptools import setup
 
