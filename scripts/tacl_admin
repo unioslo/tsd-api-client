@@ -94,10 +94,10 @@ def main(env, pnum, signup, confirm, getapikey, delapikey, pwreset, guide,
         sys.exit(1)
     _check_present(env, 'env')
     if register_tsd_2fa:
-        env = raw_input('API environmet - test or prod > ')
-        user_name = raw_input('username > ')
+        env = input('API environmet - test or prod > ')
+        user_name = input('username > ')
         password = getpass.getpass('password > ')
-        otp = raw_input('otp > ')
+        otp = input('otp > ')
         pnum = user_name.split('-')[0]
         key = get_tsd_api_key(env, pnum, user_name, password, otp)
         update_config(env, pnum, key)
