@@ -1,4 +1,4 @@
-#!/bin env python
+#!/bin env python3
 
 """API client for data uploads."""
 
@@ -10,7 +10,7 @@ import click
 import requests
 
 from tsdapiclient.authapi import get_jwt_tsd_auth, get_jwt_basic_auth
-from tsdapiclient.config import ENV
+from tsdapiclient.client_config import ENV
 from tsdapiclient.configurer import read_config
 from tsdapiclient.fileapi import streamfile, streamstdin, export_list, export_get, \
                                  get_resumable, initiate_resumable, print_resumables_list, \

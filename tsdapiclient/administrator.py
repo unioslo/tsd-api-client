@@ -4,7 +4,7 @@
 import json
 import requests
 
-from config import ENV
+from client_config import ENV
 
 def _post(url, headers, data):
     try:

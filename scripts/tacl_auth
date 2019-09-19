@@ -1,4 +1,4 @@
-#!/bin env python
+#!/bin env python3
 
 """Script to perform 2FA and get a JWT in return."""
 
@@ -10,7 +10,7 @@ import click
 import requests
 
 from tsdapiclient.authapi import get_jwt_tsd_auth
-from tsdapiclient.config import ENV
+from tsdapiclient.client_config import ENV
 from tsdapiclient.tools import _check_present, user_agent
 from tsdapiclient.configurer import read_config
 
