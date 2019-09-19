@@ -171,7 +171,7 @@ def print_export_list(data):
         size = humanfriendly.format_size(entry['size'])
         row = [entry['filename'], entry['modified_date'], size, entry['exportable']]
         values.append(row)
-    print humanfriendly.tables.format_pretty_table(values, colnames)
+    print(humanfriendly.tables.format_pretty_table(values, colnames))
 
 
 
@@ -289,7 +289,7 @@ def print_resumables_list(data, filename=None, upload_id=None):
             mb = humanfriendly.format_size(r['next_offset'])
             row = [r['id'], mb, r['filename']]
             values.append(row)
-        print humanfriendly.tables.format_pretty_table(values, colnames)
+        print(humanfriendly.tables.format_pretty_table(values, colnames))
 
 
 def get_resumable(env, pnum, token, filename=None, upload_id=None,
@@ -369,7 +369,7 @@ def initiate_resumable(env, pnum, filename, token, chunksize=None,
                                       to_resume, group, verify,
                                       dev_url, backend)
         except Exception as e:
-            print e.message
+            print(e.message)
             return
     else:
         return start_resumable(env, pnum, filename, token, chunksize,
