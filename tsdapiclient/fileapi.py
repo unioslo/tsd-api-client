@@ -232,9 +232,13 @@ def export_get(env, pnum, filename, token, chunksize=4096,
     else:
         url = '%s/%s/%s/export/%s' % (ENV[env], pnum, backend, filename)
     resp = requests.head(url, headers=headers)
-    download_id = resp.headers['Etag']
+    try:
+        download_id = resp.headers['Etag']
+        print('Download id: {0}'.format(download_id))
+    except KeyError:
+        print('Warning: could not retrieve download id, resumable download will not work')
+        download_id = None
     total_file_size = int(resp.headers['Content-Length'])
-    print 'Download id: %s' % download_id
     bar = _init_export_progress_bar(current_file_size, total_file_size, chunksize)
     with requests.get(url, headers=headers, stream=True) as r:
         with open(filename, filemode) as f:
