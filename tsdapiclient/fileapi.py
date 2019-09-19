@@ -9,7 +9,7 @@ import requests
 import humanfriendly
 from progress.bar import Bar
 
-from client_config import ENV
+from tsdapiclient.client_config import ENV
 
 
 def _init_progress_bar(current_chunk, chunksize, filename):
