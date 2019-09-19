@@ -26,7 +26,7 @@ def get_jwt_tsd_auth(env, pnum, api_key, user_name, password,
     headers = {'Content-Type': 'application/json',
                'Authorization': 'Bearer {0}'.format(api_key)}
     data = {'user_name': user_name, 'password': password, 'otp': otp}
-    url = '{0}/{1}/auth/tsd/token?type={2}' % (ENV[env], pnum, token_type)
+    url = '{0}/{1}/auth/tsd/token?type={2}'.format(ENV[env], pnum, token_type)
     try:
         resp = requests.post(url, data=json.dumps(data), headers=headers)
     except Exception:
