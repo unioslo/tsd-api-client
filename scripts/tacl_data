@@ -56,7 +56,7 @@ def print_basic_help():
                                 expression.
         --group                 Name of the TSD file group which should have permissions on the upload.
     """
-    print help_text
+    print(help_text)
 
 
 def print_data_guide():
@@ -116,7 +116,7 @@ def print_data_guide():
         https://data.tsd.usit.no/api/tsd-api-integration.html
 
     """
-    print guide_text
+    print(guide_text)
 
 
 def parse_post_processing_expression(expr, encryptedpw):
@@ -156,7 +156,7 @@ def parse_post_processing_expression(expr, encryptedpw):
     elif 'restore' in expr and 'decompress' in expr:
         return {'Content-Type': 'application/tar.gz'}
     else:
-        print 'expression not parseable'
+        print('expression not parseable')
         raise Exception
 
 
@@ -168,8 +168,8 @@ def get_token(tsd_api_key, env, pnum, data, fileinput,
         try:
             has_exired = check_if_key_has_expired(api_key)
             if has_exired:
-                print 'Your API key has expired'
-                print 'Register your client again'
+                print('Your API key has expired')
+                print('Register your client again')
                 return
         except Exception:
             pass # cannot figure it out :(
@@ -232,7 +232,7 @@ def main(env, pnum, config, guide, data, user_name,
     if backend is None or backend == '':
         backend = 'files' # default to HNAS
     if backend not in ['files', 'cluster']:
-        print 'unknown backend, legal values: files, cluster'
+        print('unknown backend, legal values: files, cluster')
         sys.exit(1)
     if data or show or export or resume_list or resume_delete or resume_delete_all:
         _check_present(user_name, 'user_name')
@@ -243,13 +243,13 @@ def main(env, pnum, config, guide, data, user_name,
         try:
             custom_headers = parse_post_processing_expression(post, encryptedpw)
         except Exception:
-            print 'Cannot proceed - unclear data pipeline specification'
+            print('Cannot proceed - unclear data pipeline specification')
             return
         token = get_token(tsd_api_key, env, pnum, data, fileinput,
                           resume_list, resume_delete, resume_delete_all,
                           show, export, user_name, password, otp, backend)
         if not token:
-            print 'Authentication failed'
+            print('Authentication failed')
             return
         else:
             if not fileinput and data:
@@ -272,7 +272,7 @@ def main(env, pnum, config, guide, data, user_name,
                 if resp.status_code == 201:
                     return
                 else:
-                    print 'Data import failed: ', resp.text
+                    print('Data import failed: {0}'.format(resp.text))
             elif show:
                 data = export_list(env, pnum, token, backend=backend)
                 print_export_list(data)
@@ -305,7 +305,7 @@ def main(env, pnum, config, guide, data, user_name,
                 return
             return
     else:
-        print 'Didn\'t do anything - missing input?'
+        print('Didn\'t do anything - missing input?')
         return
 
 if __name__ == '__main__':
