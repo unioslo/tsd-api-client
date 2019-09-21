@@ -9,7 +9,7 @@ Download the [latest release](https://github.com/unioslo/tsd-api-client/releases
 ```bash
 cd tsd-api-client
 pip install -r requirements.txt
-python setup.py install
+python3 setup.py install
 ```
 
 ## tacl
