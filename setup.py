@@ -5,7 +5,7 @@ from setuptools import setup
 
 setup(
     name='tsd-api-client',
-    version='2.0.0',
+    version='2.0.1',
     description='A client for the TSD REST API',
     author='Leon du Toit',
     author_email='l.c.d.toit@usit.uio.no',

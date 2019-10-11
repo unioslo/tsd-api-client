@@ -369,7 +369,7 @@ def initiate_resumable(env, pnum, filename, token, chunksize=None,
                                       to_resume, group, verify,
                                       dev_url, backend)
         except Exception as e:
-            print(e.message)
+            print(e)
             return
     else:
         return start_resumable(env, pnum, filename, token, chunksize,
