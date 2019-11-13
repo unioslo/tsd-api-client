@@ -1,6 +1,6 @@
 requests
 click
 pyyaml
-https://github.com/leondutoit/s3cmd/archive/v20180312.tar.gz
+https://github.com/unioslo/s3cmd/archive/v2.0.2-custom-headers.tar.gz
 progress
 humanfriendly
