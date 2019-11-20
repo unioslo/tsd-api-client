@@ -191,7 +191,7 @@ def export_list(env, pnum, token, backend='files'):
 
     """
     url = '{0}/{1}/{2}/export'.format(ENV[env], pnum, backend)
-    headers = {'Authorization': 'Bearer '.format(token)}
+    headers = {'Authorization': 'Bearer {0}'.format(token)}
     resp = requests.get(url, headers=headers)
     data = json.loads(resp.text)
     return data
