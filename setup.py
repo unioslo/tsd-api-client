@@ -9,8 +9,9 @@ setup(
     name='tsd-api-client',
     version=__version__,
     description='A client for the TSD REST API',
-    author='Leon du Toit',
+    author='Leon du Toit, Eirik Haatveit',
     author_email='l.c.d.toit@usit.uio.no',
+    url='https://github.com/unioslo/tsd-api-client',
     packages=['tsdapiclient'],
     scripts=[
         'scripts/tacl',
