@@ -3,9 +3,11 @@
 
 from setuptools import setup
 
+from tsdapiclient import __version__
+
 setup(
     name='tsd-api-client',
-    version='2.0.2',
+    version=__version__,
     description='A client for the TSD REST API',
     author='Leon du Toit',
     author_email='l.c.d.toit@usit.uio.no',
