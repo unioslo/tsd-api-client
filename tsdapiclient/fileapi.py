@@ -1,12 +1,13 @@
 
 """TSD File API client."""
 
-import os
-import json
 import hashlib
+import json
+import os
+from urllib.parse import quote
 
-import requests
 import humanfriendly
+import requests
 from progress.bar import Bar
 
 from tsdapiclient.client_config import ENV
@@ -111,11 +112,10 @@ def streamfile(env, pnum, filename, token,
 
     """
     if not group:
-        url = '{0}/{1}/{2}/stream'.format(ENV[env], pnum, backend)
+        url = '{0}/{1}/{2}/stream/{3}'.format(ENV[env], pnum, backend, quote(format_filename(filename)))
     elif group:
-        url = '{0}/{1}/{2}/stream?group={3}'.format(ENV[env], pnum, backend, group)
-    headers = {'Authorization': 'Bearer {0}'.format(token),
-               'Filename': format_filename(filename)}
+        url = '{0}/{1}/{2}/stream/{3}?group={4}'.format(ENV[env], pnum, backend, quote(format_filename(filename)), group)
+    headers = {'Authorization': 'Bearer {0}'.format(token)}
     if custom_headers is not None:
         new_headers = headers.copy()
         new_headers.update(custom_headers)
@@ -148,11 +148,10 @@ def streamstdin(env, pnum, fileinput, filename, token,
 
     """
     if not group:
-        url = '{0}/{1}/{2}/stream'.format(ENV[env], pnum, backend)
+        url = '{0}/{1}/{2}/stream/{3}'.format(ENV[env], pnum, backend, quote(format_filename(filename)))
     elif group:
-        url = '{0}/{1}/{2}/stream?group={3}'.format(ENV[env], pnum, backend, group)
-    headers = {'Authorization': 'Bearer {0}'.format(token),
-               'Filename': format_filename(filename)}
+        url = '{0}/{1}/{2}/stream/{3}?group={4}'.format(ENV[env], pnum, backend, quote(format_filename(filename)), group)
+    headers = {'Authorization': 'Bearer {0}'.format(token)}
     if custom_headers is not None:
         new_headers = headers.copy()
         new_headers.update(custom_headers)
