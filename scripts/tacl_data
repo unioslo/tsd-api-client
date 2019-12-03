@@ -33,6 +33,7 @@ def print_basic_help():
 
         --env                   Either 'test' or 'prod' environment. Defaults to 'prod'.
         --import                Path to file or folder you want to upload.
+                                This needs to be the last argument you pass to tacl.
         --upload-id             Resume a specific upload, providing the upload ID.
         --resume-list           Get an overview of all resumable uploads.
         --resume-delete         Delete a specific incomplete resumable upload.

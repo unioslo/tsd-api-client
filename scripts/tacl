@@ -40,16 +40,16 @@ optionally_append_extension_to_file() {
 }
 
 do_file_upload() {
-    exit_if_is_directory $INPUT_DATA
+    exit_if_is_directory "$INPUT_DATA"
     if [[ ! -z $UPLOAD_ID ]]; then
         tacl_data --tsd_api_key --env $API_ENV --pnum $PNUM --group $GROUP \
-            --post $POST --data $INPUT_DATA \
+            --post $POST --data "$INPUT_DATA" \
             --user_name $USERNAME --password $PASSWORD --otp $OTP \
             --upload-id $UPLOAD_ID --backend $BACKEND
         exit 0
     else
         tacl_data --tsd_api_key --env $API_ENV --pnum $PNUM --group $GROUP \
-            --post $POST --data $INPUT_DATA \
+            --post $POST --data "$INPUT_DATA" \
             --user_name $USERNAME --password $PASSWORD --otp $OTP \
             --backend $BACKEND
         exit 0
@@ -59,16 +59,16 @@ do_file_upload() {
 import_data() {
     while [[ $# -gt 0 ]]; do
         case $1 in
-            --env)       shift; API_ENV=$1; shift ;;
-            --pre)       shift; PRE=$1; shift ;;
-            --post)      shift; POST=$1; shift ;;
-            --data)      shift; INPUT_DATA=$1; shift ;;
-            --import)    shift; INPUT_DATA=$1; shift ;;
-            --recipient) shift; RECIPIENT=$1; shift ;;
-            --group)     shift; GROUP=$1; shift ;;
-            --upload-id) shift; UPLOAD_ID=$1; shift ;;
-            --pnum)      shift; PNUM=$1; shift ;;
-            --backend)   shift; BACKEND=$1; shift ;;
+            --env)       API_ENV=$2; shift 2 ;;
+            --pre)       PRE=$2; shift 2 ;;
+            --post)      POST=$2; shift 2 ;;
+            --data)      shift; INPUT_DATA="$@"; break ;;
+            --import)    shift; INPUT_DATA="$@"; break ;;
+            --recipient) RECIPIENT=$2; shift 2 ;;
+            --group)     GROUP=$2; shift 2 ;;
+            --upload-id) UPLOAD_ID=$2; shift 2 ;;
+            --pnum)      PNUM=$2; shift 2 ;;
+            --backend)   BACKEND=$2; shift 2 ;;
             *)           shift ;;
         esac
     done
@@ -96,37 +96,37 @@ import_data() {
         do_file_upload
     elif [[ $PRE == 'compress' ]]; then
         echo 'data import with compression'
-        exit_if_is_directory $INPUT_DATA
-        optionally_append_extension_to_file $POST $INPUT_DATA 'gz'
-        gzip -9 < $INPUT_DATA |
+        exit_if_is_directory "$INPUT_DATA"
+        optionally_append_extension_to_file $POST "$INPUT_DATA" 'gz'
+        gzip -9 < "$INPUT_DATA" |
         tacl_data --tsd_api_key \
             --env $API_ENV --pnum $PNUM --group $GROUP \
-            --post $POST --data $dest_file --backend $BACKEND \
+            --post $POST --data "$dest_file" --backend $BACKEND \
             --user_name $USERNAME --password $PASSWORD --otp $OTP -
         exit 0
     elif [[ $PRE == 'encrypt' ]]; then
         echo 'data import with encryption'
-        exit_if_is_directory $INPUT_DATA
-        optionally_append_extension_to_file $POST $INPUT_DATA 'aes'
+        exit_if_is_directory "$INPUT_DATA"
+        optionally_append_extension_to_file $POST "$INPUT_DATA" 'aes'
         PW=$(openssl rand -base64 10)
         ENCPW=$(echo $PW | gpg -r $RECIPIENT --encrypt | openssl base64 -A)
-        openssl enc -aes-256-cbc -in $INPUT_DATA -a -pass file:<( echo $PW ) |
+        openssl enc -aes-256-cbc -in "$INPUT_DATA" -a -pass file:<( echo $PW ) |
         tacl_data --tsd_api_key \
             --encryptedpw $ENCPW --env $API_ENV --pnum $PNUM --group $GROUP \
-            --post $POST --data $dest_file --backend $BACKEND \
+            --post $POST --data "$dest_file" --backend $BACKEND \
             --user_name $USERNAME --password $PASSWORD --otp $OTP -
         exit 0
     elif [[ $PRE == *"compress"* ]] && [[ $PRE == *"encrypt"* ]]; then
         echo 'data import with compression and encryption'
-        exit_if_is_directory $INPUT_DATA
-        optionally_append_extension_to_file $POST $INPUT_DATA 'gz.aes'
+        exit_if_is_directory "$INPUT_DATA"
+        optionally_append_extension_to_file $POST "$INPUT_DATA" 'gz.aes'
         PW=$(openssl rand -base64 10)
         ENCPW=$(echo $PW | gpg -r $RECIPIENT --encrypt | openssl base64 -A)
-        gzip -9 < $INPUT_DATA |
-        openssl enc -aes-256-cbc -in $INPUT_DATA -a -pass file:<( echo $PW ) |
+        gzip -9 < "$INPUT_DATA" |
+        openssl enc -aes-256-cbc -in "$INPUT_DATA" -a -pass file:<( echo $PW ) |
         tacl_data --tsd_api_key \
             --encryptedpw $ENCPW --env $API_ENV --pnum $PNUM --group $GROUP \
-            --post $POST --data $dest_file --backend $BACKEND \
+            --post $POST --data "$dest_file" --backend $BACKEND \
             --user_name $USERNAME --password $PASSWORD --otp $OTP -
         exit 0
 
@@ -135,47 +135,47 @@ import_data() {
 
     elif [[ $PRE == 'archive' ]]; then
         echo 'data import with tar'
-        optionally_append_extension_to_file $POST $INPUT_DATA 'tar'
-        tar -cf - $INPUT_DATA |
+        optionally_append_extension_to_file $POST "$INPUT_DATA" 'tar'
+        tar -cf - "$INPUT_DATA" |
         tacl_data --tsd_api_key \
             --env $API_ENV --pnum $PNUM --group $GROUP \
-            --post $POST --data $dest_file --backend $BACKEND \
+            --post $POST --data "$dest_file" --backend $BACKEND \
             --user_name $USERNAME --password $PASSWORD --otp $OTP -
         exit 0
     elif [[ $PRE == *"archive"* ]] && [[ $PRE == *"compress"* ]] && [[ $PRE == *"encrypt"* ]]; then
         echo 'data import with tar, compress, and encrypt'
-        optionally_append_extension_to_file $POST $INPUT_DATA 'tar.gz.aes'
+        optionally_append_extension_to_file $POST "$INPUT_DATA" 'tar.gz.aes'
         PW=$(openssl rand -base64 10)
         ENCPW=$(echo $PW | gpg -r $RECIPIENT --encrypt | openssl base64 -A)
-        tar -cf - $INPUT_DATA |
+        tar -cf - "$INPUT_DATA" |
         gzip -9 |
         openssl enc -aes-256-cbc -a -pass file:<( echo $PW ) |
         tacl_data --tsd_api_key \
             --encryptedpw $ENCPW \
             --env $API_ENV --pnum $PNUM --group $GROUP \
-            --post $POST --data $dest_file --backend $BACKEND \
+            --post $POST --data "$dest_file" --backend $BACKEND \
             --user_name $USERNAME --password $PASSWORD --otp $OTP -
         exit 0
     elif [[ $PRE == *"archive"* ]] && [[ $PRE == *"encrypt"* ]]; then
         echo 'data import with tar and encrypt'
-        optionally_append_extension_to_file $POST $INPUT_DATA 'tar.aes'
+        optionally_append_extension_to_file $POST "$INPUT_DATA" 'tar.aes'
         PW=$(openssl rand -base64 10)
         ENCPW=$(echo $PW | gpg -r $RECIPIENT --encrypt | openssl base64 -A)
-        tar -cf - $INPUT_DATA |
+        tar -cf - "$INPUT_DATA" |
         openssl enc -aes-256-cbc -a -pass file:<( echo $PW ) |
         tacl_data --tsd_api_key \
             --encryptedpw $ENCPW \
             --env $API_ENV --pnum $PNUM --group $GROUP \
-            --post $POST --data $dest_file --backend $BACKEND \
+            --post $POST --data "$dest_file" --backend $BACKEND \
             --user_name $USERNAME --password $PASSWORD --otp $OTP -
         exit 0
     elif [[ $PRE == *"archive"* ]] && [[ $PRE == *"compress"* ]]; then
         echo 'data import with tar and gzip'
-        optionally_append_extension_to_file $POST $INPUT_DATA 'tar.gz'
-        tar -cf - $INPUT_DATA | gzip -9 |
+        optionally_append_extension_to_file $POST "$INPUT_DATA" 'tar.gz'
+        tar -cf - "$INPUT_DATA" | gzip -9 |
         tacl_data --tsd_api_key \
             --env $API_ENV --pnum $PNUM --group $GROUP \
-            --post $POST --data $dest_file --backend $BACKEND \
+            --post $POST --data "$dest_file" --backend $BACKEND \
             --user_name $USERNAME --password $PASSWORD --otp $OTP -
         exit 0
     fi
