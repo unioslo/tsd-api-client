@@ -1,12 +1,14 @@
 
 """Diverse helpers."""
 
+import base64
+import hashlib
+import json
 import os
 import sys
-import hashlib
-import base64
-import json
 import time
+
+from . import __version__
 
 
 def _check_present(_input, name):
@@ -16,13 +18,12 @@ def _check_present(_input, name):
 
 
 def user_agent(name='tsd-api-client'):
-    version = '1.8.4'
     try:
         user = os.environ.get('USER')
     except (Exception, OSError) as e:
         user = 'not-found'
     hu = hashlib.md5(user.encode('utf-8')).hexdigest()
-    return '{0}-{1}-{2}'.format(name, version, hu)
+    return '{0}-{1}-{2}'.format(name, __version__, hu)
 
 
 def b64_padder(payload):
