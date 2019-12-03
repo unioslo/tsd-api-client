@@ -167,8 +167,8 @@ def print_export_list(data):
     colnames = ['Filename', 'Modified', 'Size', 'Exportable']
     values = []
     for entry in data['files']:
-        size = humanfriendly.format_size(entry['size'])
-        row = [entry['filename'], entry['modified_date'], size, entry['exportable']]
+        size = humanfriendly.format_size(entry['size'] if entry['size'] is not None else 0)
+        row = [entry['filename'], entry['modified_date'], size, 'No' if entry['exportable'] is None else 'Yes']
         values.append(row)
     print(humanfriendly.tables.format_pretty_table(values, colnames))
 
