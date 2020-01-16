@@ -2,6 +2,7 @@
 
 """API client for admin."""
 
+import sys
 import getpass
 
 import click
@@ -89,19 +90,25 @@ def main(env, pnum, signup, confirm, getapikey, delapikey, pwreset, guide,
     if del_config:
         delete_config()
         return
-    if env not in ['test', 'prod']:
+    if env not in ['test', 'prod', 'alt']:
         print('unknown env')
         sys.exit(1)
     _check_present(env, 'env')
     if register_tsd_2fa:
-        env = input('API environmet - test or prod > ')
+        choice = input(
+            """Choose the API environment by typing one of the following numbers:\n1 - for normal production usage\n2 - for use over fx03 network\n3 - for testing > """)
+        if choice not in '123':
+            print('Invalid choice for API environment')
+            sys.exit(1)
+        choices = {'1': 'prod', '2': 'alt', '3': 'test'}
+        env = choices[choice]
         user_name = input('username > ')
         password = getpass.getpass('password > ')
         otp = input('otp > ')
         pnum = user_name.split('-')[0]
         key = get_tsd_api_key(env, pnum, user_name, password, otp)
         update_config(env, pnum, key)
-        print('updated config with api key registered to {0}'.format(pnum))
+        print('Successfully registered for project: {0}, and API environment hosted at {1}'.format(pnum, ENV[env]))
         return
     _check_present(pnum, 'pnum')
     if print_tsd_2fa_key:
