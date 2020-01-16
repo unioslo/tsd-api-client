@@ -22,12 +22,12 @@ def write_config(data, filename=TACL_CONFIG):
 
 
 def update_config(env, key, val):
-    if env not in ['test', 'prod']:
-        raise Exception
+    if env not in ['test', 'prod', 'alt']:
+        raise Exception('Unrecognised environment: {0}'.format(env))
     try:
         config = read_config(TACL_CONFIG)
     except IOError:
-        config = {'test': {}, 'prod': {}}
+        config = {'test': {}, 'prod': {}, 'alt': {}}
     try:
         if config and config.get(env):
             curr_env = config[env]
@@ -36,8 +36,10 @@ def update_config(env, key, val):
             new_env = {}
         if config:
             new_config = config.copy()
+            if 'alt' not in new_config.keys():
+                new_config['alt'] = {}
         else:
-            new_config = {'test': {}, 'prod': {}}
+            new_config = {'test': {}, 'prod': {}, 'alt': {}}
         if not new_env.get(key):
             print('updating {0}'.format(key))
             new_config[env].update({key:val})
@@ -65,7 +67,7 @@ def print_config(filename=TACL_CONFIG):
 
 def delete_config(filename=TACL_CONFIG):
     with open(filename, 'w+') as f:
-        f.write(yaml.dump({'test': {}, 'prod': {}}, Dumper=yaml.Dumper))
+        f.write(yaml.dump({'test': {}, 'prod': {}, 'alt': {}}, Dumper=yaml.Dumper))
 
 def print_config_tsd_2fa_key(env, pnum):
     with open(TACL_CONFIG, 'r') as f:
