@@ -33,7 +33,7 @@ def print_basic_help():
 
         --help                  Print this help text.
         --examples              Print example commands.
-        --env                   Either 'test' or 'prod' environment. Defaults to 'prod'.
+        --env                   Either 'test', 'prod', or 'alt' environment. Defaults to 'prod'.
         --import                Path to file or folder you want to upload.
                                 This needs to be the last argument you pass to tacl.
         --upload-id             Resume a specific upload, providing the upload ID.
@@ -194,7 +194,7 @@ def get_token(tsd_api_key, env, pnum, data, fileinput,
 
 
 @click.command()
-@click.option('--env', default='test', help='which environment you want to interact with')
+@click.option('--env', default='prod', help='which environment you want to interact with')
 @click.option('--pnum', default=None, help='project numbers')
 @click.option('--config', default=None, help='path to config file')
 @click.option('--guide', is_flag=True, default=False, required=False, help='print help text')
@@ -228,7 +228,7 @@ def main(env, pnum, config, guide, data, user_name,
     if guide:
         print_data_guide()
         return
-    if env not in ['test', 'prod']:
+    if env not in ['test', 'prod', 'alt']:
         print('unknown env')
         sys.exit(1)
     _check_present(env, 'env')
