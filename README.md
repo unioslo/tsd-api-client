@@ -17,8 +17,9 @@ python3 setup.py install
 To use the TSD File API, use `tacl`:
 
 ```bash
+tacl --register
 tacl --help
-tacl --data-guide
+tacl --examples
 ```
 
 ## tsd-s3cmd
