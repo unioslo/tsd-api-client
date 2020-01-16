@@ -31,6 +31,8 @@ def print_basic_help():
         Options
         ~~~~~~~
 
+        --help                  Print this help text.
+        --examples              Print example commands.
         --env                   Either 'test' or 'prod' environment. Defaults to 'prod'.
         --import                Path to file or folder you want to upload.
                                 This needs to be the last argument you pass to tacl.
