@@ -62,8 +62,8 @@ import_data() {
             --env)       API_ENV=$2; shift 2 ;;
             --pre)       PRE=$2; shift 2 ;;
             --post)      POST=$2; shift 2 ;;
-            --data)      shift; INPUT_DATA="$@"; break ;;
-            --import)    shift; INPUT_DATA="$@"; break ;;
+            --data)      INPUT_DATA=$2; shift 2 ;;
+            --import)    INPUT_DATA=$2; shift 2 ;;
             --recipient) RECIPIENT=$2; shift 2 ;;
             --group)     GROUP=$2; shift 2 ;;
             --upload-id) UPLOAD_ID=$2; shift 2 ;;
