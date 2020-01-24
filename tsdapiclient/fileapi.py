@@ -529,7 +529,7 @@ def delete_all_resumables(env, pnum, token, dev_url=None, backend='files'):
     dict
 
     """
-    overview = get_resumable(env, pnum, token, dev_url, backend)
+    overview = get_resumable(env, pnum, token, dev_url=dev_url, backend=backend)
     all_resumables = overview['resumables']
     for r in all_resumables:
-        delete_resumable(env, pnum, token, r['filename'], r['id'], backend)
+        delete_resumable(env, pnum, token, r['filename'], r['id'], dev_url=dev_url, backend=backend)
