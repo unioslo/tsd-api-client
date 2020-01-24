@@ -4,6 +4,7 @@
 import hashlib
 import json
 import os
+from functools import cmp_to_key
 from urllib.parse import quote
 
 import humanfriendly
@@ -281,7 +282,7 @@ def print_resumables_list(data, filename=None, upload_id=None):
         pass # not implemented
     else:
         the_list = data['resumables']
-        the_list.sort(resumables_cmp)
+        the_list.sort(key=cmp_to_key(resumables_cmp))
         colnames =['Upload ID', 'Server-side data size', 'Filename']
         values = []
         for r in the_list:
