@@ -263,6 +263,9 @@ manage_resumables() {
 if [[ $1 == '--help' ]]; then
     tacl_data --help
     exit 0
+elif [[ $1 == '--version' ]]; then
+    tacl_data --version
+    exit 0
 elif [[ $1 =~ ^('--data-guide'|'--examples') ]]; then
     tacl_data --guide
     exit 0

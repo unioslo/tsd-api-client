@@ -3,12 +3,14 @@
 """API client for data uploads."""
 
 import os
+import platform
 import sys
-
+from textwrap import dedent
 
 import click
 import requests
 
+from tsdapiclient import __version__
 from tsdapiclient.authapi import get_jwt_tsd_auth, get_jwt_basic_auth
 from tsdapiclient.client_config import ENV
 from tsdapiclient.configurer import read_config
@@ -33,6 +35,7 @@ def print_basic_help():
 
         --help                  Print this help text.
         --examples              Print example commands.
+        --version               Print version info for tacl.
         --env                   Either 'test', 'prod', or 'alt' environment. Defaults to 'prod'.
         --import                Path to file or folder you want to upload.
                                 This needs to be the last argument you pass to tacl.
@@ -120,6 +123,19 @@ def print_data_guide():
 
     """
     print(guide_text)
+
+def print_version_info():
+    version_text = """\
+        tacl v{version}
+        - OS/Arch: {os}/{arch}
+        - Python: {pyver}\
+    """.format(
+        version=__version__,
+        os=platform.system(),
+        arch=platform.uname().machine,
+        pyver=platform.python_version()
+    )
+    print(dedent(version_text))
 
 
 def parse_post_processing_expression(expr, encryptedpw):
@@ -217,13 +233,17 @@ def get_token(tsd_api_key, env, pnum, data, fileinput,
 @click.option('--download-id', default=None, required=False, help='Etag used to ensure intergity when resuming a download')
 @click.option('--backend', default='files', required=False, help='upload to cluster filesystem')
 @click.option('--help', is_flag=True, required=False, help='basic help')
+@click.option('--version', is_flag=True, required=False, help='show version info')
 @click.argument('fileinput', type=click.File('rb'), required=False, default=None)
 def main(env, pnum, config, guide, data, user_name,
          password, otp, encryptedpw, pre, post, tsd_api_key, group,
          show, export, upload_id, resume_list, resume_delete, fileinput,
-         chunk_size, resume_delete_all, download_id, backend, help):
+         chunk_size, resume_delete_all, download_id, backend, help, version):
     if help:
         print_basic_help()
+        return
+    if version:
+        print_version_info()
         return
     if guide:
         print_data_guide()
