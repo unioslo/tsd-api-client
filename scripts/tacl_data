@@ -273,7 +273,11 @@ def main(env, pnum, config, guide, data, user_name,
                           resume_list, resume_delete, resume_delete_all,
                           show, export, user_name, password, otp, backend)
         if not token:
-            print('Authentication failed')
+            msg = 'Authentication failed'
+            if show or export:
+                msg = 'Either ' + msg.lower()
+                msg += ', or your account is missing export rights'
+            print(msg)
             return
         else:
             if not fileinput and data:
