@@ -12,6 +12,7 @@ import requests
 from progress.bar import Bar
 
 from tsdapiclient.client_config import ENV
+from tsdapiclient.tools import handle_request_errors
 
 
 def _init_progress_bar(current_chunk, chunksize, filename):
@@ -91,6 +92,7 @@ def lazy_stdin_handler(fileinput, chunksize):
             yield chunk
 
 
+@handle_request_errors
 def streamfile(env, pnum, filename, token,
                chunksize=4096, custom_headers=None,
                group=None, backend='files'):
@@ -124,9 +126,11 @@ def streamfile(env, pnum, filename, token,
         new_headers = headers
     resp = requests.put(url, data=lazy_reader(filename, chunksize, with_progress=True),
                         headers=new_headers)
+    resp.raise_for_status()
     return resp
 
 
+@handle_request_errors
 def streamstdin(env, pnum, fileinput, filename, token,
                 chunksize=4096, custom_headers=None,
                 group=None, backend='files'):
@@ -161,6 +165,7 @@ def streamstdin(env, pnum, fileinput, filename, token,
     print('PUT: {0}'.format(url))
     resp = requests.put(url, data=lazy_stdin_handler(fileinput, chunksize),
                         headers=new_headers)
+    resp.raise_for_status()
     return resp
 
 
@@ -175,6 +180,7 @@ def print_export_list(data):
 
 
 
+@handle_request_errors
 def export_list(env, pnum, token, backend='files'):
     """
     Get the list of files available for export.
@@ -193,10 +199,12 @@ def export_list(env, pnum, token, backend='files'):
     url = '{0}/{1}/{2}/export'.format(ENV[env], pnum, backend)
     headers = {'Authorization': 'Bearer {0}'.format(token)}
     resp = requests.get(url, headers=headers)
+    resp.raise_for_status()
     data = json.loads(resp.text)
     return data
 
 
+@handle_request_errors
 def export_get(env, pnum, filename, token, chunksize=4096,
                etag=None, dev_url=None, backend='files'):
     """
@@ -232,6 +240,7 @@ def export_get(env, pnum, filename, token, chunksize=4096,
     else:
         url = '{0}/{1}/{2}/export/{3}'.format(ENV[env], pnum, backend, filename)
     resp = requests.head(url, headers=headers)
+    resp.raise_for_status()
     try:
         download_id = resp.headers['Etag']
         print('Download id: {0}'.format(download_id))
@@ -241,6 +250,7 @@ def export_get(env, pnum, filename, token, chunksize=4096,
     total_file_size = int(resp.headers['Content-Length'])
     bar = _init_export_progress_bar(current_file_size, total_file_size, chunksize)
     with requests.get(url, headers=headers, stream=True) as r:
+        r.raise_for_status()
         with open(filename, filemode) as f:
             for chunk in r.iter_content(chunk_size=chunksize):
                 if chunk:
@@ -292,6 +302,7 @@ def print_resumables_list(data, filename=None, upload_id=None):
         print(humanfriendly.tables.format_pretty_table(values, colnames))
 
 
+@handle_request_errors
 def get_resumable(env, pnum, token, filename=None, upload_id=None,
                   dev_url=None, backend='files'):
     """
@@ -319,6 +330,7 @@ def get_resumable(env, pnum, token, filename=None, upload_id=None,
         url = '{0}?id={1}'.format(url, upload_id)
     headers = {'Authorization': 'Bearer {0}'.format(token)}
     resp = requests.get(url, headers=headers)
+    resp.raise_for_status()
     data = json.loads(resp.text)
     return data
 
@@ -376,13 +388,16 @@ def initiate_resumable(env, pnum, filename, token, chunksize=None,
                                group, dev_url, stop_at, backend)
 
 
+@handle_request_errors
 def _complete_resumable(filename, token, url, bar):
     headers = {'Authorization': 'Bearer {0}'.format(token)}
     resp = requests.patch(url, headers=headers)
+    resp.raise_for_status()
     bar.finish()
     return json.loads(resp.text)
 
 
+@handle_request_errors
 def start_resumable(env, pnum, filename, token, chunksize,
                     group=None, dev_url=None, stop_at=None,
                     backend='files'):
@@ -415,6 +430,7 @@ def start_resumable(env, pnum, filename, token, chunksize,
         else:
             parmaterised_url = '{0}?chunk={1}&id={2}'.format(url, str(chunk_num), upload_id)
         resp = requests.patch(parmaterised_url, data=chunk, headers=headers)
+        resp.raise_for_status()
         data = json.loads(resp.text)
         if chunk_num == 1:
             upload_id = data['id']
@@ -434,6 +450,7 @@ def start_resumable(env, pnum, filename, token, chunksize,
     return resp
 
 
+@handle_request_errors
 def continue_resumable(env, pnum, filename, token, to_resume,
                        group=None, verify=False, dev_url=None,
                        backend='files'):
@@ -473,6 +490,7 @@ def continue_resumable(env, pnum, filename, token, to_resume,
     for chunk in lazy_reader(filename, chunksize, previous_offset, next_offset, verify, server_chunk_md5):
         parmaterised_url = '{0}?chunk={1}&id={2}'.format(url, str(chunk_num), upload_id)
         resp = requests.patch(parmaterised_url, data=chunk, headers=headers)
+        resp.raise_for_status()
         bar.next()
         data = json.loads(resp.text)
         upload_id = data['id']
@@ -485,6 +503,7 @@ def continue_resumable(env, pnum, filename, token, to_resume,
     return resp
 
 
+@handle_request_errors
 def delete_resumable(env, pnum, token, filename, upload_id,
                      dev_url=None, backend='files'):
     """
@@ -509,6 +528,7 @@ def delete_resumable(env, pnum, token, filename, upload_id,
     else:
         url = '{0}/{1}/{2}/resumables/{3}?id={4}'.format(ENV[env], pnum, backend, filename, upload_id)
     resp = requests.delete(url, headers={'Authorization': 'Bearer {0}'.format(token)})
+    resp.raise_for_status()
     print('Upload: {0}, for filename: {1} deleted'.format(upload_id, filename))
     return json.loads(resp.text)
 
