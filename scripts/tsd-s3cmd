@@ -91,9 +91,9 @@ _guide="\
 
         tsd-s3cmd --print-token-for put
 
-    8. For more help:
+    8. For more help and examples of s3cmd client usage:
 
-        tsd-s3cmd --help
+        tsd-s3cmd --s3cmd-help
 
     Or browse http://s3tools.org/s3cmd
 
@@ -158,19 +158,24 @@ if [[ $# -lt 1 ]]; then
     exit 0
 fi
 
-if [[ $1 =~ '-h'|'--help' ]]; then
-    s3cmd --help
-    exit 0
-elif [[ $1 == '--register' ]]; then
-    tacl_admin --register_tsd_2fa
-    exit 0
-elif [[ $1 == '--guide' ]]; then
+case $1 in
+    '-h'|'--help'|'--guide')
     printf "%s\n" "$_guide"
     exit 0
-elif [[ $1 == '--print-token-for' ]]; then
+    ;;
+    '--register')
+    tacl_admin --register_tsd_2fa
+    exit 0
+    ;;
+    '--s3cmd-help')
+    s3cmd --help
+    exit 0
+    ;;
+    '--print-token-for')
     print_token
     exit 0
-else
+    ;;
+    *)
     do_authenticated_s3cmd
     exit 0
-fi
+esac
