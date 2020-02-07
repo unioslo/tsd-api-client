@@ -53,7 +53,7 @@ def format_filename(filename):
 def lazy_reader(filename, chunksize, previous_offset=None,
                 next_offset=None, verify=None, server_chunk_md5=None,
                 with_progress=False):
-    with open(filename, 'rb+') as f:
+    with open(filename, 'rb') as f:
         if verify:
             f.seek(previous_offset)
             last_chunk_size = next_offset - previous_offset
