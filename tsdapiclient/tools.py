@@ -7,6 +7,10 @@ import json
 import os
 import sys
 import time
+from functools import wraps
+
+from requests.exceptions import (ConnectionError, HTTPError, RequestException,
+                                 Timeout)
 
 from . import __version__
 
@@ -45,3 +49,22 @@ def check_if_key_has_expired(key):
             return False
     except Exception:
         return None
+
+def handle_request_errors(f):
+    @wraps(f)
+    def decorator(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except HTTPError as err:
+            print(err)
+            sys.exit("The request was unsuccesful. Exiting...")
+        except ConnectionError as err:
+            print(err)
+            sys.exit("A connection error has occurred. Exiting...")
+        except Timeout as err:
+            print(err)
+            sys.exit("The connection timed out. Exiting...")
+        except RequestException as err:
+            print(err)
+            sys.exit("An error has occured. Exiting...")
+    return decorator
