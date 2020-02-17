@@ -330,7 +330,6 @@ def get_resumable(env, pnum, token, filename=None, upload_id=None,
         url = '{0}?id={1}'.format(url, upload_id)
     headers = {'Authorization': 'Bearer {0}'.format(token)}
     resp = requests.get(url, headers=headers)
-    resp.raise_for_status()
     data = json.loads(resp.text)
     return data
 
