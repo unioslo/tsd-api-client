@@ -171,13 +171,14 @@ def streamstdin(env, pnum, fileinput, filename, token,
 
 
 def print_export_list(data):
-    colnames = ['Filename', 'Modified', 'Size', 'Exportable']
+    colnames = ['Filename', 'Owner', 'Modified', 'Size', 'Exportable']
     values = []
     for entry in data['files']:
         size = humanfriendly.format_size(entry['size'] if entry['size'] is not None else 0)
-        row = [entry['filename'], entry['modified_date'], size, 'No' if entry['exportable'] is None else 'Yes']
+        row = [entry['filename'], entry['owner'], entry['modified_date'], size,
+               'No' if entry['exportable'] is None or entry['mime-type'] == 'directory' else 'Yes']
         values.append(row)
-    print(humanfriendly.tables.format_pretty_table(values, colnames))
+    print(humanfriendly.tables.format_pretty_table(sorted(values), colnames))
 
 
 
