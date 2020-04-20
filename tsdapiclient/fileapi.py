@@ -8,6 +8,7 @@ from functools import cmp_to_key
 from urllib.parse import quote
 
 import humanfriendly
+import humanfriendly.tables
 import requests
 from progress.bar import Bar
 
