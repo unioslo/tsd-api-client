@@ -575,7 +575,14 @@ def delete_resumable(env, pnum, token, filename, upload_id,
     if dev_url:
         url = dev_url
     else:
-        url = '{0}/{1}/{2}/resumables/{3}?id={4}'.format(ENV[env], pnum, backend, filename, upload_id)
+        url = '{0}/{1}/{2}/resumables/{3}?id={4}'.format(
+                    ENV[env],
+                    pnum,
+                    backend,
+                    quote(format_filename(filename)),
+                    upload_id
+                )
+    debug_step(f'deleting {filename} using: {url}')
     resp = requests.delete(url, headers={'Authorization': 'Bearer {0}'.format(token)})
     resp.raise_for_status()
     print('Upload: {0}, for filename: {1} deleted'.format(upload_id, filename))
