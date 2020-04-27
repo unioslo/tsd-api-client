@@ -269,6 +269,7 @@ def export_get(env, pnum, filename, token, chunksize=4096,
         url = dev_url
     else:
         url = '{0}/{1}/{2}/export/{3}'.format(ENV[env], pnum, backend, filename)
+    debug_step(f'fecthing file info using: {url}')
     resp = requests.head(url, headers=headers)
     resp.raise_for_status()
     try:
@@ -293,7 +294,12 @@ def export_get(env, pnum, filename, token, chunksize=4096,
 
 def _resumable_url(env, pnum, filename, dev_url=None, backend='files'):
     if not dev_url:
-        url = '{0}/{1}/{2}/stream/{3}'.format(ENV[env], pnum, backend, filename)
+        url = '{0}/{1}/{2}/stream/{3}'.format(
+            ENV[env],
+            pnum,
+            backend,
+            quote(format_filename(filename))
+        )
     else:
         url = dev_url
     return url
@@ -351,9 +357,18 @@ def get_resumable(env, pnum, token, filename=None, upload_id=None,
     """
     if not dev_url:
         if filename:
-            url = '{0}/{1}/{2}/resumables/{3}'.format(ENV[env], pnum, backend, filename)
+            url = '{0}/{1}/{2}/resumables/{3}'.format(
+                ENV[env],
+                pnum,
+                backend,
+                quote(format_filename(filename))
+            )
         else:
-            url = '{0}/{1}/{2}/resumables'.format(ENV[env], pnum, backend)
+            url = '{0}/{1}/{2}/resumables'.format(
+                ENV[env],
+                pnum,
+                backend
+            )
     else:
         url = dev_url
     if upload_id:
