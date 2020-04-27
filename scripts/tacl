@@ -283,6 +283,14 @@ fi
 
 args=("$@")
 BACKEND='files' # default
+DEBUG=''
+
+for i in ${args[*]}; do
+    if [[ $i == '--debug' ]]; then
+        export DEBUG=1
+    fi
+done
+
 for i in ${args[*]}; do
     if [[ $i == '--register' ]]; then
         tacl_admin --register_tsd_2fa

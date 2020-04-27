@@ -13,7 +13,7 @@ import requests
 from progress.bar import Bar
 
 from tsdapiclient.client_config import ENV
-from tsdapiclient.tools import handle_request_errors
+from tsdapiclient.tools import handle_request_errors, debug_step
 
 
 def _init_progress_bar(current_chunk, chunksize, filename):
@@ -55,8 +55,10 @@ def format_filename(filename):
 def lazy_reader(filename, chunksize, previous_offset=None,
                 next_offset=None, verify=None, server_chunk_md5=None,
                 with_progress=False):
+    debug_step(f'reading file: {filename}')
     with open(filename, 'rb') as f:
         if verify:
+            debug_step('verifying chunk md5sum')
             f.seek(previous_offset)
             last_chunk_size = next_offset - previous_offset
             last_chunk_data = f.read(last_chunk_size)
@@ -70,6 +72,7 @@ def lazy_reader(filename, chunksize, previous_offset=None,
         if with_progress:
             bar = _init_progress_bar(1, chunksize, filename)
         while True:
+            debug_step('reading chunk')
             if with_progress:
                 try:
                     bar.next()
@@ -77,10 +80,12 @@ def lazy_reader(filename, chunksize, previous_offset=None,
                     pass
             data = f.read(chunksize)
             if not data:
+                debug_step('no more data to read')
                 if with_progress:
                     bar.finish()
                 break
             else:
+                debug_step('chunk read complete')
                 yield data
 
 
@@ -392,9 +397,11 @@ def initiate_resumable(env, pnum, filename, token, chunksize=None,
 @handle_request_errors
 def _complete_resumable(filename, token, url, bar):
     headers = {'Authorization': 'Bearer {0}'.format(token)}
+    debug_step('completing resumable')
     resp = requests.patch(url, headers=headers)
     resp.raise_for_status()
     bar.finish()
+    debug_step('finished')
     return json.loads(resp.text)
 
 
@@ -430,6 +437,7 @@ def start_resumable(env, pnum, filename, token, chunksize,
             parmaterised_url = '{0}?chunk={1}'.format(url, str(chunk_num))
         else:
             parmaterised_url = '{0}?chunk={1}&id={2}'.format(url, str(chunk_num), upload_id)
+        debug_step(f'sending chunk {chunk_num}, using {parmaterised_url}')
         resp = requests.patch(parmaterised_url, data=chunk, headers=headers)
         resp.raise_for_status()
         data = json.loads(resp.text)
@@ -490,6 +498,7 @@ def continue_resumable(env, pnum, filename, token, to_resume,
     bar = _init_progress_bar(chunk_num, chunksize, filename)
     for chunk in lazy_reader(filename, chunksize, previous_offset, next_offset, verify, server_chunk_md5):
         parmaterised_url = '{0}?chunk={1}&id={2}'.format(url, str(chunk_num), upload_id)
+        debug_step(f'sending chunk {chunk_num}, using {parmaterised_url}')
         resp = requests.patch(parmaterised_url, data=chunk, headers=headers)
         resp.raise_for_status()
         bar.next()
