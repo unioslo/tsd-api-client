@@ -204,9 +204,6 @@ export_data() {
             --backend $BACKEND --user_name $USERNAME --password $PASSWORD --otp $OTP
         exit 0
     else
-        tacl_data --tsd_api_key --env $API_ENV --pnum $PNUM --export $FILENAME \
-            --backend $BACKEND --user_name $USERNAME --password $PASSWORD --otp $OTP
-        exit 0
         if [[ ! -z $ETAG  ]]; then
             tacl_data --tsd_api_key --env $API_ENV --pnum $PNUM --export $FILENAME \
                 --backend $BACKEND --user_name $USERNAME --password $PASSWORD --otp $OTP --download-id $ETAG

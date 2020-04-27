@@ -259,11 +259,14 @@ def export_get(env, pnum, filename, token, chunksize=4096,
     current_file_size = None
     headers = {'Authorization': 'Bearer {0}'.format(token)}
     if etag:
+        debug_step(f'download_id: {etag}')
         filemode = 'ab'
         if os.path.lexists(filename):
             current_file_size = os.stat(filename).st_size
+            debug_step(f'found {filename} with {current_file_size} bytes')
             headers['Range'] = 'bytes={0}-'.format(current_file_size)
         else:
+            debug_step(f'{filename} not found')
             headers['Range'] = 'bytes=0-'
     if dev_url:
         url = dev_url
