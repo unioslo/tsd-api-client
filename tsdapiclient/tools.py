@@ -15,6 +15,11 @@ from requests.exceptions import (ConnectionError, HTTPError, RequestException,
 from . import __version__
 
 
+def debug_step(step):
+    if os.getenv('DEBUG'):
+        print(f'DEBUG: {step}')
+
+
 def _check_present(_input, name):
     if not _input:
         print('missing {0}'.format(name))

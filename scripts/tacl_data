@@ -17,7 +17,7 @@ from tsdapiclient.configurer import read_config
 from tsdapiclient.fileapi import streamfile, streamstdin, export_list, export_get, \
                                  get_resumable, initiate_resumable, print_resumables_list, \
                                  delete_resumable, delete_all_resumables, print_export_list
-from tsdapiclient.tools import _check_present, user_agent, check_if_key_has_expired
+from tsdapiclient.tools import _check_present, user_agent, check_if_key_has_expired, debug_step
 
 
 requests.utils.default_user_agent = user_agent
@@ -239,6 +239,7 @@ def main(env, pnum, config, guide, data, user_name,
          password, otp, encryptedpw, pre, post, tsd_api_key, group,
          show, export, upload_id, resume_list, resume_delete, fileinput,
          chunk_size, resume_delete_all, download_id, backend, help, version):
+    debug_step('start')
     if help:
         print_basic_help()
         return
@@ -269,9 +270,11 @@ def main(env, pnum, config, guide, data, user_name,
         except Exception:
             print('Cannot proceed - unclear data pipeline specification')
             return
+        debug_step('fetching access token')
         token = get_token(tsd_api_key, env, pnum, data, fileinput,
                           resume_list, resume_delete, resume_delete_all,
                           show, export, user_name, password, otp, backend)
+        debug_step('access token success')
         if not token:
             msg = 'Authentication failed'
             if show or export:
@@ -286,15 +289,18 @@ def main(env, pnum, config, guide, data, user_name,
                         chunk_size = 1000*1000*50
                     else:
                         chunk_size = 1000*1000*chunk_size # user specifies MB input
+                    debug_step('starting resumable file import')
                     resp = initiate_resumable(env, pnum, data, token, chunksize=chunk_size,
                                               group=group, verify=True, upload_id=upload_id,
                                               backend=backend)
                     return
                 else:
+                    debug_step('starting streaming file import')
                     resp = streamfile(env, pnum, data, token, custom_headers=custom_headers,
                                       group=group, backend=backend)
                     return
             elif fileinput:
+                debug_step('starting import from stdin')
                 resp = streamstdin(env, pnum, fileinput, data, token, custom_headers=custom_headers,
                                    group=group, backend=backend)
                 if resp.status_code == 201:
@@ -302,33 +308,27 @@ def main(env, pnum, config, guide, data, user_name,
                 else:
                     print('Data import failed: {0}'.format(resp.text))
             elif show:
+                debug_step('listing export directory')
                 data = export_list(env, pnum, token, backend=backend)
                 print_export_list(data)
                 return
             elif export:
                 filename = export
+                debug_step('starting file export')
                 export_get(env, pnum, filename, token, etag=download_id, backend=backend)
                 return
             elif resume_list:
+                debug_step('listing resumables')
                 overview = get_resumable(env, pnum, token, backend=backend)
                 print_resumables_list(overview)
                 return
             elif resume_delete:
                 filename = resume_delete
+                debug_step('deleting resumable')
                 delete_resumable(env, pnum, token, filename, upload_id, backend=backend)
                 return
             elif resume_delete_all:
-                delete_all_resumables(env, pnum, token, backend=backend)
-                return
-            elif resume_list:
-                overview = get_resumable(env, pnum, token, backend=backend)
-                print_resumables_list(overview)
-                return
-            elif resume_delete:
-                filename = resume_delete
-                delete_resumable(env, pnum, token, filename, upload_id, backend=backend)
-                return
-            elif resume_delete_all:
+                debug_step('deleting all resumables')
                 delete_all_resumables(env, pnum, token, backend=backend)
                 return
             return
