@@ -121,15 +121,27 @@ def streamfile(env, pnum, filename, token,
 
     """
     if not group:
-        url = '{0}/{1}/{2}/stream/{3}'.format(ENV[env], pnum, backend, quote(format_filename(filename)))
+        url = '{0}/{1}/{2}/stream/{3}'.format(
+            ENV[env],
+            pnum,
+            backend,
+            quote(format_filename(filename))
+        )
     elif group:
-        url = '{0}/{1}/{2}/stream/{3}?group={4}'.format(ENV[env], pnum, backend, quote(format_filename(filename)), group)
+        url = '{0}/{1}/{2}/stream/{3}?group={4}'.format(
+            ENV[env],
+            pnum,
+            backend,
+            quote(format_filename(filename)),
+            group
+        )
     headers = {'Authorization': 'Bearer {0}'.format(token)}
     if custom_headers is not None:
         new_headers = headers.copy()
         new_headers.update(custom_headers)
     else:
         new_headers = headers
+    debug_step(f'streaming data to {url}')
     resp = requests.put(url, data=lazy_reader(filename, chunksize, with_progress=True),
                         headers=new_headers)
     resp.raise_for_status()
@@ -159,9 +171,20 @@ def streamstdin(env, pnum, fileinput, filename, token,
 
     """
     if not group:
-        url = '{0}/{1}/{2}/stream/{3}'.format(ENV[env], pnum, backend, quote(format_filename(filename)))
+        url = '{0}/{1}/{2}/stream/{3}'.format(
+            ENV[env],
+            pnum,
+            backend,
+            quote(format_filename(filename))
+        )
     elif group:
-        url = '{0}/{1}/{2}/stream/{3}?group={4}'.format(ENV[env], pnum, backend, quote(format_filename(filename)), group)
+        url = '{0}/{1}/{2}/stream/{3}?group={4}'.format(
+            ENV[env],
+            pnum,
+            backend,
+            quote(format_filename(filename)),
+            group
+        )
     headers = {'Authorization': 'Bearer {0}'.format(token)}
     if custom_headers is not None:
         new_headers = headers.copy()
@@ -336,6 +359,7 @@ def get_resumable(env, pnum, token, filename=None, upload_id=None,
     if upload_id:
         url = '{0}?id={1}'.format(url, upload_id)
     headers = {'Authorization': 'Bearer {0}'.format(token)}
+    debug_step(f'fetching resumables info, using: {url}')
     resp = requests.get(url, headers=headers)
     data = json.loads(resp.text)
     return data
