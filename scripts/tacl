@@ -10,6 +10,7 @@ if [[ $# -lt 1 ]]; then
 fi
 
 readonly admonish="Keep in mind that uploads using this method cannot be resumed"
+readonly gpg_aes_deprecation="This feature has been deprecated, and is available only in v.2.3.0 and before"
 
 pnum_from_uname() {
     echo $1 | sed 's/p\(.*\)-\(.*\)/p\1/g'
@@ -108,10 +109,10 @@ import_data() {
             --user_name $USERNAME --password $PASSWORD --otp $OTP -
         exit 0
     elif [[ $PRE == 'encrypt' ]]; then
-        echo 'DEPRECATED: data import with encryption'
+        echo "${gpg_aes_deprecation}"
         exit 0
     elif [[ $PRE == *"compress"* ]] && [[ $PRE == *"encrypt"* ]]; then
-        echo 'DEPRECATED: data import with compression and encryption'
+        echo "${gpg_aes_deprecation}"
         exit 0
 
     # Directories
@@ -128,10 +129,10 @@ import_data() {
             --user_name $USERNAME --password $PASSWORD --otp $OTP -
         exit 0
     elif [[ $PRE == *"archive"* ]] && [[ $PRE == *"compress"* ]] && [[ $PRE == *"encrypt"* ]]; then
-        echo 'DEPRECATED: data import with tar, compress, and encrypt'
+        echo "${gpg_aes_deprecation}"
         exit 0
     elif [[ $PRE == *"archive"* ]] && [[ $PRE == *"encrypt"* ]]; then
-        echo 'DEPRECATED: data import with tar and encrypt'
+        echo "${gpg_aes_deprecation}"
         exit 0
     elif [[ $PRE == *"archive"* ]] && [[ $PRE == *"compress"* ]]; then
         echo 'data import with tar and gzip'
