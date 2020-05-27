@@ -218,10 +218,32 @@ def get_token(tsd_api_key, env, pnum, data, fileinput,
 @click.option('--help', is_flag=True, required=False, help='basic help')
 @click.option('--version', is_flag=True, required=False, help='show version info')
 @click.argument('fileinput', type=click.File('rb'), required=False, default=None)
-def main(env, pnum, config, guide, data, user_name,
-         password, otp, pre, post, tsd_api_key, group,
-         show, export, upload_id, resume_list, resume_delete, fileinput,
-         chunk_size, resume_delete_all, download_id, backend, help, version):
+def main(
+        env,
+        pnum,
+        config,
+        guide,
+        data,
+        user_name,
+        password,
+        otp,
+        pre,
+        post,
+        tsd_api_key,
+        group,
+        show,
+        export,
+        upload_id,
+        resume_list,
+        resume_delete,
+        fileinput,
+        chunk_size,
+        resume_delete_all,
+        download_id,
+        backend,
+        help,
+        version
+    ):
     debug_step('start')
     if help:
         print_basic_help()
