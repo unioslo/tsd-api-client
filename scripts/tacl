@@ -9,6 +9,8 @@ if [[ $# -lt 1 ]]; then
     exit 1
 fi
 
+readonly admonish="Keep in mind that uploads using this method cannot be resumed"
+
 pnum_from_uname() {
     echo $1 | sed 's/p\(.*\)-\(.*\)/p\1/g'
 }
@@ -96,6 +98,7 @@ import_data() {
         do_file_upload
     elif [[ $PRE == 'compress' ]]; then
         echo 'data import with compression'
+        echo "${admonish}"
         exit_if_is_directory "$INPUT_DATA"
         optionally_append_extension_to_file $POST "$INPUT_DATA" 'gz'
         gzip -9 < "$INPUT_DATA" |
@@ -116,6 +119,7 @@ import_data() {
 
     elif [[ $PRE == 'archive' ]]; then
         echo 'data import with tar'
+        echo "${admonish}"
         optionally_append_extension_to_file $POST "$INPUT_DATA" 'tar'
         tar -cf - "$INPUT_DATA" |
         tacl_data --tsd_api_key \
@@ -131,6 +135,7 @@ import_data() {
         exit 0
     elif [[ $PRE == *"archive"* ]] && [[ $PRE == *"compress"* ]]; then
         echo 'data import with tar and gzip'
+        echo "${admonish}"
         optionally_append_extension_to_file $POST "$INPUT_DATA" 'tar.gz'
         tar -cf - "$INPUT_DATA" | gzip -9 |
         tacl_data --tsd_api_key \
