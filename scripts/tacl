@@ -10,6 +10,7 @@ if [[ $# -lt 1 ]]; then
 fi
 
 readonly admonish="Keep in mind that uploads using this method cannot be resumed"
+readonly notify="TSD will soon add directory support to tacl - until then, this is limited to uploading 5gb"
 readonly gpg_aes_deprecation="This feature has been deprecated, and is available only in v.2.3.0 and before"
 
 pnum_from_uname() {
@@ -100,6 +101,7 @@ import_data() {
     elif [[ $PRE == 'compress' ]]; then
         echo 'data import with compression'
         echo "${admonish}"
+        echo "${notify}"
         exit_if_is_directory "$INPUT_DATA"
         optionally_append_extension_to_file $POST "$INPUT_DATA" 'gz'
         gzip -9 < "$INPUT_DATA" |
@@ -121,6 +123,7 @@ import_data() {
     elif [[ $PRE == 'archive' ]]; then
         echo 'data import with tar'
         echo "${admonish}"
+        echo "${notify}"
         optionally_append_extension_to_file $POST "$INPUT_DATA" 'tar'
         tar -cf - "$INPUT_DATA" |
         tacl_data --tsd_api_key \
@@ -137,6 +140,7 @@ import_data() {
     elif [[ $PRE == *"archive"* ]] && [[ $PRE == *"compress"* ]]; then
         echo 'data import with tar and gzip'
         echo "${admonish}"
+        echo "${notify}"
         optionally_append_extension_to_file $POST "$INPUT_DATA" 'tar.gz'
         tar -cf - "$INPUT_DATA" | gzip -9 |
         tacl_data --tsd_api_key \
