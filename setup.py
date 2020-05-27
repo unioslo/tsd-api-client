@@ -25,4 +25,5 @@ setup(
         'click',
         'PyYAML'
     ],
+    python_requires='>=3.6'
 )
