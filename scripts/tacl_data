@@ -47,20 +47,18 @@ def print_basic_help():
         --export-list           List files available for export.
         --export                Name of the file you want to download.
         --download-id           Unique identifier used to resume a download.
+        --group                 Name of the TSD file group which should have permissions on the upload.
 
         Optional data pipeline parameters (not relevant to resume or sync):
 
         --pre                   Comma-separated string specifying pre-upload data processing:
                                     - 'archive': create a tarball
                                     - 'compress': use gzip compression
-                                    - 'encrypt': encrypt data using AES
+
         --post                  Comma-separated string specifying post-upload data processing (server-side):
                                     - 'restore': restore the tarball to a directory
                                     - 'decompress': decompress data
-                                    - 'decrypt': decrypt data
-        --recipient             GPG recipient - only when using 'encrypt' or 'decrypt' in pre and/or post
-                                expression.
-        --group                 Name of the TSD file group which should have permissions on the upload.
+
     """
     print(help_text)
 
@@ -138,16 +136,14 @@ def print_version_info():
     print(dedent(version_text))
 
 
-def parse_post_processing_expression(expr, encryptedpw):
+def parse_post_processing_expression(expr):
     """
     Map expressions to custom headers.
 
     Params
     ------
     expr: str
-        e.g. 'restore,decompress,decrypt'
-    encryptedpw: str
-        base64 encoded, gpg encrypted, AES secrek key
+        e.g. 'restore,decompress'
 
     Returns
     -------
@@ -156,26 +152,14 @@ def parse_post_processing_expression(expr, encryptedpw):
     """
     if expr == 'none':
         return {'Content-Type': 'application/octet-stream'}
-    elif expr == 'decrypt':
-        return {'Content-Type': 'application/aes',
-                'Aes-Key': encryptedpw}
     elif expr == 'decompress':
         return {'Content-Type': 'application/gz'}
-    elif 'decompress' in expr and 'decrypt' in expr:
-        return {'Content-Type': 'application/gz.aes',
-                'Aes-Key': encryptedpw}
     elif expr == 'restore':
         return {'Content-Type': 'application/tar'}
-    elif 'restore' in expr and 'decompress' in expr and 'decrypt' in expr:
-        return {'Content-Type': 'application/tar.gz.aes',
-                'Aes-Key': encryptedpw}
-    elif 'restore' in expr and 'decrypt' in expr:
-        return {'Content-Type': 'application/tar.aes',
-                'Aes-Key': encryptedpw}
     elif 'restore' in expr and 'decompress' in expr:
         return {'Content-Type': 'application/tar.gz'}
     else:
-        print('expression not parseable')
+        print(f'Unsupported expression {expr}')
         raise Exception
 
 
@@ -218,7 +202,6 @@ def get_token(tsd_api_key, env, pnum, data, fileinput,
 @click.option('--user_name', default=None, help='TSD project user name')
 @click.option('--password', default=None, help='TSD password')
 @click.option('--otp', default=None, help='one time passcode')
-@click.option('--encryptedpw', default=None, required=False, help='encrypted password used in symmetric data encryption')
 @click.option('--pre', default=None, required=False, help='pre processing expression')
 @click.option('--post', default='none', required=False, help='post processing expression')
 @click.option('--tsd_api_key', is_flag=True, default=False, help='use project specific TSD api key')
@@ -236,7 +219,7 @@ def get_token(tsd_api_key, env, pnum, data, fileinput,
 @click.option('--version', is_flag=True, required=False, help='show version info')
 @click.argument('fileinput', type=click.File('rb'), required=False, default=None)
 def main(env, pnum, config, guide, data, user_name,
-         password, otp, encryptedpw, pre, post, tsd_api_key, group,
+         password, otp, pre, post, tsd_api_key, group,
          show, export, upload_id, resume_list, resume_delete, fileinput,
          chunk_size, resume_delete_all, download_id, backend, help, version):
     debug_step('start')
@@ -266,7 +249,7 @@ def main(env, pnum, config, guide, data, user_name,
         if not group:
             group = pnum + '-member-group'
         try:
-            custom_headers = parse_post_processing_expression(post, encryptedpw)
+            custom_headers = parse_post_processing_expression(post)
         except Exception:
             print('Cannot proceed - unclear data pipeline specification')
             return
