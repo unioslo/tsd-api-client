@@ -18,12 +18,17 @@ setup(
         'scripts/tacl_admin',
         'scripts/tacl_data',
         'scripts/tacl_auth',
-        'scripts/data2tsd',
         'scripts/tsd-s3cmd'],
     install_requires = [
         'requests',
         'click',
-        'PyYAML'
+        'PyYAML',
+        'progress',
+        'humanfriendly',
+        's3cmd>=2.0.2-custom-headers'
     ],
-    python_requires='>=3.6'
+    dependency_links=[
+        'https://github.com/unioslo/s3cmd/archive/v2.0.2-custom-headers.tar.gz#egg=s3cmd-2.0.2-custom-headers'
+    ],
+    python_requires='>=3.6',
 )
