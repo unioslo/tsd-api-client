@@ -5,7 +5,7 @@ Python client for TSD API.
 ## Install
 
 ```bash
-pip3 install https://github.com/unioslo/tsd-api-client/archive/v2.4.0.zip
+pip3 install https://github.com/unioslo/tsd-api-client/archive/v2.4.1.zip
 ```
 
 ## tacl
