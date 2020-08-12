@@ -12,9 +12,12 @@ TACL_CONFIG = get_config_path() + '/config'
 
 
 def read_config(filename=TACL_CONFIG):
-    with open(filename, 'r') as f:
-        config = yaml.load(f, Loader=yaml.Loader)
-    return config
+    try:
+        with open(filename, 'r') as f:
+            config = yaml.load(f, Loader=yaml.Loader)
+        return config
+    except FileNotFoundError:
+        return None
 
 
 def write_config(data, filename=TACL_CONFIG):
@@ -62,15 +65,24 @@ def update_config(env, key, val):
         write_config(new_config)
 
 def print_config(filename=TACL_CONFIG):
-    with open(filename, 'r') as f:
-        cf = f.read()
-        print(cf)
+    try:
+        with open(filename, 'r') as f:
+            cf = f.read()
+            print(cf)
+    except FileNotFoundError:
+        print("No config found")
 
 def delete_config(filename=TACL_CONFIG):
-    with open(filename, 'w+') as f:
-        f.write(yaml.dump({'test': {}, 'prod': {}, 'alt': {}}, Dumper=yaml.Dumper))
+    try:
+        with open(filename, 'w+') as f:
+            f.write(yaml.dump({'test': {}, 'prod': {}, 'alt': {}}, Dumper=yaml.Dumper))
+    except FileNotFoundError:
+        print("No config found")
 
 def print_config_tsd_2fa_key(env, pnum):
-    with open(TACL_CONFIG, 'r') as f:
-        cf = yaml.load(f, Loader=yaml.Loader)
-        print(cf[env][pnum])
+    try:
+        with open(TACL_CONFIG, 'r') as f:
+            cf = yaml.load(f, Loader=yaml.Loader)
+            print(cf[env][pnum])
+    except FileNotFoundError:
+        print("No config found")
