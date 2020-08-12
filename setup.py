@@ -28,4 +28,8 @@ setup(
         's3cmd @ https://github.com/unioslo/s3cmd/archive/v2.1.0-custom-headers.tar.gz#egg=s3cmd-2.1.0-custom-headers'
     ],
     python_requires='>=3.6',
+    entry_points='''
+        [console_scripts]
+        tacl2=tsdapiclient.tacl2:cli
+    ''',
 )
