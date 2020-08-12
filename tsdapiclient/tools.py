@@ -109,5 +109,14 @@ def get_config_path() -> str:
 
     if not config_path.exists():
         config_path.mkdir()
-    
+
+        home_path = pathlib.Path.home()
+        old_config = home_path / '.tacl_config'
+        old_session = home_path / '.tacl_session'
+
+        if old_config.exists():
+            old_config.rename(config_path / 'config')
+        if old_session.exists():
+            old_session.rename(config_path / 'session')
+
     return str(config_path)
