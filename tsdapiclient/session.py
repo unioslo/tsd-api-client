@@ -1,17 +1,15 @@
 
 import os
 import time
-
 from datetime import datetime, timedelta
 
 import yaml
 
-from tsdapiclient.tools import (
-    check_if_key_has_expired, check_if_exp_is_within_range, debug_step
-)
+from tsdapiclient.tools import (check_if_exp_is_within_range,
+                                check_if_key_has_expired, debug_step,
+                                get_config_path)
 
-HOME = os.path.expanduser('~')
-SESSION_STORE = HOME + '/.tacl_session'
+SESSION_STORE = get_config_path() + '/session'
 
 def session_file_exists():
     return False if not os.path.lexists(SESSION_STORE) else True

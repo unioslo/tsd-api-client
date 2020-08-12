@@ -5,6 +5,7 @@ import base64
 import hashlib
 import json
 import os
+import pathlib
 import sys
 import time
 from functools import wraps
@@ -87,3 +88,26 @@ def handle_request_errors(f):
             print(err)
             sys.exit("An error has occured. Exiting...")
     return decorator
+
+def _get_system_config_path() -> pathlib.Path:
+    home_path = pathlib.Path.home()
+
+    if sys.platform == 'win32':
+        return home_path / 'AppData/Roaming'
+    elif sys.platform == 'darwin':
+        return home_path / 'Library/Application Support'
+
+    xdg_path = os.environ.get('XDG_CONFIG_PATH')
+
+    if xdg_path:
+        return pathlib.Path(xdg_path)
+    
+    return home_path / '.config'
+
+def get_config_path() -> str:
+    config_path = _get_system_config_path() / 'tacl'
+
+    if not config_path.exists():
+        config_path.mkdir()
+    
+    return str(config_path)

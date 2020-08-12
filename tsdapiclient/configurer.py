@@ -6,8 +6,9 @@ import re
 
 import yaml
 
-HOME = os.path.expanduser('~')
-TACL_CONFIG = HOME + '/.tacl_config'
+from tsdapiclient.tools import get_config_path
+
+TACL_CONFIG = get_config_path() + '/config'
 
 
 def read_config(filename=TACL_CONFIG):
