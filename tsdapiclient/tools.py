@@ -9,6 +9,8 @@ import sys
 import time
 from functools import wraps
 
+import click
+
 from requests.exceptions import (ConnectionError, HTTPError, RequestException,
                                  Timeout)
 
@@ -17,7 +19,7 @@ from . import __version__
 
 def debug_step(step):
     if os.getenv('DEBUG'):
-        print(f'DEBUG: {step}')
+        click.echo(click.style(f'\nDEBUG {step}', bg='blue', fg='white'))
 
 
 def _check_present(_input, name):
@@ -41,14 +43,26 @@ def b64_padder(payload):
         return payload
 
 
-def check_if_key_has_expired(key):
+def check_if_key_has_expired(key, when=int(time.time())):
     try:
         enc_claim_text = key.split('.')[1]
         dec_claim_text = base64.b64decode(b64_padder(enc_claim_text))
         claims = json.loads(dec_claim_text)
         exp = claims['exp']
-        instant = int(time.time())
-        if instant > exp:
+        if when > exp:
+            return True
+        else:
+            return False
+    except Exception:
+        return None
+
+def check_if_exp_is_within_range(key, lower, upper):
+    try:
+        enc_claim_text = key.split('.')[1]
+        dec_claim_text = base64.b64decode(b64_padder(enc_claim_text))
+        claims = json.loads(dec_claim_text)
+        exp = claims['exp']
+        if exp > lower and exp < upper:
             return True
         else:
             return False

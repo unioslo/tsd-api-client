@@ -1,0 +1,73 @@
+
+import os
+import time
+
+from datetime import datetime, timedelta
+
+import yaml
+
+from tsdapiclient.tools import (
+    check_if_key_has_expired, check_if_exp_is_within_range, debug_step
+)
+
+HOME = os.path.expanduser('~')
+SESSION_STORE = HOME + '/.tacl_session'
+
+def session_file_exists():
+    return False if not os.path.lexists(SESSION_STORE) else True
+
+def session_is_expired(env, pnum, token_type):
+    if not session_file_exists():
+        return True
+    token = session_token(env, pnum, token_type)
+    debug_step(f'found token: {token}')
+    if not token:
+        return True
+    if check_if_key_has_expired(token):
+        debug_step('session expired')
+        return True
+    else:
+        debug_step('session has not expired')
+        return False
+
+def session_expires_soon(env, pnum, token_type, minutes=10):
+    if not session_file_exists():
+        return None
+    token = session_token(env, pnum, token_type)
+    if not token:
+        return False
+    target_time = datetime.utcnow() - timedelta(minutes=minutes)
+    lower = int(time.mktime(target_time.timetuple()))
+    upper = int(time.time())
+    if check_if_exp_is_within_range(token, lower=lower, upper=upper):
+        debug_step(f'session will expire in the next {minutes} minutes')
+        return True
+    else:
+        debug_step('session will not expire soon')
+        return False
+
+def session_update(env, pnum, token_type, token):
+    if not session_file_exists():
+        debug_step('creating new tacl session')
+        data = {'prod': {}, 'alt': {}, 'test': {}}
+    try:
+        with open(SESSION_STORE, 'r') as f:
+            data = yaml.load(f, Loader=yaml.Loader)
+    except FileNotFoundError:
+        pass # use default
+    target = data.get(env, {}).get(pnum, {})
+    target[token_type] = token
+    data[env][pnum] = target
+    debug_step('updating session')
+    with open(SESSION_STORE, 'w') as f:
+        f.write(yaml.dump(data, Dumper=yaml.Dumper))
+
+def session_token(env, pnum, token_type):
+    with open(SESSION_STORE, 'r') as f:
+        data = yaml.load(f, Loader=yaml.Loader)
+    return data.get(env, {}).get(pnum, {}).get(token_type)
+
+def session_clear():
+    data = {'prod': {}, 'alt': {}, 'test': {}}
+    with open(SESSION_STORE, 'w') as f:
+        f.write(yaml.dump(data, Dumper=yaml.Dumper))
