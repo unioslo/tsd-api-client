@@ -36,9 +36,9 @@ def session_expires_soon(env, pnum, token_type, minutes=10):
     token = session_token(env, pnum, token_type)
     if not token:
         return False
-    target_time = datetime.utcnow() - timedelta(minutes=minutes)
-    lower = int(time.mktime(target_time.timetuple()))
-    upper = int(time.time())
+    target_time = datetime.utcnow() + timedelta(minutes=minutes)
+    upper = int(time.mktime(target_time.timetuple()))
+    lower = int(time.time())
     if check_if_exp_is_within_range(token, lower=lower, upper=upper):
         debug_step(f'session will expire in the next {minutes} minutes')
         return True
