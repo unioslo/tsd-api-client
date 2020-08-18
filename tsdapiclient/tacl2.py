@@ -12,19 +12,16 @@ import requests
 from tsdapiclient import __version__
 from tsdapiclient.administrator import get_tsd_api_key
 from tsdapiclient.authapi import get_jwt_tsd_auth, get_jwt_basic_auth
-from tsdapiclient.client_config import ENV
-from tsdapiclient.configurer import (
-    read_config, update_config, print_config, delete_config
-)
-from tsdapiclient.fileapi import (
-    streamfile, initiate_resumable, get_resumable, delete_resumable,
-    delete_all_resumables, export_get, export_list,
-    print_export_list, print_resumables_list
-)
-from tsdapiclient.session import (
-    session_is_expired, session_expires_soon, session_update,
-    session_clear, session_token
-)
+from tsdapiclient.client_config import ENV, CHUNK_THRESHOLD, CHUNK_SIZE
+from tsdapiclient.configurer import (read_config, update_config,
+                                     print_config, delete_config)
+from tsdapiclient.fileapi import (streamfile, initiate_resumable, get_resumable,
+                                  delete_resumable, delete_all_resumables,
+                                  export_get, export_list, print_export_list,
+                                  print_resumables_list)
+from tsdapiclient.session import (session_is_expired, session_expires_soon,
+                                  session_update, session_clear, session_token)
+from tsdapiclient.sync import SerialDirectoryUploader
 from tsdapiclient.tools import user_agent, debug_step
 
 requests.utils.default_user_agent = user_agent
@@ -275,17 +272,22 @@ def cli(
     if token:
         if upload:
             group = f'{pnum}-member-group' if not group else group
-            chunk_size = os.stat(upload).st_size
-            if upload_id or os.stat(upload).st_size > 1000*1000*1000:
-                chunk_size = 1000*1000*50
-                resp = initiate_resumable(
-                    env, pnum, upload, token, chunksize=chunk_size,
-                    group=group, verify=True, upload_id=upload_id
-                )
+            if os.path.isfile(upload):
+                if upload_id or os.stat(upload).st_size > CHUNK_THRESHOLD:
+                    resp = initiate_resumable(
+                        env, pnum, upload, token, chunksize=CHUNK_SIZE,
+                        group=group, verify=True, upload_id=upload_id
+                    )
+                else:
+                    resp = streamfile(
+                        env, pnum, upload, token, group=group
+                    )
             else:
-                resp = streamfile(
-                    env, pnum, upload, token, group=group
+                click.echo(f'uploading directory {upload}')
+                uploader = SerialDirectoryUploader(
+                    env, pnum, upload, token, group
                 )
+                uploader.sync()
         elif resume_list:
             debug_step('listing resumables')
             overview = get_resumable(env, pnum, token)
