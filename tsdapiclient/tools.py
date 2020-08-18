@@ -17,10 +17,11 @@ from requests.exceptions import (ConnectionError, HTTPError, RequestException,
 
 from . import __version__
 
+HELP_URL = 'https://www.uio.no/english/services/it/research/sensitive-data/contact/index.html'
 
 def debug_step(step):
     if os.getenv('DEBUG'):
-        click.echo(click.style(f'\nDEBUG {step}', bg='blue', fg='white'))
+        click.echo(click.style(f'\nDEBUG {step}', fg='yellow'))
 
 
 def _check_present(_input, name):
@@ -77,16 +78,16 @@ def handle_request_errors(f):
             return f(*args, **kwargs)
         except HTTPError as err:
             print(err)
-            sys.exit("The request was unsuccesful. Exiting...")
+            sys.exit("The request was unsuccesful. Exiting.")
         except ConnectionError as err:
             print(err)
-            sys.exit("A connection error has occurred. Exiting...")
+            sys.exit(f"You probably do not have access to the TSD API from this network - contact TSD for help: {HELP_URL}")
         except Timeout as err:
             print(err)
             sys.exit("The connection timed out. Exiting...")
         except RequestException as err:
             print(err)
-            sys.exit("An error has occured. Exiting...")
+            sys.exit("An error has occured. Exiting.")
     return decorator
 
 def _get_system_config_path() -> pathlib.Path:
@@ -101,7 +102,7 @@ def _get_system_config_path() -> pathlib.Path:
 
     if xdg_path:
         return pathlib.Path(xdg_path)
-    
+
     return home_path / '.config'
 
 def get_config_path() -> str:
