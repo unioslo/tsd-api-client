@@ -1,2 +1,0 @@
-
-"""TSD Storage API client."""
