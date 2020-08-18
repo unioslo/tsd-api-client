@@ -52,9 +52,25 @@ def format_filename(filename):
     return os.path.basename(filename)
 
 
-def lazy_reader(filename, chunksize, previous_offset=None,
-                next_offset=None, verify=None, server_chunk_md5=None,
-                with_progress=False):
+def upload_resource_name(filename, is_dir, group=None):
+    if not is_dir:
+        debug_step('uploading file')
+        resource = quote(format_filename(filename))
+    elif is_dir:
+        debug_step('uploading directory (file)')
+        resource = f'{group}/{quote(filename)}'
+    return resource
+
+
+def lazy_reader(
+    filename,
+    chunksize,
+    previous_offset=None,
+    next_offset=None,
+    verify=None,
+    server_chunk_md5=None,
+    with_progress=False
+):
     debug_step(f'reading file: {filename}')
     with open(filename, 'rb') as f:
         if verify:
@@ -99,9 +115,17 @@ def lazy_stdin_handler(fileinput, chunksize):
 
 
 @handle_request_errors
-def streamfile(env, pnum, filename, token,
-               chunksize=4096, custom_headers=None,
-               group=None, backend='files'):
+def streamfile(
+    env,
+    pnum,
+    filename,
+    token,
+    chunksize=4096,
+    custom_headers=None,
+    group=None,
+    backend='files',
+    is_dir=False
+):
     """
     Idempotent, lazy data upload from files.
 
@@ -114,27 +138,17 @@ def streamfile(env, pnum, filename, token,
     chunksize: bytes to read per chunk
     custom_headers: header controlling API data processing
     group: name of file group which should own upload
+    backend: which API backend to send data to
+    is_dir: bool, True if uploading a directory of files,
+            will create a different URL structure
 
     Returns
     -------
     requests.response
 
     """
-    if not group:
-        url = '{0}/{1}/{2}/stream/{3}'.format(
-            ENV[env],
-            pnum,
-            backend,
-            quote(format_filename(filename))
-        )
-    elif group:
-        url = '{0}/{1}/{2}/stream/{3}?group={4}'.format(
-            ENV[env],
-            pnum,
-            backend,
-            quote(format_filename(filename)),
-            group
-        )
+    resource = upload_resource_name(filename, is_dir, group=group)
+    url = f'{ENV[env]}/{pnum}/{backend}/stream/{resource}?group={group}'
     headers = {'Authorization': 'Bearer {0}'.format(token)}
     if custom_headers is not None:
         new_headers = headers.copy()
@@ -146,7 +160,6 @@ def streamfile(env, pnum, filename, token,
                         headers=new_headers)
     resp.raise_for_status()
     return resp
-
 
 @handle_request_errors
 def streamstdin(env, pnum, fileinput, filename, token,
@@ -207,7 +220,6 @@ def print_export_list(data):
                'No' if entry['exportable'] is None or entry['mime-type'] == 'directory' else 'Yes']
         values.append(row)
     print(humanfriendly.tables.format_pretty_table(sorted(values), colnames))
-
 
 
 @handle_request_errors
@@ -295,14 +307,18 @@ def export_get(env, pnum, filename, token, chunksize=4096,
     return filename
 
 
-def _resumable_url(env, pnum, filename, dev_url=None, backend='files'):
+def _resumable_url(
+    env,
+    pnum,
+    filename,
+    dev_url=None,
+    backend='files',
+    is_dir=False,
+    group=None
+):
+    resource = upload_resource_name(filename, is_dir, group=group)
     if not dev_url:
-        url = '{0}/{1}/{2}/stream/{3}'.format(
-            ENV[env],
-            pnum,
-            backend,
-            quote(format_filename(filename))
-        )
+        url = f'{ENV[env]}/{pnum}/{backend}/stream/{resource}'
     else:
         url = dev_url
     return url
@@ -342,8 +358,15 @@ def print_resumables_list(data, filename=None, upload_id=None):
 
 
 @handle_request_errors
-def get_resumable(env, pnum, token, filename=None, upload_id=None,
-                  dev_url=None, backend='files'):
+def get_resumable(
+    env,
+    pnum,
+    token,
+    filename=None,
+    upload_id=None,
+    dev_url=None,
+    backend='files'
+):
     """
     List uploads which can be resumed.
 
@@ -358,6 +381,10 @@ def get_resumable(env, pnum, token, filename=None, upload_id=None,
     dict, {filename, chunk_size, max_chunk, id}
 
     """
+    # TODO (ensure working):
+    # same filename, same key, but different sizes
+    # same filename, different key
+    # need to ensure we chooose, largest file, with correct key
     if not dev_url:
         if filename:
             url = '{0}/{1}/{2}/resumables/{3}'.format(
@@ -383,9 +410,21 @@ def get_resumable(env, pnum, token, filename=None, upload_id=None,
     return data
 
 
-def initiate_resumable(env, pnum, filename, token, chunksize=None,
-                       new=None, group=None, verify=False, upload_id=None,
-                       dev_url=None, stop_at=None, backend='files'):
+def initiate_resumable(
+    env,
+    pnum,
+    filename,
+    token,
+    chunksize=None,
+    new=None,
+    group=None,
+    verify=False,
+    upload_id=None,
+    dev_url=None,
+    stop_at=None,
+    backend='files',
+    is_dir=False
+):
     """
     Performs a resumable upload, either by resuming a broken one,
     or by starting a new one.
@@ -411,12 +450,9 @@ def initiate_resumable(env, pnum, filename, token, chunksize=None,
     """
     to_resume = False
     if not new:
-        if not upload_id:
-            data = get_resumable(env, pnum, token, filename, upload_id,
-                                 dev_url, backend)
-        else:
-            data = get_resumable(env, pnum, token, filename, upload_id,
-                                 dev_url, backend)
+        data = get_resumable(
+            env, pnum, token, filename, upload_id, dev_url, backend
+        )
         if not data['id']:
             pass
         else:
@@ -425,15 +461,18 @@ def initiate_resumable(env, pnum, filename, token, chunksize=None,
             dev_url = dev_url.replace('resumables', 'stream')
     if to_resume:
         try:
-            return continue_resumable(env, pnum, filename, token,
-                                      to_resume, group, verify,
-                                      dev_url, backend)
+            return continue_resumable(
+                env, pnum, filename, token, to_resume,
+                group, verify, dev_url, backend, is_dir
+            )
         except Exception as e:
             print(e)
             return
     else:
-        return start_resumable(env, pnum, filename, token, chunksize,
-                               group, dev_url, stop_at, backend)
+        return start_resumable(
+            env, pnum, filename, token, chunksize,
+            group, dev_url, stop_at, backend, is_dir
+        )
 
 
 @handle_request_errors
@@ -448,9 +487,18 @@ def _complete_resumable(filename, token, url, bar):
 
 
 @handle_request_errors
-def start_resumable(env, pnum, filename, token, chunksize,
-                    group=None, dev_url=None, stop_at=None,
-                    backend='files'):
+def start_resumable(
+    env,
+    pnum,
+    filename,
+    token,
+    chunksize,
+    group=None,
+    dev_url=None,
+    stop_at=None,
+    backend='files',
+    is_dir=False
+):
     """
     Start a new resumable upload, reding a file, chunk-by-chunk
     and performaing a PATCH request per chunk.
@@ -471,7 +519,7 @@ def start_resumable(env, pnum, filename, token, chunksize,
     dict
 
     """
-    url = _resumable_url(env, pnum, filename, dev_url, backend)
+    url = _resumable_url(env, pnum, filename, dev_url, backend, is_dir, group=group)
     headers = {'Authorization': 'Bearer {0}'.format(token)}
     chunk_num = 1
     for chunk in lazy_reader(filename, chunksize):
@@ -502,9 +550,17 @@ def start_resumable(env, pnum, filename, token, chunksize,
 
 
 @handle_request_errors
-def continue_resumable(env, pnum, filename, token, to_resume,
-                       group=None, verify=False, dev_url=None,
-                       backend='files'):
+def continue_resumable(
+    env,
+    pnum,
+    filename,
+    token,
+    to_resume,
+    group=None,
+    verify=False,
+    dev_url=None,
+    backend='files',
+    is_dir=False):
     """
     Continue a resumable upload, reding a file, from the
     appopriate byte offset, chunk-by-chunk and performaing
@@ -527,7 +583,7 @@ def continue_resumable(env, pnum, filename, token, to_resume,
     dict
 
     """
-    url = _resumable_url(env, pnum, filename, dev_url, backend)
+    url = _resumable_url(env, pnum, filename, dev_url, backend, is_dir, group=group)
     headers = {'Authorization': 'Bearer {0}'.format(token)}
     max_chunk = to_resume['max_chunk']
     chunksize = to_resume['chunk_size']
