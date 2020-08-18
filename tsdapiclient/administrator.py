@@ -5,6 +5,8 @@ import json
 import requests
 
 from tsdapiclient.client_config import ENV
+from tsdapiclient.tools import handle_request_errors
+
 
 def _post(url, headers, data):
     try:
@@ -13,6 +15,7 @@ def _post(url, headers, data):
     except Exception:
         return False
 
+@handle_request_errors
 def do_signup(env, pnum, client_name, email):
     headers = {'Content-Type': 'application/json'}
     data = {'client_name': client_name, 'email': email}
@@ -20,7 +23,7 @@ def do_signup(env, pnum, client_name, email):
     print('POST: {0}'.format(url))
     return _post(url, headers, data)
 
-
+@handle_request_errors
 def do_confirm(env, pnum, client_id, confirmation_token):
     headers = {'Content-Type': 'application/json'}
     data = {'client_id': client_id, 'token': confirmation_token}
@@ -28,7 +31,7 @@ def do_confirm(env, pnum, client_id, confirmation_token):
     print('POST: {0}'.format(url))
     return _post(url, headers, data)
 
-
+@handle_request_errors
 def get_api_key(env, pnum, client_id, password):
     headers = {'Content-Type': 'application/json'}
     data = {'client_id': client_id, 'pass': password}
@@ -36,7 +39,7 @@ def get_api_key(env, pnum, client_id, password):
     print('POST: {0}'.format(url))
     return _post(url, headers, data)
 
-
+@handle_request_errors
 def del_api_key(env, pnum, client_id, password, api_key):
     headers = {'Content-Type': 'application/json'}
     data = {'client_id': client_name, 'pass': password, 'api_key': api_key}
@@ -45,7 +48,7 @@ def del_api_key(env, pnum, client_id, password, api_key):
     resp = requests.delete(url, data=json.dumps(data), headers=headers)
     return json.loads(resp.text)
 
-
+@handle_request_errors
 def pw_reset(env, pnum, client_id, password):
     headers = {'Content-Type': 'application/json'}
     data = {'client_id': client_id, 'pass': password}
@@ -53,7 +56,7 @@ def pw_reset(env, pnum, client_id, password):
     print('POST: {0}'.format(url))
     return _post(url, headers, data)
 
-
+@handle_request_errors
 def get_tsd_api_key(env, pnum, user_name, password, otp):
     headers = {'Content-Type': 'application/json'}
     data = {'user_name': user_name, 'password': password, 'otp': otp}
