@@ -22,7 +22,7 @@ from tsdapiclient.fileapi import (streamfile, initiate_resumable, get_resumable,
 from tsdapiclient.session import (session_is_expired, session_expires_soon,
                                   session_update, session_clear, session_token)
 from tsdapiclient.sync import SerialDirectoryUploader
-from tsdapiclient.tools import user_agent, debug_step
+from tsdapiclient.tools import has_api_connectivity, user_agent, debug_step
 
 requests.utils.default_user_agent = user_agent
 
@@ -216,6 +216,9 @@ def cli(
     token = None
     if verbose:
         os.environ['DEBUG'] = '1'
+    if env and not register:
+        if not has_api_connectivity(hostname=API_ENVS[env]):
+            sys.exit(f'The API environment hosted at {ENV[env]} is not accessible from your current network connection.')
     if upload or resume_list or resume_delete or resume_delete_all:
         if basic:
             requires_user_credentials, token_type = False, 'import'
@@ -326,6 +329,8 @@ def cli(
                 sys.exit(1)
             choices = {'1': 'prod', '2': 'alt', '3': 'test'}
             env = choices[choice]
+            if not has_api_connectivity(hostname=API_ENVS[env]):
+                sys.exit("The chosen API environment is not accessible from your current network connection.")
             username, password, otp = get_user_credentials()
             pnum = username.split('-')[0]
             key = get_tsd_api_key(env, pnum, username, password, otp)
