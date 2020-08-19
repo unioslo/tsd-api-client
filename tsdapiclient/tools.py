@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 import pathlib
+import socket
 import sys
 import time
 from functools import wraps
@@ -121,3 +122,15 @@ def get_config_path() -> str:
             old_session.rename(config_path / 'session')
 
     return str(config_path)
+
+def has_api_connectivity(hostname: str, port: int = 443, timeout: float = 0.5) -> bool:
+    connectivity = False
+    try:
+        sock = socket.socket()
+        sock.settimeout(timeout)
+        sock.connect((hostname, port))
+        connectivity = True
+        sock.close()
+    except:
+        pass
+    return connectivity
