@@ -58,7 +58,11 @@ def upload_resource_name(filename, is_dir, group=None):
         resource = quote(format_filename(filename))
     elif is_dir:
         debug_step('uploading directory (file)')
-        resource = f'{group}/{quote(filename)}'
+        if filename.startswith('/'):
+            target = filename[1:]
+        else:
+            target = filename
+        resource = f'{group}/{quote(target)}'
     return resource
 
 
@@ -324,6 +328,15 @@ def _resumable_url(
     return url
 
 
+def _resumable_key(is_dir, filename):
+    if not is_dir:
+        key = None
+    elif is_dir:
+        path_part = filename.replace(f'/{os.path.basename(filename)}', '')
+        key = path_part[1:] if path_part.startswith('/') else path_part
+    return key
+
+
 def _init_progress_bar(current_chunk, chunksize, filename):
     # this is an approximation, better than nothing
     fsize = os.stat(filename).st_size
@@ -365,7 +378,9 @@ def get_resumable(
     filename=None,
     upload_id=None,
     dev_url=None,
-    backend='files'
+    backend='files',
+    is_dir=False,
+    key=None
 ):
     """
     List uploads which can be resumed.
@@ -381,10 +396,6 @@ def get_resumable(
     dict, {filename, chunk_size, max_chunk, id}
 
     """
-    # TODO (ensure working):
-    # same filename, same key, but different sizes
-    # same filename, different key
-    # need to ensure we chooose, largest file, with correct key
     if not dev_url:
         if filename:
             url = '{0}/{1}/{2}/resumables/{3}'.format(
@@ -403,6 +414,8 @@ def get_resumable(
         url = dev_url
     if upload_id:
         url = '{0}?id={1}'.format(url, upload_id)
+    elif not upload_id and is_dir and key:
+        url = '{0}?key={1}'.format(url, quote(key, safe=''))
     headers = {'Authorization': 'Bearer {0}'.format(token)}
     debug_step(f'fetching resumables info, using: {url}')
     resp = requests.get(url, headers=headers)
@@ -450,10 +463,12 @@ def initiate_resumable(
     """
     to_resume = False
     if not new:
+        key = _resumable_key(is_dir, filename)
         data = get_resumable(
-            env, pnum, token, filename, upload_id, dev_url, backend
+            env, pnum, token, filename, upload_id, dev_url,
+            backend, is_dir=is_dir, key=key
         )
-        if not data['id']:
+        if not data.get('id'):
             pass
         else:
             to_resume = data
