@@ -23,10 +23,15 @@ def _init_progress_bar(current_chunk, chunksize, filename):
     if fsize < chunksize:
         current_chunk = 1
         num_chunks = 1
-    return Bar('Progress', index=current_chunk, max=num_chunks, suffix='%(percent)d%%')
+    return Bar(
+        f'{filename}',
+        index=current_chunk,
+        max=num_chunks,
+        suffix='%(percent)d%%'
+    )
 
 
-def _init_export_progress_bar(current_file_size, total_file_size, chunksize):
+def _init_export_progress_bar(filename, current_file_size, total_file_size, chunksize):
     if current_file_size is not None:
         if chunksize < current_file_size:
             index = current_file_size/chunksize
@@ -45,7 +50,7 @@ def _init_export_progress_bar(current_file_size, total_file_size, chunksize):
             _max = total_file_size/chunksize
     if _max == 0:
         _max == 0.0001 # so we dont divide by zero
-    return Bar('Progress', index=index, max=_max, suffix='%(percent)d%%')
+    return Bar(f'{filename}', index=index, max=_max, suffix='%(percent)d%%')
 
 
 def format_filename(filename):
@@ -128,7 +133,8 @@ def streamfile(
     custom_headers=None,
     group=None,
     backend='files',
-    is_dir=False
+    is_dir=False,
+    session=None
 ):
     """
     Idempotent, lazy data upload from files.
@@ -151,6 +157,7 @@ def streamfile(
     requests.response
 
     """
+    session = session if session else requests
     resource = upload_resource_name(filename, is_dir, group=group)
     url = f'{ENV[env]}/{pnum}/{backend}/stream/{resource}?group={group}'
     headers = {'Authorization': 'Bearer {0}'.format(token)}
@@ -160,7 +167,7 @@ def streamfile(
     else:
         new_headers = headers
     debug_step(f'streaming data to {url}')
-    resp = requests.put(url, data=lazy_reader(filename, chunksize, with_progress=True),
+    resp = session.put(url, data=lazy_reader(filename, chunksize, with_progress=True),
                         headers=new_headers)
     resp.raise_for_status()
     return resp
@@ -298,7 +305,7 @@ def export_get(env, pnum, filename, token, chunksize=4096,
         print('Warning: could not retrieve download id, resumable download will not work')
         download_id = None
     total_file_size = int(resp.headers['Content-Length'])
-    bar = _init_export_progress_bar(current_file_size, total_file_size, chunksize)
+    bar = _init_export_progress_bar(filename, current_file_size, total_file_size, chunksize)
     with requests.get(url, headers=headers, stream=True) as r:
         r.raise_for_status()
         with open(filename, filemode) as f:
@@ -335,13 +342,6 @@ def _resumable_key(is_dir, filename):
         path_part = filename.replace(f'/{os.path.basename(filename)}', '')
         key = path_part[1:] if path_part.startswith('/') else path_part
     return key
-
-
-def _init_progress_bar(current_chunk, chunksize, filename):
-    # this is an approximation, better than nothing
-    fsize = os.stat(filename).st_size
-    num_chunks = fsize / chunksize
-    return Bar('Progress', index=current_chunk, max=num_chunks, suffix='%(percent)d%%')
 
 
 def resumables_cmp(a, b):
