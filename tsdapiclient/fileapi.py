@@ -234,7 +234,7 @@ def print_export_list(data):
 
 
 @handle_request_errors
-def export_list(env, pnum, token, backend='files'):
+def export_list(env, pnum, token, backend='files', session=None):
     """
     Get the list of files available for export.
 
@@ -249,17 +249,27 @@ def export_list(env, pnum, token, backend='files'):
     str
 
     """
+    session = session if session else requests
     url = '{0}/{1}/{2}/export'.format(ENV[env], pnum, backend)
     headers = {'Authorization': 'Bearer {0}'.format(token)}
-    resp = requests.get(url, headers=headers)
+    resp = session.get(url, headers=headers)
     resp.raise_for_status()
     data = json.loads(resp.text)
     return data
 
 
 @handle_request_errors
-def export_get(env, pnum, filename, token, chunksize=4096,
-               etag=None, dev_url=None, backend='files'):
+def export_get(
+    env,
+    pnum,
+    filename,
+    token,
+    chunksize=4096,
+    etag=None,
+    dev_url=None,
+    backend='files',
+    session=None
+):
     """
     Download a file to the current directory.
 
@@ -278,6 +288,7 @@ def export_get(env, pnum, filename, token, chunksize=4096,
     str
 
     """
+    session = session if session else requests
     filemode = 'wb'
     current_file_size = None
     headers = {'Authorization': 'Bearer {0}'.format(token)}
@@ -296,7 +307,7 @@ def export_get(env, pnum, filename, token, chunksize=4096,
     else:
         url = '{0}/{1}/{2}/export/{3}'.format(ENV[env], pnum, backend, filename)
     debug_step(f'fecthing file info using: {url}')
-    resp = requests.head(url, headers=headers)
+    resp = session.head(url, headers=headers)
     resp.raise_for_status()
     try:
         download_id = resp.headers['Etag']
@@ -306,7 +317,7 @@ def export_get(env, pnum, filename, token, chunksize=4096,
         download_id = None
     total_file_size = int(resp.headers['Content-Length'])
     bar = _init_export_progress_bar(filename, current_file_size, total_file_size, chunksize)
-    with requests.get(url, headers=headers, stream=True) as r:
+    with session.get(url, headers=headers, stream=True) as r:
         r.raise_for_status()
         with open(filename, filemode) as f:
             for chunk in r.iter_content(chunk_size=chunksize):
