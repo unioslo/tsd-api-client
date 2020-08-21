@@ -151,6 +151,7 @@ def streamfile(
     backend: which API backend to send data to
     is_dir: bool, True if uploading a directory of files,
             will create a different URL structure
+    session: requests.session, optional
 
     Returns
     -------
@@ -180,13 +181,14 @@ def streamstdin(env, pnum, fileinput, filename, token,
 
     Parameters
     ----------
-    env: str - 'test' or 'prod'
-    pnum: str - project number
-    filename: path to file
-    token: JWT
-    chunksize: bytes to read per chunk
-    custom_headers: header controlling API data processing
-    group: name of file group which should own upload
+    env: str, 'test' or 'prod'
+    pnum: str, project number
+    filename: str, path to file
+    token: str, JWT
+    chunksize: int, bytes to read per chunk
+    custom_headers: dict, header controlling API data processing
+    group: str, name of file group which should own upload
+    backend: str, API backend
 
     Returns
     -------
@@ -239,9 +241,11 @@ def export_list(env, pnum, token, backend='files', session=requests):
 
     Parameters
     ----------
-    env: str - 'test' or 'prod'
-    pnum: str - project number
+    env: str, 'test' or 'prod'
+    pnum: str, project number
     token: JWT
+    backend: str, API backend
+    session: requests.session, optional
 
     Returns
     -------
@@ -273,13 +277,15 @@ def export_get(
 
     Parameters
     ----------
-    env: str - 'test' or 'prod'
-    pnum: str - project number
+    env: str, 'test' or 'prod'
+    pnum: str, project number
     filename: str
-    token: JWT
-    chunksize: bytes per iteration
-    etag: str
+    token: str, JWT
+    chunksize: int, bytes per iteration
+    etag: str, content reference for remote resource
     dev_url: development url
+    backend: str, API backend
+    session: requests.session, optional
 
     Returns
     -------
@@ -396,9 +402,17 @@ def get_resumable(
 
     Parameters
     ----------
-    env: str - 'test' or 'prod'
-    pnum: str - project number
-    token: JWT
+    env: str, 'test' or 'prod'
+    pnum: str, project number
+    token: str, JWT
+    filename: str, path
+    upload_id: str, uuid identifying a specific upload to resume
+    dev_url: str, development URL
+    backend: str, API backend
+    is_dir: bool, True if uploading a directory of files,
+            will create a different URL structure
+    key: str, resumable key (direcctory path)
+    session:  requests.session, optional
 
     Returns
     -------
@@ -454,8 +468,8 @@ def initiate_resumable(
 
     Parameters
     ----------
-    env: str- 'test' or 'prod'
-    pnum: str - project numnber
+    env: str, 'test' or 'prod'
+    pnum: str, project numnber
     filename: str
     token: str, JWT
     chunksize: int, user specified chunkszie in bytes
@@ -465,6 +479,10 @@ def initiate_resumable(
     upload_id: str
     dev_url: str, pass a complete url (useful for development)
     stop_at: int, chunk number at which to stop upload (useful for development)
+    backend: str, API backend
+    is_dir: bool, True if uploading a directory of files,
+            will create a different URL structure
+    session:  requests.session, optional
 
     Returns
     -------
@@ -541,6 +559,10 @@ def start_resumable(
     group: str, group which should own the file
     dev_url: str, pass a complete url (useful for development)
     stop_at: int, chunk number at which to stop upload (useful for development)
+    backend: str, API backend
+    is_dir: bool, True if uploading a directory of files,
+            will create a different URL structure
+    session:  requests.session, optional
 
     Returns
     -------
@@ -607,6 +629,10 @@ def continue_resumable(
     group: str, group which should own the file
     verify: bool, if True then last chunk md5 is checked between client and server
     dev_url: str, pass a complete url (useful for development)
+    backend: str, API backend
+    is_dir: bool, True if uploading a directory of files,
+            will create a different URL structure
+    session:  requests.session, optional
 
     Returns
     -------
@@ -663,6 +689,8 @@ def delete_resumable(
     filename: str, filename
     upload_id: str, uuid
     dev_url: str, pass a complete url (useful for development)
+    backend: str, API backend
+    session:  requests.session, optional
 
     Returns
     -------
@@ -703,6 +731,8 @@ def delete_all_resumables(
     pnum: str, project number
     token: str, JWT
     dev_url: str, pass a complete url (useful for development)
+    backend: str, API backend
+    session:  requests.session, optional
 
     Returns
     -------
