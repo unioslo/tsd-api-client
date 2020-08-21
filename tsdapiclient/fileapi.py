@@ -134,7 +134,7 @@ def streamfile(
     group=None,
     backend='files',
     is_dir=False,
-    session=None
+    session=requests
 ):
     """
     Idempotent, lazy data upload from files.
@@ -157,7 +157,6 @@ def streamfile(
     requests.response
 
     """
-    session = session if session else requests
     resource = upload_resource_name(filename, is_dir, group=group)
     url = f'{ENV[env]}/{pnum}/{backend}/stream/{resource}?group={group}'
     headers = {'Authorization': 'Bearer {0}'.format(token)}
@@ -234,7 +233,7 @@ def print_export_list(data):
 
 
 @handle_request_errors
-def export_list(env, pnum, token, backend='files', session=None):
+def export_list(env, pnum, token, backend='files', session=requests):
     """
     Get the list of files available for export.
 
@@ -249,7 +248,6 @@ def export_list(env, pnum, token, backend='files', session=None):
     str
 
     """
-    session = session if session else requests
     url = '{0}/{1}/{2}/export'.format(ENV[env], pnum, backend)
     headers = {'Authorization': 'Bearer {0}'.format(token)}
     resp = session.get(url, headers=headers)
@@ -268,7 +266,7 @@ def export_get(
     etag=None,
     dev_url=None,
     backend='files',
-    session=None
+    session=requests
 ):
     """
     Download a file to the current directory.
@@ -288,7 +286,6 @@ def export_get(
     str
 
     """
-    session = session if session else requests
     filemode = 'wb'
     current_file_size = None
     headers = {'Authorization': 'Bearer {0}'.format(token)}
