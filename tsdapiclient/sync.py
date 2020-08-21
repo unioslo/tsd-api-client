@@ -44,7 +44,7 @@ class SerialDirectoryUploader(object):
         if os.stat(local_file).st_size > CHUNK_THRESHOLD:
             resp = initiate_resumable(
                 self.env, self.pnum, local_file, self.token, chunksize=CHUNK_SIZE,
-                group=self.group, verify=True, is_dir=True
+                group=self.group, verify=True, is_dir=True, session=self.session
             )
         else:
             resp = streamfile(

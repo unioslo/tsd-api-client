@@ -388,7 +388,8 @@ def get_resumable(
     dev_url=None,
     backend='files',
     is_dir=False,
-    key=None
+    key=None,
+    session=requests
 ):
     """
     List uploads which can be resumed.
@@ -426,7 +427,7 @@ def get_resumable(
         url = '{0}?key={1}'.format(url, quote(key, safe=''))
     headers = {'Authorization': 'Bearer {0}'.format(token)}
     debug_step(f'fetching resumables info, using: {url}')
-    resp = requests.get(url, headers=headers)
+    resp = session.get(url, headers=headers)
     data = json.loads(resp.text)
     return data
 
@@ -444,7 +445,8 @@ def initiate_resumable(
     dev_url=None,
     stop_at=None,
     backend='files',
-    is_dir=False
+    is_dir=False,
+    session=requests
 ):
     """
     Performs a resumable upload, either by resuming a broken one,
@@ -474,7 +476,7 @@ def initiate_resumable(
         key = _resumable_key(is_dir, filename)
         data = get_resumable(
             env, pnum, token, filename, upload_id, dev_url,
-            backend, is_dir=is_dir, key=key
+            backend, is_dir=is_dir, key=key, session=session
         )
         if not data.get('id'):
             pass
@@ -486,7 +488,8 @@ def initiate_resumable(
         try:
             return continue_resumable(
                 env, pnum, filename, token, to_resume,
-                group, verify, dev_url, backend, is_dir
+                group, verify, dev_url, backend, is_dir,
+                session=session
             )
         except Exception as e:
             print(e)
@@ -494,15 +497,16 @@ def initiate_resumable(
     else:
         return start_resumable(
             env, pnum, filename, token, chunksize,
-            group, dev_url, stop_at, backend, is_dir
+            group, dev_url, stop_at, backend, is_dir,
+            session=session
         )
 
 
 @handle_request_errors
-def _complete_resumable(filename, token, url, bar):
+def _complete_resumable(filename, token, url, bar, session=requests):
     headers = {'Authorization': 'Bearer {0}'.format(token)}
     debug_step('completing resumable')
-    resp = requests.patch(url, headers=headers)
+    resp = session.patch(url, headers=headers)
     resp.raise_for_status()
     bar.finish()
     debug_step('finished')
@@ -520,7 +524,8 @@ def start_resumable(
     dev_url=None,
     stop_at=None,
     backend='files',
-    is_dir=False
+    is_dir=False,
+    session=requests
 ):
     """
     Start a new resumable upload, reding a file, chunk-by-chunk
@@ -551,7 +556,7 @@ def start_resumable(
         else:
             parmaterised_url = '{0}?chunk={1}&id={2}'.format(url, str(chunk_num), upload_id)
         debug_step(f'sending chunk {chunk_num}, using {parmaterised_url}')
-        resp = requests.patch(parmaterised_url, data=chunk, headers=headers)
+        resp = session.patch(parmaterised_url, data=chunk, headers=headers)
         resp.raise_for_status()
         data = json.loads(resp.text)
         if chunk_num == 1:
@@ -568,7 +573,7 @@ def start_resumable(
     if not group:
         group = '{0}-member-group'.format(pnum)
     parmaterised_url = '{0}?chunk={1}&id={2}&group={3}'.format(url, 'end', upload_id, group)
-    resp = _complete_resumable(filename, token, parmaterised_url, bar)
+    resp = _complete_resumable(filename, token, parmaterised_url, bar, session=session)
     return resp
 
 
@@ -583,7 +588,9 @@ def continue_resumable(
     verify=False,
     dev_url=None,
     backend='files',
-    is_dir=False):
+    is_dir=False,
+    session=requests
+):
     """
     Continue a resumable upload, reding a file, from the
     appopriate byte offset, chunk-by-chunk and performaing
@@ -620,7 +627,7 @@ def continue_resumable(
     for chunk in lazy_reader(filename, chunksize, previous_offset, next_offset, verify, server_chunk_md5):
         parmaterised_url = '{0}?chunk={1}&id={2}'.format(url, str(chunk_num), upload_id)
         debug_step(f'sending chunk {chunk_num}, using {parmaterised_url}')
-        resp = requests.patch(parmaterised_url, data=chunk, headers=headers)
+        resp = session.patch(parmaterised_url, data=chunk, headers=headers)
         resp.raise_for_status()
         bar.next()
         data = json.loads(resp.text)
@@ -630,13 +637,21 @@ def continue_resumable(
     if not group:
         group = '{0}-member-group'.format(pnum)
     parmaterised_url = '{0}?chunk={1}&id={2}&group={3}'.format(url, 'end', upload_id, group)
-    resp = _complete_resumable(filename, token, parmaterised_url, bar)
+    resp = _complete_resumable(filename, token, parmaterised_url, bar, session=session)
     return resp
 
 
 @handle_request_errors
-def delete_resumable(env, pnum, token, filename, upload_id,
-                     dev_url=None, backend='files'):
+def delete_resumable(
+    env,
+    pnum,
+    token,
+    filename,
+    upload_id,
+    dev_url=None,
+    backend='files',
+    session=requests
+):
     """
     Delete a specific incomplete resumable.
 
@@ -665,13 +680,20 @@ def delete_resumable(env, pnum, token, filename, upload_id,
                     upload_id
                 )
     debug_step(f'deleting {filename} using: {url}')
-    resp = requests.delete(url, headers={'Authorization': 'Bearer {0}'.format(token)})
+    resp = session.delete(url, headers={'Authorization': 'Bearer {0}'.format(token)})
     resp.raise_for_status()
     print('Upload: {0}, for filename: {1} deleted'.format(upload_id, filename))
     return json.loads(resp.text)
 
 
-def delete_all_resumables(env, pnum, token, dev_url=None, backend='files'):
+def delete_all_resumables(
+    env,
+    pnum,
+    token,
+    dev_url=None,
+    backend='files',
+    session=requests
+):
     """
     Delete all incomplete resumables.
 
@@ -687,7 +709,12 @@ def delete_all_resumables(env, pnum, token, dev_url=None, backend='files'):
     dict
 
     """
-    overview = get_resumable(env, pnum, token, dev_url=dev_url, backend=backend)
+    overview = get_resumable(
+        env, pnum, token, dev_url=dev_url, backend=backend, session=session
+    )
     all_resumables = overview['resumables']
     for r in all_resumables:
-        delete_resumable(env, pnum, token, r['filename'], r['id'], dev_url=dev_url, backend=backend)
+        delete_resumable(
+            env, pnum, token, r['filename'], r['id'],
+            dev_url=dev_url, backend=backend, session=session
+        )
