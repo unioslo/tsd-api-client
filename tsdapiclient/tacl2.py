@@ -19,9 +19,10 @@ from tsdapiclient.fileapi import (streamfile, initiate_resumable, get_resumable,
                                   delete_resumable, delete_all_resumables,
                                   export_get, export_list, print_export_list,
                                   print_resumables_list)
+from tsdapiclient.guide import topics, config, uploads, downloads, debugging
 from tsdapiclient.session import (session_is_expired, session_expires_soon,
                                   session_update, session_clear, session_token)
-from tsdapiclient.sync import SerialDirectoryUploader
+from tsdapiclient.sync import SerialDirectoryUploader, UploadCache
 from tsdapiclient.tools import HELP_URL, has_api_connectivity, user_agent, debug_step
 
 requests.utils.default_user_agent = user_agent
@@ -32,6 +33,13 @@ API_ENVS = {
     'test': 'test.api.tsd.usit.no'
 }
 
+GUIDES = {
+    'topics': topics,
+    'config': config,
+    'uploads': uploads,
+    'downloads': downloads,
+    'debugging': debugging
+}
 
 def print_version_info():
     version_text = """\
@@ -46,8 +54,13 @@ def print_version_info():
     )
     print(dedent(version_text))
 
+
 def get_api_envs(ctx, args, incomplete):
     return [k for k, v in API_ENVS.items() if incomplete in k]
+
+
+def get_guide_options(ctx, args, incomplete):
+    return [k for k,v in GUIDES.items() if incomplete in k]
 
 
 def get_user_credentials():
@@ -85,9 +98,10 @@ def get_api_key(env, pnum):
 )
 @click.option(
     '--guide',
-    is_flag=True,
+    default=None,
     required=False,
-    help='Print a guide'
+    help='Print a guide',
+    autocompletion=get_guide_options
 )
 @click.option(
     '--env',
@@ -191,6 +205,42 @@ def get_api_key(env, pnum):
     required=False,
     help='Register tacl for a specific TSD project and API environment'
 )
+@click.option(
+    '--ignore-prefixes',
+    default=None,
+    required=False,
+    help='Comma separated list of sub folders to ignore (based on prefix match)'
+)
+@click.option(
+    '--ignore-suffixes',
+    default=None,
+    required=False,
+    help='Comma separated list of files (based on suffix match)'
+)
+@click.option(
+    '--upload-cache-show',
+    is_flag=True,
+    required=False,
+    help='View the request cache'
+)
+@click.option(
+    '--upload-cache-delete',
+    default=None,
+    required=False,
+    help='Delete a request cache for a given key'
+)
+@click.option(
+    '--upload-cache-delete-all',
+    is_flag=True,
+    required=False,
+    help='Delete the entire request cache'
+)
+@click.option(
+    '--cache-disable',
+    is_flag=True,
+    required=False,
+    help='Disable caching for the operation'
+)
 def cli(
     pnum,
     guide,
@@ -210,20 +260,18 @@ def cli(
     config_show,
     config_delete,
     session_delete,
-    register
+    register,
+    ignore_prefixes,
+    ignore_suffixes,
+    upload_cache_show,
+    upload_cache_delete,
+    upload_cache_delete_all,
+    cache_disable,
 ):
     """tacl2 - TSD API client."""
     token = None
     if verbose:
         os.environ['DEBUG'] = '1'
-    if env and not register:
-        if not has_api_connectivity(hostname=API_ENVS[env]):
-            sys.exit(
-                dedent(f'''\
-                    The API environment hosted at {ENV[env]} is not accessible from your current network connection.
-                    Please contact TSD for help: {HELP_URL}'''
-                )
-            )
     if upload or resume_list or resume_delete or resume_delete_all:
         if basic:
             requires_user_credentials, token_type = False, 'import'
@@ -293,7 +341,9 @@ def cli(
             else:
                 click.echo(f'uploading directory {upload}')
                 uploader = SerialDirectoryUploader(
-                    env, pnum, upload, token, group
+                    env, pnum, upload, token, group,
+                    prefixes=ignore_prefixes, suffixes=ignore_suffixes,
+                    use_cache=True if not cache_disable else False
                 )
                 uploader.sync()
         elif resume_list:
@@ -323,6 +373,15 @@ def cli(
             delete_config()
         elif session_delete:
             session_clear()
+        elif upload_cache_show:
+            cache = UploadCache()
+            cache.print()
+        elif upload_cache_delete:
+            cache = UploadCache()
+            cache.destroy(key=cache_delete)
+        elif upload_cache_delete_all:
+            cache = UploadCache()
+            cache.destroy_all()
         elif register:
             prod = "1 - for normal production usage"
             fx = "2 - for use over fx03 network"
@@ -348,6 +407,12 @@ def cli(
             click.echo(f'Successfully registered for {pnum}, and API environment hosted at {ENV[env]}')
         elif version:
             print_version_info()
+        elif guide:
+            text = GUIDES.get(guide, f'no guide found for {guide}')
+            click.echo(text)
+        else:
+            click.echo('tacl2 --help, for basic help')
+            click.echo('tacl2 --guide, for extended help')
         return
 
 
