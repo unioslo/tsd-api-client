@@ -123,6 +123,14 @@ def get_config_path() -> str:
 
     return str(config_path)
 
+def get_data_path():
+    home_path = pathlib.Path.home()
+    xdg_path = os.environ.get('XDG_DATA_HOME')
+    if xdg_path:
+        return str(xdg_path)
+    else:
+        return str(home_path / '.local/share')
+
 def has_api_connectivity(hostname: str, port: int = 443, timeout: float = 0.5) -> bool:
     connectivity = False
     try:
