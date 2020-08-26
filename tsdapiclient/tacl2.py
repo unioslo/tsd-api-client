@@ -90,6 +90,16 @@ def get_api_key(env, pnum):
     return api_key
 
 
+def check_api_connection(env):
+    if not has_api_connectivity(hostname=API_ENVS[env]):
+        sys.exit(
+            dedent(f'''\
+                The API environment hosted at {ENV[env]} is not accessible from your current network connection.
+                Please contact TSD for help: {HELP_URL}'''
+            )
+        )
+
+
 @click.command()
 @click.argument(
     'pnum',
@@ -285,6 +295,7 @@ def cli(
     else:
         requires_user_credentials = False
     if requires_user_credentials:
+        check_api_connection(env)
         if not pnum:
             click.echo('missing pnum argument')
             sys.exit(1)
@@ -319,6 +330,7 @@ def cli(
         if not pnum:
             click.echo('missing pnum argument')
             sys.exit(1)
+        check_api_connection(env)
         api_key = get_api_key(env, pnum)
         debug_step('using basic authentication')
         token = get_jwt_basic_auth(env, pnum, api_key)
@@ -393,13 +405,7 @@ def cli(
                 sys.exit(1)
             choices = {'1': 'prod', '2': 'alt', '3': 'test'}
             env = choices[choice]
-            if not has_api_connectivity(hostname=API_ENVS[env]):
-                sys.exit(
-                    dedent(f'''\
-                        The API environment hosted at {ENV[env]} is not accessible from your current network connection.
-                        Please contact TSD for help: {HELP_URL}'''
-                    )
-                )
+            check_api_connection(env)
             username, password, otp = get_user_credentials()
             pnum = username.split('-')[0]
             key = get_tsd_api_key(env, pnum, username, password, otp)
