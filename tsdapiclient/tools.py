@@ -123,11 +123,11 @@ def get_config_path() -> str:
 
     return str(config_path)
 
-def get_data_path(pnum: str) -> str:
+def get_data_path(env: str, pnum: str) -> str:
     home_path = pathlib.Path.home()
     xdg_path = os.environ.get('XDG_DATA_HOME')
     base = xdg_path if xdg_path else home_path / '.local/share'
-    data_path = base / f'tacl/{pnum}'
+    data_path = base / f'tacl/{env}/{pnum}'
     if not data_path.exists():
         os.makedirs(str(data_path))
     return str(data_path)

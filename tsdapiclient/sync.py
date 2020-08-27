@@ -60,8 +60,8 @@ class GenericRequestCache(object):
 
     dbname = 'generic-request-cache.db'
 
-    def __init__(self, pnum):
-        self.path = f'{get_data_path(pnum)}/{self.dbname}'
+    def __init__(self, env, pnum):
+        self.path = f'{get_data_path(env, pnum)}/{self.dbname}'
         try:
             self.engine = sqlite3.connect(self.path)
         except sqlite3.OperationalError as e:
@@ -190,7 +190,7 @@ class SerialDirectoryUploader(object):
         self.group = group
         self.session = requests.session()
         self.use_cache = use_cache
-        self.cache = UploadCache(pnum)
+        self.cache = UploadCache(env, pnum)
         self.cache.create(key=directory)
         self.ignore_prefixes = self.parse_ignore_data(prefixes)
         self.ignore_suffixes = self.parse_ignore_data(suffixes)
