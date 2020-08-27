@@ -379,6 +379,9 @@ def cli(
             print_export_list(data)
         return
     else:
+        if (upload_cache_show or upload_cache_delete or upload_cache_delete_all):
+            if not pnum:
+                sys.exit('cache operations are project specific - missing pnum argument')
         if config_show:
             print_config()
         elif config_delete:
@@ -386,13 +389,13 @@ def cli(
         elif session_delete:
             session_clear()
         elif upload_cache_show:
-            cache = UploadCache()
+            cache = UploadCache(pnum)
             cache.print()
         elif upload_cache_delete:
-            cache = UploadCache()
+            cache = UploadCache(pnum)
             cache.destroy(key=cache_delete)
         elif upload_cache_delete_all:
-            cache = UploadCache()
+            cache = UploadCache(pnum)
             cache.destroy_all()
         elif register:
             prod = "1 - for normal production usage"
