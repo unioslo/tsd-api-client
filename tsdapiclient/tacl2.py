@@ -389,13 +389,13 @@ def cli(
         elif session_delete:
             session_clear()
         elif upload_cache_show:
-            cache = UploadCache(pnum)
+            cache = UploadCache(env, pnum)
             cache.print()
         elif upload_cache_delete:
-            cache = UploadCache(pnum)
+            cache = UploadCache(env, pnum)
             cache.destroy(key=cache_delete)
         elif upload_cache_delete_all:
-            cache = UploadCache(pnum)
+            cache = UploadCache(env, pnum)
             cache.destroy_all()
         elif register:
             prod = "1 - for normal production usage"
