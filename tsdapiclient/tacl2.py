@@ -190,7 +190,6 @@ def check_api_connection(env):
 )
 @click.option(
     '--download',
-    is_flag=True,
     required=False,
     help='Download a file'
 )
