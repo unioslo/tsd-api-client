@@ -74,6 +74,7 @@ def get_dir_contents(ctx, args, incomplete):
                 return [f'{base}{sep}{entry}' for entry in os.listdir(base) if fragment in entry]
         elif os.path.isfile(incomplete):
             base, fragment = os.path.dirname(incomplete), os.path.basename(incomplete)
+            return [incomplete]
         else:
             return [] # not sure what this could be (yet)
     else:
