@@ -79,15 +79,21 @@ def get_dir_contents(ctx, args, incomplete):
             return [] # not sure what this could be (yet)
     else:
         if incomplete == '':
-            return os.listdir('.')
+            return sorted(os.listdir('.'))
+        elif incomplete == '~':
+            return [os.path.expanduser('~')]
+        elif incomplete == '~/':
+            return [f'{os.path.expanduser("~")}/']
+        elif incomplete.startswith('~/'):
+            return [incomplete.replace('~/', f'{os.path.expanduser("~")}')]
         else:
             base, fragment = os.path.dirname(incomplete), os.path.basename(incomplete)
             if base == '' and fragment == '':
-                return [entry for entry in os.listdir('.') if incomplete in entry]
+                return [entry for entry in sorted(os.listdir('.'))]
             elif base == '' and fragment != '':
-                return [entry for entry in os.listdir('.') if fragment in entry]
+                return [entry for entry in sorted(os.listdir('.')) if entry.startswith(fragment)]
             elif base != '' and fragment != '':
-                return [f'{base}{sep}{entry}' for entry in os.listdir(base) if fragment in entry]
+                return [f'{base}{sep}{entry}' for entry in sorted(os.listdir(base)) if entry.startswith(fragment)]
 
 
 def get_user_credentials():
