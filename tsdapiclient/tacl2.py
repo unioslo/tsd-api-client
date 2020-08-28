@@ -82,10 +82,10 @@ def get_dir_contents(ctx, args, incomplete):
             return sorted(os.listdir('.'))
         elif incomplete == '~':
             return [os.path.expanduser('~')]
-        elif incomplete == '~/':
-            return [f'{os.path.expanduser("~")}/']
-        elif incomplete.startswith('~/'):
-            return [incomplete.replace('~/', f'{os.path.expanduser("~")}')]
+        elif incomplete == f'~{sep}':
+            return [f'{os.path.expanduser("~")}{sep}']
+        elif incomplete.startswith(f'~{sep}'):
+            return [incomplete.replace(f'{sep}', f'{os.path.expanduser("~")}')]
         else:
             base, fragment = os.path.dirname(incomplete), os.path.basename(incomplete)
             if base == '' and fragment == '':
