@@ -85,7 +85,7 @@ def get_dir_contents(ctx, args, incomplete):
             if base == '' and fragment == '':
                 return [entry for entry in os.listdir('.') if incomplete in entry]
             elif base == '' and fragment != '':
-                return [entry for entry in os.listdir(base) if fragment in entry]
+                return [entry for entry in os.listdir('.') if fragment in entry]
             elif base != '' and fragment != '':
                 return [f'{base}{sep}{entry}' for entry in os.listdir(base) if fragment in entry]
 
