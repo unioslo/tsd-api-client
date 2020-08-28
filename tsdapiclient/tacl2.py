@@ -63,6 +63,32 @@ def get_guide_options(ctx, args, incomplete):
     return [k for k,v in GUIDES.items() if incomplete in k]
 
 
+def get_dir_contents(ctx, args, incomplete):
+    sep = os.path.sep
+    if os.path.lexists(incomplete):
+        if os.path.isdir(incomplete):
+            if not incomplete.endswith(sep):
+                return [f'{incomplete}{sep}'] # prepare to list
+            else:
+                base, fragment = os.path.dirname(incomplete), os.path.basename(incomplete)
+                return [f'{base}{sep}{entry}' for entry in os.listdir(base) if fragment in entry]
+        elif os.path.isfile(incomplete):
+            base, fragment = os.path.dirname(incomplete), os.path.basename(incomplete)
+        else:
+            return [] # not sure what this could be (yet)
+    else:
+        if incomplete == '':
+            return os.listdir('.')
+        else:
+            base, fragment = os.path.dirname(incomplete), os.path.basename(incomplete)
+            if base == '' and fragment == '':
+                return [entry for entry in os.listdir('.') if incomplete in entry]
+            elif base == '' and fragment != '':
+                return [entry for entry in os.listdir(base) if fragment in entry]
+            elif base != '' and fragment != '':
+                return [f'{base}{sep}{entry}' for entry in os.listdir(base) if fragment in entry]
+
+
 def get_user_credentials():
     username = input('username > ')
     password = getpass.getpass('password > ')
@@ -135,6 +161,7 @@ def check_api_connection(env):
     '--upload',
     default=None,
     required=False,
+    autocompletion=get_dir_contents,
     help='Import a file or a directory located at given path'
 )
 @click.option(
