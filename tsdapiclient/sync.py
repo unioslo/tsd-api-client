@@ -168,9 +168,11 @@ class DownloadCache(GenericRequestCache):
     dbname = 'download-request-cache.db'
 
 
-class SerialDirectoryUploader(object):
+class GenericDirectoryTransporter(object):
 
     # TODO: with mtime verification
+
+    cache_class =  GenericRequestCache
 
     def __init__(
         self,
@@ -190,30 +192,72 @@ class SerialDirectoryUploader(object):
         self.group = group
         self.session = requests.session()
         self.use_cache = use_cache
-        self.cache = UploadCache(env, pnum)
+        self.cache = self.cache_class(env, pnum)
         self.cache.create(key=directory)
-        self.ignore_prefixes = self.parse_ignore_data(prefixes)
-        self.ignore_suffixes = self.parse_ignore_data(suffixes)
+        self.ignore_prefixes = self._parse_ignore_data(prefixes)
+        self.ignore_suffixes = self._parse_ignore_data(suffixes)
 
-    def parse_ignore_data(self, patterns):
+    def _parse_ignore_data(self, patterns):
+        # e.g. .git,build,dist
         if not patterns:
             return []
         else:
             debug_step(f'ignoring patterns: {patterns}')
             return patterns.replace(' ', '').split(',')
 
-    def _get_files_to_upload(self, path):
-        out = []
+    def sync(self):
+        """
+        Use _find_resources_to_transfer and _transfer
+        methods, to handle the directory, while interacting
+        with the optional cache.
+
+        """
+        resources = []
         if self.use_cache:
             debug_step('reading from cache')
             left_overs = self.cache.read(key=self.directory)
             if left_overs:
-                click.echo('resuming directory upload from cache')
+                click.echo('resuming directory transfer from cache')
                 for items in left_overs:
-                    out.append(items[0])
-                return out
+                    resources.append(items[0])
+        if not resources or not self.use_cache:
+            resources = self._find_resources_to_transfer(self.directory)
+        for resource in resources:
+            self._transfer(resource)
+            if self.use_cache:
+                self.cache.remove(key=self.directory, item=resource)
+        debug_step('destroying cache')
+        self.cache.destroy(key=self.directory)
+        return
+
+    def _find_resources_to_transfer(self, path):
+        """
+        Find and return a list of resources
+        to feed to the _transfer function.
+
+        Invoked by the sync method.
+
+        """
+        raise NotImplementedError
+
+    def _transfer(self, resource):
+        """
+        Transfer a given resource over the network.
+
+        Invoked by the sync method.
+
+        """
+        raise NotImplementedError
+
+
+class SerialDirectoryUploader(GenericDirectoryTransporter):
+
+    cache_class = UploadCache
+
+    def _find_resources_to_transfer(self, path):
+        resources = []
         for directory, subdirectory, files in os.walk(path):
-            debug_step('finding files to upload')
+            debug_step('finding files to transfer')
             folder = directory.replace(f'{path}/', '')
             ignore_prefix = False
             for prefix in self.ignore_prefixes:
@@ -231,31 +275,21 @@ class SerialDirectoryUploader(object):
                 if ignore_suffix:
                     continue
                 target = f'{directory}/{file}'
-                out.append(target)
+                resources.append(target)
                 if self.use_cache:
                     self.cache.add(key=self.directory, item=target)
-        return out
+        return resources
 
-    def _upload(self, local_file):
-        if os.stat(local_file).st_size > CHUNK_THRESHOLD:
+    def _transfer(self, resource):
+        if os.stat(resource).st_size > CHUNK_THRESHOLD:
             resp = initiate_resumable(
-                self.env, self.pnum, local_file, self.token, chunksize=CHUNK_SIZE,
+                self.env, self.pnum, resource, self.token, chunksize=CHUNK_SIZE,
                 group=self.group, verify=True, is_dir=True, session=self.session
             )
         else:
             resp = streamfile(
-                self.env, self.pnum, local_file,
+                self.env, self.pnum, resource,
                 self.token, group=self.group, is_dir=True,
                 session=self.session
             )
-        if self.use_cache:
-            self.cache.remove(key=self.directory, item=local_file)
-        return local_file
-
-    def sync(self):
-        local_files = self._get_files_to_upload(self.directory)
-        for local_file in local_files:
-            self._upload(local_file)
-        debug_step('destroying cache')
-        self.cache.destroy(key=self.directory)
-        return
+        return resource
