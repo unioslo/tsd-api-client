@@ -53,6 +53,9 @@ class CacheExistenceError(Exception):
 class CacheItemTypeError(Exception):
     pass
 
+class CacheError(Exception):
+    pass
+
 
 class GenericRequestCache(object):
 
@@ -98,6 +101,24 @@ class GenericRequestCache(object):
             msg = f"{e}, call: create('{key}')"
             raise CacheExistenceError(msg) from None
         return item
+
+    def add_many(self, key=None, items=None):
+        data = []
+        for item in items:
+            data.append((item,))
+        stmt = f'insert into "{os.path.basename(key)}"(resource_path) values (?)'
+        try:
+            with sqlite_session(self.engine) as session:
+                session.executemany(stmt, data)
+        except sqlite3.ProgrammingError as e:
+            raise CacheError(f'{e}') from none
+        except sqlite3.IntegrityError as e:
+            msg = f'item already cached: {e} - delete cache and try again'
+            raise CacheDuplicateItemError(msg) from None
+        except sqlite3.OperationalError as e:
+            msg = f"{e}, call: create('{key}')"
+            raise CacheExistenceError(msg) from None
+        return True
 
     def remove(self, key=None, item=None):
         with sqlite_session(self.engine) as session:
@@ -197,7 +218,7 @@ class GenericDirectoryTransporter(object):
         self.ignore_prefixes = self._parse_ignore_data(prefixes)
         self.ignore_suffixes = self._parse_ignore_data(suffixes)
 
-    def _parse_ignore_data(self, patterns):
+    def _parse_ignore_data(self, patterns) -> list:
         # e.g. .git,build,dist
         if not patterns:
             return []
@@ -205,11 +226,12 @@ class GenericDirectoryTransporter(object):
             debug_step(f'ignoring patterns: {patterns}')
             return patterns.replace(' ', '').split(',')
 
-    def sync(self):
+    def sync(self) -> bool:
         """
         Use _find_resources_to_transfer and _transfer
-        methods, to handle the directory, while interacting
-        with the optional cache.
+        methods, to handle the directory, optionally
+        fetching items from the cache, and clearing them
+        as transfers complete.
 
         """
         resources = []
@@ -222,15 +244,17 @@ class GenericDirectoryTransporter(object):
                     resources.append(items[0])
         if not resources or not self.use_cache:
             resources = self._find_resources_to_transfer(self.directory)
+            if self.use_cache:
+                self.cache.add_many(self.directory, items=resources)
         for resource in resources:
             self._transfer(resource)
             if self.use_cache:
                 self.cache.remove(key=self.directory, item=resource)
         debug_step('destroying cache')
         self.cache.destroy(key=self.directory)
-        return
+        return True
 
-    def _find_resources_to_transfer(self, path):
+    def _find_resources_to_transfer(self, path) -> list:
         """
         Find and return a list of resources
         to feed to the _transfer function.
@@ -240,7 +264,7 @@ class GenericDirectoryTransporter(object):
         """
         raise NotImplementedError
 
-    def _transfer(self, resource):
+    def _transfer(self, resource) -> bool:
         """
         Transfer a given resource over the network.
 
@@ -254,7 +278,7 @@ class SerialDirectoryUploader(GenericDirectoryTransporter):
 
     cache_class = UploadCache
 
-    def _find_resources_to_transfer(self, path):
+    def _find_resources_to_transfer(self, path) -> list:
         resources = []
         for directory, subdirectory, files in os.walk(path):
             debug_step('finding files to transfer')
@@ -276,11 +300,9 @@ class SerialDirectoryUploader(GenericDirectoryTransporter):
                     continue
                 target = f'{directory}/{file}'
                 resources.append(target)
-                if self.use_cache:
-                    self.cache.add(key=self.directory, item=target)
         return resources
 
-    def _transfer(self, resource):
+    def _transfer(self, resource) -> str:
         if os.stat(resource).st_size > CHUNK_THRESHOLD:
             resp = initiate_resumable(
                 self.env, self.pnum, resource, self.token, chunksize=CHUNK_SIZE,
@@ -293,3 +315,14 @@ class SerialDirectoryUploader(GenericDirectoryTransporter):
                 session=self.session
             )
         return resource
+
+
+class SerialDirectoryDownloader(GenericDirectoryTransporter):
+
+    cache_class = DownloadCache
+
+    def _find_resources_to_transfer(self, path) -> list:
+        pass
+
+    def _transfer(self, resource) -> str:
+        pass
