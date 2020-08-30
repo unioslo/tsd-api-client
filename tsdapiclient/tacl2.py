@@ -133,6 +133,15 @@ def check_api_connection(env):
         )
 
 
+def construct_correct_upload_path(path):
+    if path.startswith('../'):
+        return os.path.abspath(path)
+    elif path.startswith('~/'):
+        return os.path.expanduser(path)
+    else:
+        return path
+
+
 @click.command()
 @click.argument(
     'pnum',
@@ -385,6 +394,7 @@ def cli(
                     )
             else:
                 click.echo(f'uploading directory {upload}')
+                upload = construct_correct_upload_path(upload)
                 uploader = SerialDirectoryUploader(
                     env, pnum, upload, token, group,
                     prefixes=ignore_prefixes, suffixes=ignore_suffixes,
