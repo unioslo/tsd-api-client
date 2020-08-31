@@ -224,18 +224,25 @@ def streamstdin(env, pnum, fileinput, filename, token,
 
 
 def print_export_list(data):
-    colnames = ['Filename', 'Owner', 'Modified', 'Size', 'Exportable']
+    colnames = ['Filename', 'Owner', 'Modified', 'Size', 'Type', 'Exportable']
     values = []
     for entry in data['files']:
         size = humanfriendly.format_size(entry['size'] if entry['size'] is not None else 0)
-        row = [entry['filename'], entry['owner'], entry['modified_date'], size,
-               'No' if entry['exportable'] is None or entry['mime-type'] == 'directory' else 'Yes']
+        row = [entry['filename'], entry['owner'], entry['modified_date'], size, entry['mime-type'],
+               'No' if entry['exportable'] is None else 'Yes']
         values.append(row)
     print(humanfriendly.tables.format_pretty_table(sorted(values), colnames))
 
 
 @handle_request_errors
-def export_list(env, pnum, token, backend='files', session=requests):
+def export_list(
+    env,
+    pnum,
+    token,
+    backend='files',
+    session=requests,
+    directory=None
+):
     """
     Get the list of files available for export.
 
@@ -246,18 +253,35 @@ def export_list(env, pnum, token, backend='files', session=requests):
     token: JWT
     backend: str, API backend
     session: requests.session, optional
+    directory: str, name, optional
 
     Returns
     -------
     str
 
     """
-    url = '{0}/{1}/{2}/export'.format(ENV[env], pnum, backend)
+    resource = f'/{directory}' if directory else ''
+    url = f'{ENV[env]}/{pnum}/{backend}/export{resource}'
     headers = {'Authorization': 'Bearer {0}'.format(token)}
+    debug_step(f'listing resources at {url}')
     resp = session.get(url, headers=headers)
     resp.raise_for_status()
     data = json.loads(resp.text)
     return data
+
+@handle_request_errors
+def export_head(
+    env,
+    pnum,
+    filename,
+    token,
+    backend='files',
+    session=requests
+):
+    headers = {'Authorization': 'Bearer {0}'.format(token)}
+    url = f'{ENV[env]}/{pnum}/{backend}/export/{filename}'
+    resp = session.head(url, headers=headers)
+    return resp
 
 
 @handle_request_errors
