@@ -53,6 +53,7 @@ class CacheExistenceError(Exception):
 class CacheItemTypeError(Exception):
     pass
 
+
 class CacheError(Exception):
     pass
 
@@ -75,7 +76,8 @@ class GenericRequestCache(object):
         request_table_definition = f"""
         \"{os.path.basename(key)}\"(
                 resource_path text not null unique,
-                created_at timestamp default current_timestamp
+                created_at timestamp default current_timestamp,
+                integrity_reference text
             )"""
         try:
             with sqlite_session(self.engine) as session:
@@ -86,13 +88,14 @@ class GenericRequestCache(object):
             msg = f'could not create request cache for {key}: {e}'
             raise CacheCreationError(msg) from None
 
-    def add(self, key=None, item=None):
+    def add(self, key=None, item=None, integrity_reference=None):
         if not isinstance(item, str):
             raise CacheItemTypeError('only string items allowed')
         try:
             with sqlite_session(self.engine) as session:
                 session.execute(
-                    f"insert into \"{os.path.basename(key)}\"(resource_path) values ('{item}')"
+                    f"insert into \"{os.path.basename(key)}\"(resource_path, integrity_reference) \
+                      values ('{item}', '{integrity_reference}')"
                 )
         except sqlite3.IntegrityError as e:
             msg = f'{item} already cached for {key}'
@@ -100,16 +103,14 @@ class GenericRequestCache(object):
         except sqlite3.OperationalError as e:
             msg = f"{e}, call: create('{key}')"
             raise CacheExistenceError(msg) from None
-        return item
+        return (item, integrity_reference)
 
     def add_many(self, key=None, items=None):
-        data = []
-        for item in items:
-            data.append((item,))
-        stmt = f'insert into "{os.path.basename(key)}"(resource_path) values (?)'
+        stmt = f'insert into "{os.path.basename(key)}"(resource_path, integrity_reference) \
+                 values (?, ?)'
         try:
             with sqlite_session(self.engine) as session:
-                session.executemany(stmt, data)
+                session.executemany(stmt, items)
         except sqlite3.ProgrammingError as e:
             raise CacheError(f'{e}') from none
         except sqlite3.IntegrityError as e:
@@ -131,7 +132,7 @@ class GenericRequestCache(object):
         try:
             with sqlite_session(self.engine) as session:
                 res = session.execute(
-                    f"select * from \"{os.path.basename(key)}\""
+                    f"select resource_path, integrity_reference from \"{os.path.basename(key)}\""
                 ).fetchall()
         except sqlite3.OperationalError as e:
             msg = f"{e}, call: create('{key}')"
@@ -240,14 +241,13 @@ class GenericDirectoryTransporter(object):
             left_overs = self.cache.read(key=self.directory)
             if left_overs:
                 click.echo('resuming directory transfer from cache')
-                for items in left_overs:
-                    resources.append(items[0])
+                resources = left_overs
         if not resources or not self.use_cache:
             resources = self._find_resources_to_transfer(self.directory)
             if self.use_cache:
                 self.cache.add_many(self.directory, items=resources)
-        for resource in resources:
-            self._transfer(resource)
+        for resource, integrity_reference in resources:
+            self._transfer(resource, integrity_reference=integrity_reference)
             if self.use_cache:
                 self.cache.remove(key=self.directory, item=resource)
         debug_step('destroying cache')
@@ -256,7 +256,7 @@ class GenericDirectoryTransporter(object):
 
     def _find_resources_to_transfer(self, path) -> list:
         """
-        Find and return a list of resources
+        Find and return a list of tuples (resource, integrity_reference)
         to feed to the _transfer function.
 
         Invoked by the sync method.
@@ -264,7 +264,7 @@ class GenericDirectoryTransporter(object):
         """
         raise NotImplementedError
 
-    def _transfer(self, resource) -> bool:
+    def _transfer(self, resource, integrity_reference=None) -> str:
         """
         Transfer a given resource over the network.
 
@@ -280,6 +280,7 @@ class SerialDirectoryUploader(GenericDirectoryTransporter):
 
     def _find_resources_to_transfer(self, path) -> list:
         resources = []
+        integrity_reference = None
         for directory, subdirectory, files in os.walk(path):
             debug_step('finding files to transfer')
             folder = directory.replace(f'{path}/', '')
@@ -299,10 +300,10 @@ class SerialDirectoryUploader(GenericDirectoryTransporter):
                 if ignore_suffix:
                     continue
                 target = f'{directory}/{file}'
-                resources.append(target)
+                resources.append((target, integrity_reference))
         return resources
 
-    def _transfer(self, resource) -> str:
+    def _transfer(self, resource, integrity_reference=None) -> str:
         if os.stat(resource).st_size > CHUNK_THRESHOLD:
             resp = initiate_resumable(
                 self.env, self.pnum, resource, self.token, chunksize=CHUNK_SIZE,
