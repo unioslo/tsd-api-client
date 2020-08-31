@@ -18,7 +18,7 @@ from tsdapiclient.configurer import (read_config, update_config,
 from tsdapiclient.fileapi import (streamfile, initiate_resumable, get_resumable,
                                   delete_resumable, delete_all_resumables,
                                   export_get, export_list, print_export_list,
-                                  print_resumables_list)
+                                  print_resumables_list, export_head)
 from tsdapiclient.guide import topics, config, uploads, downloads, debugging
 from tsdapiclient.session import (session_is_expired, session_expires_soon,
                                   session_update, session_clear, session_token)
@@ -415,7 +415,11 @@ def cli(
         elif download:
             filename = download
             debug_step('starting file export')
-            export_get(env, pnum, filename, token, etag=download_id)
+            resp = export_head(env, pnum, filename, token)
+            if resp.headers.get('Content-Type') == 'directory':
+                click.echo(f'downloading directory: {download}')
+            else:
+                export_get(env, pnum, filename, token, etag=download_id)
         elif download_list:
             debug_step('listing export directory')
             data = export_list(env, pnum, token)
