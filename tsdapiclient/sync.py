@@ -11,7 +11,8 @@ import humanfriendly.tables
 import requests
 
 from tsdapiclient.client_config import CHUNK_THRESHOLD, CHUNK_SIZE
-from tsdapiclient.fileapi import streamfile, initiate_resumable
+from tsdapiclient.fileapi import (streamfile, initiate_resumable,
+                                  export_head, export_list, export_get)
 from tsdapiclient.tools import debug_step, get_data_path
 
 
@@ -202,7 +203,7 @@ class GenericDirectoryTransporter(object):
         pnum,
         directory,
         token,
-        group,
+        group=None,
         use_cache=True,
         prefixes=None,
         suffixes=None
@@ -323,7 +324,65 @@ class SerialDirectoryDownloader(GenericDirectoryTransporter):
     cache_class = DownloadCache
 
     def _find_resources_to_transfer(self, path) -> list:
-        pass
+        # consider in file api chmod -R if dir
+        resources = []
+        subdirs = []
+        next_page = None
+        while True:
+            click.echo(f'fetching information about directory: {path}')
+            out = export_list(
+                self.env, self.pnum, self.token,
+                session=self.session, directory=path,
+                page=next_page
+            )
+            found = out.get('files')
+            next_page = out.get('page')
+            if found:
+                for entry in found:
+                    subdir_and_resource = entry.get("href").split(f"/{path}")[-1]
+                    ref = f'{path}{subdir_and_resource}'
+                    ignore_prefix = False
+                    # check if we should ignore it
+                    for prefix in self.ignore_prefixes:
+                        # because we ignore _sub_ directories
+                        target = ref.replace(f'{self.directory}/', '')
+                        if target.startswith(prefix):
+                            ignore_prefix = True
+                            break
+                    if ignore_prefix:
+                        debug_step(f'ignoring {ref}')
+                        continue
+                    ignore_suffix = False
+                    for suffix in self.ignore_suffixes:
+                        if subdir_and_resource.endswith(suffix):
+                            ignore_suffix = True
+                            break
+                    if ignore_suffix:
+                        debug_step(f'ignoring {ref}')
+                        continue
+                    # track resource
+                    if entry.get('mime-type') == 'directory':
+                        subdirs.append(ref)
+                    else:
+                        resources.append((ref, entry.get('etag')))
+            # follow next_page(s) for a given path, until exhaustively listed
+            # break if no other subdirs were found
+            if not next_page and not subdirs:
+                debug_step(f'found all files for {path}')
+                break
+            if not next_page and subdirs:
+                path = subdirs.pop(0)
+                debug_step(f'finding files for sub-directory {path}')
+        return resources
 
-    def _transfer(self, resource) -> str:
-        pass
+    def _transfer(self, resource, integrity_reference=None) -> str:
+        target = os.path.dirname(resource)
+        if not os.path.lexists(target):
+            debug_step(f'creating directory: {target}')
+            os.makedirs(target)
+        resp = export_get(
+            self.env, self.pnum, resource, self.token,
+            session=self.session, etag=integrity_reference,
+            no_print_id=True
+        )
+        return resource
