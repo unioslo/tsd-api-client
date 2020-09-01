@@ -324,7 +324,6 @@ class SerialDirectoryDownloader(GenericDirectoryTransporter):
     cache_class = DownloadCache
 
     def _find_resources_to_transfer(self, path) -> list:
-        # consider in file api chmod -R if dir
         resources = []
         subdirs = []
         next_page = None
