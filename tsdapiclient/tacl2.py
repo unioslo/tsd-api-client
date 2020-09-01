@@ -22,7 +22,8 @@ from tsdapiclient.fileapi import (streamfile, initiate_resumable, get_resumable,
 from tsdapiclient.guide import topics, config, uploads, downloads, debugging
 from tsdapiclient.session import (session_is_expired, session_expires_soon,
                                   session_update, session_clear, session_token)
-from tsdapiclient.sync import SerialDirectoryUploader, UploadCache
+from tsdapiclient.sync import (SerialDirectoryUploader, UploadCache,
+                               SerialDirectoryDownloader, DownloadCache)
 from tsdapiclient.tools import HELP_URL, has_api_connectivity, user_agent, debug_step
 
 requests.utils.default_user_agent = user_agent
@@ -418,6 +419,12 @@ def cli(
             resp = export_head(env, pnum, filename, token)
             if resp.headers.get('Content-Type') == 'directory':
                 click.echo(f'downloading directory: {download}')
+                downloader = SerialDirectoryDownloader(
+                    env, pnum, download, token,
+                    prefixes=ignore_prefixes, suffixes=ignore_suffixes,
+                    use_cache=True if not cache_disable else False
+                )
+                downloader.sync()
             else:
                 export_get(env, pnum, filename, token, etag=download_id)
         elif download_list:
@@ -444,6 +451,7 @@ def cli(
         elif upload_cache_delete_all:
             cache = UploadCache(env, pnum)
             cache.destroy_all()
+        # TODO: download cache operations
         elif register:
             prod = "1 - for normal production usage"
             fx = "2 - for use over fx03 network"
