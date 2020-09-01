@@ -73,7 +73,17 @@ Download a file:
 
 If something goes wrong during the download, resume it:
 
-    tacl2 p11 --download anonymised-sensitive-data.txt --downoad-id 869b432d7703e62134fcca775c98ba38
+    tacl2 p11 --download anonymised-sensitive-data.txt --download-id 869b432d7703e62134fcca775c98ba38
+
+To download a directory (resumable):
+
+    tacl2 p11 --download mydir --ignore-prefixes mydir/.git
+
+To view and manage the directory download cache:
+
+    tacl2 p11 --download-cache-show
+    tacl2 p11 --download-cache-delete mydir
+    tacl2 p11 --download-cache-delete-all
 
 """
 

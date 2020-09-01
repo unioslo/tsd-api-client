@@ -294,6 +294,24 @@ def construct_correct_upload_path(path):
     required=False,
     help='Disable caching for the operation'
 )
+@click.option(
+    '--download-cache-show',
+    is_flag=True,
+    required=False,
+    help='View the request cache'
+)
+@click.option(
+    '--download-cache-delete',
+    default=None,
+    required=False,
+    help='Delete a request cache for a given key'
+)
+@click.option(
+    '--download-cache-delete-all',
+    is_flag=True,
+    required=False,
+    help='Delete the entire request cache'
+)
 def cli(
     pnum,
     guide,
@@ -320,6 +338,9 @@ def cli(
     upload_cache_delete,
     upload_cache_delete_all,
     cache_disable,
+    download_cache_show,
+    download_cache_delete,
+    download_cache_delete_all,
 ):
     """tacl2 - TSD API client."""
     token = None
@@ -447,11 +468,19 @@ def cli(
             cache.print()
         elif upload_cache_delete:
             cache = UploadCache(env, pnum)
-            cache.destroy(key=cache_delete)
+            cache.destroy(key=upload_cache_delete)
         elif upload_cache_delete_all:
             cache = UploadCache(env, pnum)
             cache.destroy_all()
-        # TODO: download cache operations
+        elif download_cache_show:
+            cache = DownloadCache(env, pnum)
+            cache.print()
+        elif download_cache_delete:
+            cache = DownloadCache(env, pnum)
+            cache.destroy(hey=download_cache_delete)
+        elif download_cache_delete_all:
+            cache = DownloadCache(env, pnum)
+            cache.destroy_all()
         elif register:
             prod = "1 - for normal production usage"
             fx = "2 - for use over fx03 network"
