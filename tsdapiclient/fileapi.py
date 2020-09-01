@@ -5,14 +5,14 @@ import hashlib
 import json
 import os
 from functools import cmp_to_key
-from urllib.parse import quote
+from urllib.parse import quote, unquote
 
 import humanfriendly
 import humanfriendly.tables
 import requests
 from progress.bar import Bar
 
-from tsdapiclient.client_config import ENV
+from tsdapiclient.client_config import ENV, API_VERSION
 from tsdapiclient.tools import handle_request_errors, debug_step
 
 
@@ -241,7 +241,8 @@ def export_list(
     token,
     backend='files',
     session=requests,
-    directory=None
+    directory=None,
+    page=None
 ):
     """
     Get the list of files available for export.
@@ -261,7 +262,10 @@ def export_list(
 
     """
     resource = f'/{directory}' if directory else ''
-    url = f'{ENV[env]}/{pnum}/{backend}/export{resource}'
+    if not page:
+        url = f'{ENV[env]}/{pnum}/{backend}/export{resource}'
+    else:
+        url = f'{ENV[env].replace(f"/{API_VERSION}", "")}{page}'
     headers = {'Authorization': 'Bearer {0}'.format(token)}
     debug_step(f'listing resources at {url}')
     resp = session.get(url, headers=headers)
@@ -294,7 +298,8 @@ def export_get(
     etag=None,
     dev_url=None,
     backend='files',
-    session=requests
+    session=requests,
+    no_print_id=False
 ):
     """
     Download a file to the current directory.
@@ -310,6 +315,7 @@ def export_get(
     dev_url: development url
     backend: str, API backend
     session: requests.session, optional
+    no_print_id: bool, supress printing the download id, optional
 
     Returns
     -------
@@ -338,15 +344,16 @@ def export_get(
     resp.raise_for_status()
     try:
         download_id = resp.headers['Etag']
-        print('Download id: {0}'.format(download_id))
+        if not no_print_id:
+            print('Download id: {0}'.format(download_id))
     except KeyError:
         print('Warning: could not retrieve download id, resumable download will not work')
         download_id = None
     total_file_size = int(resp.headers['Content-Length'])
-    bar = _init_export_progress_bar(filename, current_file_size, total_file_size, chunksize)
+    bar = _init_export_progress_bar(unquote(filename), current_file_size, total_file_size, chunksize)
     with session.get(url, headers=headers, stream=True) as r:
         r.raise_for_status()
-        with open(filename, filemode) as f:
+        with open(unquote(filename), filemode) as f:
             for chunk in r.iter_content(chunk_size=chunksize):
                 if chunk:
                     f.write(chunk)
