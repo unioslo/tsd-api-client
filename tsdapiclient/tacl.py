@@ -506,7 +506,7 @@ def cli(
             click.echo(text)
         else:
             click.echo('tacl --help, for basic help')
-            click.echo('tacl --guide, for extended help')
+            click.echo('tacl --guide topics, for extended help')
         return
 
 
