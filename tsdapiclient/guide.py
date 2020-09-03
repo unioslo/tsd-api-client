@@ -102,7 +102,7 @@ Given that this level of access is taken care of, that you have registered tacl,
 and that you have obtained TSD credentials for your project(s),
 you can set up automated data import in the following way:
 
-tacl p11 --basic --upload myfile
+    tacl p11 --basic --upload myfile
 
 """
 
