@@ -32,24 +32,28 @@ def _init_progress_bar(current_chunk, chunksize, filename):
 
 
 def _init_export_progress_bar(filename, current_file_size, total_file_size, chunksize):
-    if current_file_size is not None:
-        if chunksize < current_file_size:
-            index = current_file_size/chunksize
-            _max = total_file_size/chunksize
+    try:
+        if current_file_size is not None:
+            if chunksize < current_file_size:
+                index = current_file_size/chunksize
+                _max = total_file_size/chunksize
+            else:
+                chunksize = current_file_size
+                index = current_file_size/chunksize
+                _max = total_file_size/chunksize
         else:
-            chunksize = current_file_size
-            index = current_file_size/chunksize
-            _max = total_file_size/chunksize
-    else:
-        if chunksize > total_file_size:
-            index = 0
-            chunksize = total_file_size
-            _max = total_file_size/chunksize
-        else:
-            index = 0
-            _max = total_file_size/chunksize
-    if _max == 0:
-        _max == 0.0001 # so we dont divide by zero
+            if chunksize > total_file_size:
+                index = 0
+                chunksize = total_file_size
+                _max = total_file_size/chunksize
+            else:
+                index = 0
+                _max = total_file_size/chunksize
+        if _max == 0:
+            _max == 0.0001 # so we dont divide by zero
+    except ZeroDivisionError:
+        index = 100
+        _max = 100
     return Bar(f'{filename}', index=index, max=_max, suffix='%(percent)d%%')
 
 
