@@ -19,7 +19,7 @@ from tsdapiclient.fileapi import (streamfile, initiate_resumable, get_resumable,
                                   delete_resumable, delete_all_resumables,
                                   export_get, export_list, print_export_list,
                                   print_resumables_list, export_head)
-from tsdapiclient.guide import topics, config, uploads, downloads, debugging
+from tsdapiclient.guide import topics, config, uploads, downloads, debugging, automation
 from tsdapiclient.session import (session_is_expired, session_expires_soon,
                                   session_update, session_clear, session_token)
 from tsdapiclient.sync import (SerialDirectoryUploader, UploadCache,
@@ -39,7 +39,8 @@ GUIDES = {
     'config': config,
     'uploads': uploads,
     'downloads': downloads,
-    'debugging': debugging
+    'debugging': debugging,
+    'automation': automation
 }
 
 def print_version_info():
@@ -342,7 +343,7 @@ def cli(
     download_cache_delete,
     download_cache_delete_all,
 ):
-    """tacl2 - TSD API client."""
+    """tacl - TSD API client."""
     token = None
     if verbose:
         os.environ['DEBUG'] = '1'
@@ -504,8 +505,8 @@ def cli(
             text = GUIDES.get(guide, f'no guide found for {guide}')
             click.echo(text)
         else:
-            click.echo('tacl2 --help, for basic help')
-            click.echo('tacl2 --guide, for extended help')
+            click.echo('tacl --help, for basic help')
+            click.echo('tacl --guide, for extended help')
         return
 
 
