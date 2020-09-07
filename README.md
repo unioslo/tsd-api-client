@@ -5,7 +5,8 @@ Command-line client for the TSD File API.
 ## Install
 
 ```bash
-pip3 install https://github.com/unioslo/tsd-api-client/archive/v3.0.0.zip
+pip3 install tsd-api-client
+pip3 install tsd-api-client --upgrade # to get the latest version
 ```
 
 ## tacl
