@@ -113,7 +113,7 @@ class GenericRequestCache(object):
             with sqlite_session(self.engine) as session:
                 session.executemany(stmt, items)
         except sqlite3.ProgrammingError as e:
-            raise CacheError(f'{e}') from none
+            raise CacheError(f'{e}') from None
         except sqlite3.IntegrityError as e:
             msg = f'item already cached: {e} - delete cache and try again'
             raise CacheDuplicateItemError(msg) from None
@@ -193,8 +193,6 @@ class DownloadCache(GenericRequestCache):
 
 class GenericDirectoryTransporter(object):
 
-    # TODO: with mtime verification
-
     cache_class =  GenericRequestCache
 
     def __init__(
@@ -255,31 +253,12 @@ class GenericDirectoryTransporter(object):
         self.cache.destroy(key=self.directory)
         return True
 
-    def _find_resources_to_transfer(self, path) -> list:
+    def _find_local_resources(self, path) -> list:
         """
-        Find and return a list of tuples (resource, integrity_reference)
-        to feed to the _transfer function.
-
-        Invoked by the sync method.
+        Recursively list the given path.
+        Ignore prefixes a and suffixes if they exist.
 
         """
-        raise NotImplementedError
-
-    def _transfer(self, resource, integrity_reference=None) -> str:
-        """
-        Transfer a given resource over the network.
-
-        Invoked by the sync method.
-
-        """
-        raise NotImplementedError
-
-
-class SerialDirectoryUploader(GenericDirectoryTransporter):
-
-    cache_class = UploadCache
-
-    def _find_resources_to_transfer(self, path) -> list:
         resources = []
         integrity_reference = None
         for directory, subdirectory, files in os.walk(path):
@@ -304,26 +283,13 @@ class SerialDirectoryUploader(GenericDirectoryTransporter):
                 resources.append((target, integrity_reference))
         return resources
 
-    def _transfer(self, resource, integrity_reference=None) -> str:
-        if os.stat(resource).st_size > CHUNK_THRESHOLD:
-            resp = initiate_resumable(
-                self.env, self.pnum, resource, self.token, chunksize=CHUNK_SIZE,
-                group=self.group, verify=True, is_dir=True, session=self.session
-            )
-        else:
-            resp = streamfile(
-                self.env, self.pnum, resource,
-                self.token, group=self.group, is_dir=True,
-                session=self.session
-            )
-        return resource
+    def _find_remote_resources(self, path) -> list:
+        """
+        Recursively list a remote path.
+        Ignore prefixes a and suffixes if they exist.
+        Collect integrity references for all resources.
 
-
-class SerialDirectoryDownloader(GenericDirectoryTransporter):
-
-    cache_class = DownloadCache
-
-    def _find_resources_to_transfer(self, path) -> list:
+        """
         resources = []
         subdirs = []
         next_page = None
@@ -374,7 +340,34 @@ class SerialDirectoryDownloader(GenericDirectoryTransporter):
                 debug_step(f'finding files for sub-directory {path}')
         return resources
 
-    def _transfer(self, resource, integrity_reference=None) -> str:
+    def _transfer_local_to_remote(self, resource, integrity_reference=None) -> str:
+        """
+        Upload a resource to the remote destination, either
+        as a basic stream, or a resumable - depending on the
+        size of the $CHUNK_THRESHOLD.
+
+        """
+        if os.stat(resource).st_size > CHUNK_THRESHOLD:
+            resp = initiate_resumable(
+                self.env, self.pnum, resource, self.token, chunksize=CHUNK_SIZE,
+                group=self.group, verify=True, is_dir=True, session=self.session
+            )
+        else:
+            resp = streamfile(
+                self.env, self.pnum, resource,
+                self.token, group=self.group, is_dir=True,
+                session=self.session
+            )
+        return resource
+
+    def _transfer_remote_to_local(self, resource, integrity_reference=None) -> str:
+        """
+        Download a resource from the remote location,
+        resuming if local data is found, and it the
+        integrity reference did not change since the
+        first portion was downloaded.
+
+        """
         target = os.path.dirname(resource)
         if not os.path.lexists(target):
             debug_step(f'creating directory: {target}')
@@ -383,5 +376,58 @@ class SerialDirectoryDownloader(GenericDirectoryTransporter):
             self.env, self.pnum, resource, self.token,
             session=self.session, etag=integrity_reference,
             no_print_id=True
+        )
+        return resource
+
+    # Implement the following methods for specific Transport classes
+
+    def _find_resources_to_transfer(self, path) -> list:
+        """
+        Find and return a list of tuples (resource, integrity_reference)
+        to feed to the _transfer function.
+
+        Invoked by the sync method.
+
+        """
+        raise NotImplementedError
+
+    def _transfer(self, resource, integrity_reference=None) -> str:
+        """
+        Transfer a given resource over the network.
+
+        Invoked by the sync method.
+
+        """
+        raise NotImplementedError
+
+# Implementations of specific transfers
+
+class SerialDirectoryUploader(GenericDirectoryTransporter):
+
+    cache_class = UploadCache
+
+    def _find_resources_to_transfer(self, path) -> list:
+        resources = self._find_local_resources(path)
+        return resources
+
+
+    def _transfer(self, resource, integrity_reference=None) -> str:
+        resource = self._transfer_local_to_remote(
+            resource, integrity_reference=integrity_reference
+        )
+        return resource
+
+
+class SerialDirectoryDownloader(GenericDirectoryTransporter):
+
+    cache_class = DownloadCache
+
+    def _find_resources_to_transfer(self, path) -> list:
+        resources = self._find_remote_resources(path)
+        return resources
+
+    def _transfer(self, resource, integrity_reference=None) -> str:
+        resource = self._transfer_remote_to_local(
+            resource, integrity_reference=integrity_reference
         )
         return resource
