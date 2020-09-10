@@ -191,9 +191,22 @@ class DownloadCache(GenericRequestCache):
     dbname = 'download-request-cache.db'
 
 
+class GenericDeleteCache(GenericRequestCache):
+    dbname = 'generic-delete-cache.db'
+
+
+class UploadDeleteCache(GenericDeleteCache):
+    dbname = 'update-delete-cache.db'
+
+
+class UploadDeleteCache(GenericDeleteCache):
+    dbname = 'download-delete-cache.db'
+
+
 class GenericDirectoryTransporter(object):
 
-    cache_class =  GenericRequestCache
+    transfer_cache_class =  GenericRequestCache
+    delete_cache_class = GenericDeleteCache
 
     def __init__(
         self,
@@ -213,8 +226,10 @@ class GenericDirectoryTransporter(object):
         self.group = group
         self.session = requests.session()
         self.use_cache = use_cache
-        self.cache = self.cache_class(env, pnum)
-        self.cache.create(key=directory)
+        self.transfer_cache = self.transfer_cache_class(env, pnum)
+        self.transfer_cache.create(key=directory)
+        self.delete_cache = self.delete_cache_class(env, pnum)
+        self.delete_cache.create(key=directory)
         self.ignore_prefixes = self._parse_ignore_data(prefixes)
         self.ignore_suffixes = self._parse_ignore_data(suffixes)
 
@@ -228,29 +243,45 @@ class GenericDirectoryTransporter(object):
 
     def sync(self) -> bool:
         """
-        Use _find_resources_to_transfer and _transfer
+        Use _find_resources_to_handle, _transfer, and _delete
         methods, to handle the directory, optionally
         fetching items from the cache, and clearing them
         as transfers complete.
 
         """
         resources = []
+        deletes = []
+        # 1. check caches
         if self.use_cache:
             debug_step('reading from cache')
-            left_overs = self.cache.read(key=self.directory)
+            left_overs = self.transfer_cache.read(key=self.directory)
             if left_overs:
                 click.echo('resuming directory transfer from cache')
                 resources = left_overs
+            left_over_deletes = self.delete_cache.read(key=self.directory)
+            if left_over_deletes:
+                click.echo('resuming deletion from cache')
+                deletes = left_over_deletes
+        # 2. maybe find resources, maybe fill caches
         if not resources or not self.use_cache:
-            resources = self._find_resources_to_transfer(self.directory)
+            resources, deletes = self._find_resources_to_handle(self.directory)
             if self.use_cache:
-                self.cache.add_many(self.directory, items=resources)
+                self.transfer_cache.add_many(self.directory, items=resources)
+                self.delete_cache.add_many(self.directory, items=deletes)
+        # 3. transfer resources
         for resource, integrity_reference in resources:
             self._transfer(resource, integrity_reference=integrity_reference)
             if self.use_cache:
-                self.cache.remove(key=self.directory, item=resource)
-        debug_step('destroying cache')
-        self.cache.destroy(key=self.directory)
+                self.transfer_cache.remove(key=self.directory, item=resource)
+        debug_step('destroying transfer cache')
+        self.transfer_cache.destroy(key=self.directory)
+        # 4. maybe delete resources
+        for resource, _ in deletes:
+            self._delete(resource)
+            if self.use_cache:
+                self.delete_cache.remove(key=self.directory, item=resource)
+        debug_step('destroying delete cache')
+        self.delete_cache.destroy(key=self.directory)
         return True
 
     def _find_local_resources(self, path) -> list:
@@ -295,6 +326,9 @@ class GenericDirectoryTransporter(object):
         next_page = None
         while True:
             click.echo(f'fetching information about directory: {path}')
+            # TODO: need an import_list
+            # and the ability to specify which endpoint is being listed
+            # depending on which direction the sync is happening
             out = export_list(
                 self.env, self.pnum, self.token,
                 session=self.session, directory=path,
@@ -381,7 +415,7 @@ class GenericDirectoryTransporter(object):
 
     # Implement the following methods for specific Transport classes
 
-    def _find_resources_to_transfer(self, path) -> list:
+    def _find_resources_to_handle(self, path) -> tuple:
         """
         Find and return a list of tuples (resource, integrity_reference)
         to feed to the _transfer function.
@@ -400,15 +434,28 @@ class GenericDirectoryTransporter(object):
         """
         raise NotImplementedError
 
+    def _delete(self, resource) -> str:
+        """
+        Delete a given resource.
+
+        Invoked by the sync method.
+
+        """
+        raise NotImplementedError
+
+
 # Implementations of specific transfers
 
 class SerialDirectoryUploader(GenericDirectoryTransporter):
 
-    cache_class = UploadCache
+    """Simple idempotent resumable directory upload."""
 
-    def _find_resources_to_transfer(self, path) -> list:
+    transfer_cache_class = UploadCache
+
+    def _find_resources_to_handle(self, path) -> tuple:
+        deletes = []
         resources = self._find_local_resources(path)
-        return resources
+        return resources, deletes
 
 
     def _transfer(self, resource, integrity_reference=None) -> str:
@@ -420,14 +467,86 @@ class SerialDirectoryUploader(GenericDirectoryTransporter):
 
 class SerialDirectoryDownloader(GenericDirectoryTransporter):
 
-    cache_class = DownloadCache
+    """Simple idempotent resumable directory download."""
 
-    def _find_resources_to_transfer(self, path) -> list:
+    transfer_cache_class = DownloadCache
+
+    def _find_resources_to_handle(self, path) -> tuple:
+        deletes = []
         resources = self._find_remote_resources(path)
-        return resources
+        return resources, deletes
 
     def _transfer(self, resource, integrity_reference=None) -> str:
         resource = self._transfer_remote_to_local(
             resource, integrity_reference=integrity_reference
         )
         return resource
+
+
+class SerialDirectoryUploadSynchroniser(GenericDirectoryTransporter):
+
+    """
+    Incremental directory sync, for uploads.
+    This is a one-way sync, local -> remote,
+    based on paths.
+
+    """
+
+    # TODO: consider adding mtime support in the API: os.utime
+
+    transfer_cache_class = UploadCache
+    delete_cache_class = UploadDeleteCache
+
+    def _find_resources_to_handle(self, path) -> tuple:
+        # TODO: ensure we list the import dir
+        local_resources = self._find_local_resources(path)
+        remote_resources = self._find_remote_resources(path)
+        local = set([ r[0] for r, i in local_resources ])
+        remote = set([ r[0] for r, i in remote_resources ])
+        resources = [ (r, None) for r in local.difference(remote) ]
+        deletes = [ (r, None) for r in remote.difference(local) ]
+        print(upload_list)
+        print(delete_list)
+        return resources, deletes
+
+        # flags:
+        # --delete-missing
+        # --cache-enable
+
+    def _transfer(self, resource, integrity_reference=None) -> str:
+        resource = self._transfer_local_to_remote(
+            resource, integrity_reference=integrity_reference
+        )
+        return resource
+
+    def _delete(self, resource):
+        pass # TODO
+
+
+class SerialDirectoryDownloadSynchroniser(GenericDirectoryTransporter):
+
+    """
+    Incremental directory sync, for downloads.
+    This is a one-way sync, remote -> local,
+    based on paths.
+
+    """
+
+    transfer_cache_class = DownloadCache
+    # delete cache?
+
+    def _find_resources_to_handle(self, path) -> tuple:
+        local_resources = self._find_local_resources(path)
+        remote_resources = self._find_remote_resources(path)
+        # create transfer list (remote but no local)
+        # create delete list (local but not remote)
+        # cache if instructed to
+
+    def _transfer(self, resource, integrity_reference=None) -> str:
+        resource = self._transfer_remote_to_local(
+            resource, integrity_reference=integrity_reference
+        )
+        return resource
+
+    def _delete(self, resource):
+        pass # TODO

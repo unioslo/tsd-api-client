@@ -23,7 +23,8 @@ from tsdapiclient.guide import topics, config, uploads, downloads, debugging, au
 from tsdapiclient.session import (session_is_expired, session_expires_soon,
                                   session_update, session_clear, session_token)
 from tsdapiclient.sync import (SerialDirectoryUploader, UploadCache,
-                               SerialDirectoryDownloader, DownloadCache)
+                               SerialDirectoryDownloader, DownloadCache,
+                               SerialDirectoryUploadSynchroniser)
 from tsdapiclient.tools import HELP_URL, has_api_connectivity, user_agent, debug_step
 
 requests.utils.default_user_agent = user_agent
