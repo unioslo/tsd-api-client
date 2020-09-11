@@ -11,8 +11,9 @@ import humanfriendly.tables
 import requests
 
 from tsdapiclient.client_config import CHUNK_THRESHOLD, CHUNK_SIZE
-from tsdapiclient.fileapi import (streamfile, initiate_resumable,
-                                  export_head, export_list, export_get)
+from tsdapiclient.fileapi import (streamfile, initiate_resumable, import_list,
+                                  export_head, export_list, export_get,
+                                  import_delete, export_delete)
 from tsdapiclient.tools import debug_step, get_data_path
 
 
@@ -292,8 +293,8 @@ class GenericDirectoryTransporter(object):
         """
         resources = []
         integrity_reference = None
+        debug_step('finding local resources to transfer')
         for directory, subdirectory, files in os.walk(path):
-            debug_step('finding files to transfer')
             folder = directory.replace(f'{path}/', '')
             ignore_prefix = False
             for prefix in self.ignore_prefixes:
@@ -314,25 +315,26 @@ class GenericDirectoryTransporter(object):
                 resources.append((target, integrity_reference))
         return resources
 
-    def _find_remote_resources(self, path) -> list:
+    def _find_remote_resources(self, path, endpoint='export') -> list:
         """
         Recursively list a remote path.
         Ignore prefixes a and suffixes if they exist.
         Collect integrity references for all resources.
 
         """
+        list_funcs = {
+            'export': export_list,
+            'import': import_list,
+        }
         resources = []
         subdirs = []
         next_page = None
         while True:
             click.echo(f'fetching information about directory: {path}')
-            # TODO: need an import_list
-            # and the ability to specify which endpoint is being listed
-            # depending on which direction the sync is happening
-            out = export_list(
+            out = list_funcs[endpoint](
                 self.env, self.pnum, self.token,
                 session=self.session, directory=path,
-                page=next_page
+                page=next_page, group=self.group
             )
             found = out.get('files')
             next_page = out.get('page')
@@ -413,6 +415,22 @@ class GenericDirectoryTransporter(object):
         )
         return resource
 
+    def _delete_remote_resource(self, resource, endpoint='export') -> str:
+        """
+        Choose a function, invoke it to delete a remote resource.
+
+        """
+        delete_funcs = {
+            'export': export_delete,
+            'import': import_delete,
+        }
+        debug_step(f'deleting: {resource}')
+        resp = delete_funcs[endpoint](
+            self.env, self.pnum, self.token, resource,
+            session=self.session, group=self.group
+        )
+        return resource
+
     # Implement the following methods for specific Transport classes
 
     def _find_resources_to_handle(self, path) -> tuple:
@@ -434,7 +452,7 @@ class GenericDirectoryTransporter(object):
         """
         raise NotImplementedError
 
-    def _delete(self, resource) -> str:
+    def _delete(self, resource):
         """
         Delete a given resource.
 
@@ -498,20 +516,13 @@ class SerialDirectoryUploadSynchroniser(GenericDirectoryTransporter):
     delete_cache_class = UploadDeleteCache
 
     def _find_resources_to_handle(self, path) -> tuple:
-        # TODO: ensure we list the import dir
         local_resources = self._find_local_resources(path)
-        remote_resources = self._find_remote_resources(path)
-        local = set([ r[0] for r, i in local_resources ])
-        remote = set([ r[0] for r, i in remote_resources ])
+        remote_resources = self._find_remote_resources(path, endpoint='import')
+        local = set([ r for r, i in local_resources ])
+        remote = set([ r for r, i in remote_resources ])
         resources = [ (r, None) for r in local.difference(remote) ]
         deletes = [ (r, None) for r in remote.difference(local) ]
-        print(upload_list)
-        print(delete_list)
         return resources, deletes
-
-        # flags:
-        # --delete-missing
-        # --cache-enable
 
     def _transfer(self, resource, integrity_reference=None) -> str:
         resource = self._transfer_local_to_remote(
@@ -520,7 +531,8 @@ class SerialDirectoryUploadSynchroniser(GenericDirectoryTransporter):
         return resource
 
     def _delete(self, resource):
-        pass # TODO
+        resource = self._delete_remote_resource(resource, endpoint='import')
+        return resource
 
 
 class SerialDirectoryDownloadSynchroniser(GenericDirectoryTransporter):

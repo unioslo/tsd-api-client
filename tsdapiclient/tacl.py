@@ -174,7 +174,7 @@ def construct_correct_upload_path(path):
     '--basic',
     is_flag=True,
     required=False,
-    help='When using basic auth, specify the TSD project'
+    help='To use basic auth'
 )
 @click.option(
     '--upload',
@@ -314,6 +314,18 @@ def construct_correct_upload_path(path):
     required=False,
     help='Delete the entire request cache'
 )
+@click.option(
+    '--upload-sync',
+    default=None,
+    required=False,
+    help='Sync a local directory, incrementally'
+)
+# flags:
+# --delete-missing
+# --cache-enable
+# --download-sync
+# --download-delete
+# --sync-cache?
 def cli(
     pnum,
     guide,
@@ -343,12 +355,18 @@ def cli(
     download_cache_show,
     download_cache_delete,
     download_cache_delete_all,
+    upload_sync,
 ):
     """tacl - TSD API client."""
     token = None
     if verbose:
         os.environ['DEBUG'] = '1'
-    if upload or resume_list or resume_delete or resume_delete_all:
+    if (upload or
+        resume_list or
+        resume_delete or
+        resume_delete_all or
+        upload_sync
+    ):
         if basic:
             requires_user_credentials, token_type = False, 'import'
         else:
@@ -404,8 +422,8 @@ def cli(
         click.echo('authentication failed')
         sys.exit(1)
     if token:
+        group = f'{pnum}-member-group' if not group else group
         if upload:
-            group = f'{pnum}-member-group' if not group else group
             if os.path.isfile(upload):
                 if upload_id or os.stat(upload).st_size > CHUNK_THRESHOLD:
                     resp = initiate_resumable(
@@ -425,6 +443,17 @@ def cli(
                     use_cache=True if not cache_disable else False
                 )
                 uploader.sync()
+        elif upload_sync:
+            if os.path.isfile(upload_sync):
+                sys.exit('--upload-sync takes a directory as an argument')
+            click.echo(f'uploading directory {upload_sync}')
+            upload_sync = construct_correct_upload_path(upload_sync)
+            syncer = SerialDirectoryUploadSynchroniser(
+                env, pnum, upload_sync, token, group,
+                prefixes=ignore_prefixes, suffixes=ignore_suffixes,
+                use_cache=False # TODO configurable
+            )
+            syncer.sync()
         elif resume_list:
             debug_step('listing resumables')
             overview = get_resumable(env, pnum, token)
