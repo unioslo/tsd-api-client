@@ -24,7 +24,8 @@ from tsdapiclient.session import (session_is_expired, session_expires_soon,
                                   session_update, session_clear, session_token)
 from tsdapiclient.sync import (SerialDirectoryUploader, UploadCache,
                                SerialDirectoryDownloader, DownloadCache,
-                               SerialDirectoryUploadSynchroniser)
+                               SerialDirectoryUploadSynchroniser,
+                               SerialDirectoryDownloadSynchroniser)
 from tsdapiclient.tools import HELP_URL, has_api_connectivity, user_agent, debug_step
 
 requests.utils.default_user_agent = user_agent
@@ -320,6 +321,12 @@ def construct_correct_upload_path(path):
     required=False,
     help='Sync a local directory, incrementally'
 )
+@click.option(
+    '--download-sync',
+    default=None,
+    required=False,
+    help='Sync a remote directory, incrementally'
+)
 # flags:
 # --delete-missing
 # --cache-enable
@@ -356,6 +363,7 @@ def cli(
     download_cache_delete,
     download_cache_delete_all,
     upload_sync,
+    download_sync,
 ):
     """tacl - TSD API client."""
     token = None
@@ -371,7 +379,7 @@ def cli(
             requires_user_credentials, token_type = False, 'import'
         else:
             requires_user_credentials, token_type = True, 'import'
-    elif download or download_list:
+    elif download or download_list or download_sync:
         if basic:
             click.echo('download not authorized with basic auth')
             sys.exit(1)
@@ -483,6 +491,18 @@ def cli(
             debug_step('listing export directory')
             data = export_list(env, pnum, token)
             print_export_list(data)
+        elif download_sync:
+            filename = download_sync
+            debug_step('starting directory sync')
+            resp = export_head(env, pnum, filename, token)
+            if resp.headers.get('Content-Type') != 'directory':
+                sys.exit('directory sync does not apply to files')
+            syncer = SerialDirectoryDownloadSynchroniser(
+                env, pnum, download_sync, token,
+                prefixes=ignore_prefixes, suffixes=ignore_suffixes,
+                use_cache=False # TODO configurable
+            )
+            syncer.sync()
         return
     else:
         if (upload_cache_show or upload_cache_delete or upload_cache_delete_all):
