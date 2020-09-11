@@ -200,7 +200,7 @@ class UploadDeleteCache(GenericDeleteCache):
     dbname = 'update-delete-cache.db'
 
 
-class UploadDeleteCache(GenericDeleteCache):
+class DownloadDeleteCache(GenericDeleteCache):
     dbname = 'download-delete-cache.db'
 
 
@@ -547,14 +547,16 @@ class SerialDirectoryDownloadSynchroniser(GenericDirectoryTransporter):
     # TODO: add mtime support: os.utime
 
     transfer_cache_class = DownloadCache
-    # delete cache?
+    delete_cache_class = DownloadDeleteCache
 
     def _find_resources_to_handle(self, path) -> tuple:
         local_resources = self._find_local_resources(path)
         remote_resources = self._find_remote_resources(path)
-        # create transfer list (remote but no local)
-        # create delete list (local but not remote)
-        # cache if instructed to
+        local = set([ r for r, i in local_resources ])
+        remote = set([ r for r, i in remote_resources ])
+        resources = [ (r, None) for r in remote.difference(local) ]
+        deletes = [ (r, None) for r in local.difference(remote) ]
+        return resources, deletes
 
     def _transfer(self, resource, integrity_reference=None) -> str:
         resource = self._transfer_remote_to_local(
