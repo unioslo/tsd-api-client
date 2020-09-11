@@ -276,6 +276,8 @@ def import_list(
     headers = {'Authorization': 'Bearer {0}'.format(token)}
     debug_step(f'listing resources at {url}')
     resp = session.get(url, headers=headers)
+    if resp.status_code == 404:
+        return {'files': [], 'page': None}
     resp.raise_for_status()
     data = json.loads(resp.text)
     return data
@@ -352,6 +354,8 @@ def export_list(
     headers = {'Authorization': 'Bearer {0}'.format(token)}
     debug_step(f'listing resources at {url}')
     resp = session.get(url, headers=headers)
+    if resp.status_code == 404:
+        return {'files': [], 'page': None}
     resp.raise_for_status()
     data = json.loads(resp.text)
     return data
