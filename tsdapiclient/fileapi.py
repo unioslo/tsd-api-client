@@ -292,6 +292,7 @@ def import_delete(
 ):
     url = f'{ENV[env]}/{pnum}/files/stream/{group}/{filename}'
     headers = {'Authorization': 'Bearer {0}'.format(token)}
+    print(f'deleting: {filename}')
     resp = session.delete(url, headers=headers)
     resp.raise_for_status()
     return resp
@@ -307,6 +308,7 @@ def export_delete(
 ):
     url = f'{ENV[env]}/{pnum}/files/export/{filename}'
     headers = {'Authorization': 'Bearer {0}'.format(token)}
+    print(f'deleting: {filename}')
     resp = session.delete(url, headers=headers)
     resp.raise_for_status()
     return resp
