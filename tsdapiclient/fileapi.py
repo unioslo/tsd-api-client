@@ -239,6 +239,80 @@ def print_export_list(data):
 
 
 @handle_request_errors
+def import_list(
+    env,
+    pnum,
+    token,
+    backend='files',
+    session=requests,
+    directory=None,
+    page=None,
+    group=None
+):
+    """
+    Get the list of files in the import direcctory, for a given group.
+
+    Parameters
+    ----------
+    env: str, 'test' or 'prod'
+    pnum: str, project number
+    token: JWT
+    backend: str, API backend
+    session: requests.session, optional
+    directory: str, name, optional
+    page: str (url) next page to list
+    group: group owner of the upload
+
+    Returns
+    -------
+    str
+
+    """
+    resource = f'/{directory}' if directory else ''
+    if not page:
+        url = f'{ENV[env]}/{pnum}/{backend}/stream/{group}{resource}'
+    else:
+        url = f'{ENV[env].replace(f"/{API_VERSION}", "")}{page}'
+    headers = {'Authorization': 'Bearer {0}'.format(token)}
+    debug_step(f'listing resources at {url}')
+    resp = session.get(url, headers=headers)
+    resp.raise_for_status()
+    data = json.loads(resp.text)
+    return data
+
+
+@handle_request_errors
+def import_delete(
+    env,
+    pnum,
+    token,
+    filename,
+    session=requests,
+    group=None
+):
+    url = f'{ENV[env]}/{pnum}/files/stream/{group}/{filename}'
+    headers = {'Authorization': 'Bearer {0}'.format(token)}
+    resp = session.delete(url, headers=headers)
+    resp.raise_for_status()
+    return resp
+
+@handle_request_errors
+def export_delete(
+    env,
+    pnum,
+    token,
+    filename,
+    session=requests,
+    group=None
+):
+    url = f'{ENV[env]}/{pnum}/files/export/{filename}'
+    headers = {'Authorization': 'Bearer {0}'.format(token)}
+    resp = session.delete(url, headers=headers)
+    resp.raise_for_status()
+    return resp
+
+
+@handle_request_errors
 def export_list(
     env,
     pnum,
@@ -246,7 +320,8 @@ def export_list(
     backend='files',
     session=requests,
     directory=None,
-    page=None
+    page=None,
+    group=None
 ):
     """
     Get the list of files available for export.
@@ -259,6 +334,8 @@ def export_list(
     backend: str, API backend
     session: requests.session, optional
     directory: str, name, optional
+    page: str (url) next page to list
+    group: irrelevant for exports (present for compatibility with import_list signature)
 
     Returns
     -------
