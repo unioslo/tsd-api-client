@@ -510,7 +510,7 @@ class SerialDirectoryUploadSynchroniser(GenericDirectoryTransporter):
 
     """
 
-    # TODO: consider adding mtime support in the API: os.utime
+    # TODO: add mtime support: os.utime
 
     transfer_cache_class = UploadCache
     delete_cache_class = UploadDeleteCache
@@ -543,6 +543,8 @@ class SerialDirectoryDownloadSynchroniser(GenericDirectoryTransporter):
     based on paths.
 
     """
+
+    # TODO: add mtime support: os.utime
 
     transfer_cache_class = DownloadCache
     # delete cache?
