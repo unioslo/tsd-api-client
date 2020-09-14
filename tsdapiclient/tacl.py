@@ -22,10 +22,14 @@ from tsdapiclient.fileapi import (streamfile, initiate_resumable, get_resumable,
 from tsdapiclient.guide import topics, config, uploads, downloads, debugging, automation
 from tsdapiclient.session import (session_is_expired, session_expires_soon,
                                   session_update, session_clear, session_token)
-from tsdapiclient.sync import (SerialDirectoryUploader, UploadCache,
-                               SerialDirectoryDownloader, DownloadCache,
+from tsdapiclient.sync import (SerialDirectoryUploader,
+                               SerialDirectoryDownloader,
                                SerialDirectoryUploadSynchroniser,
-                               SerialDirectoryDownloadSynchroniser)
+                               SerialDirectoryDownloadSynchroniser,
+                               UploadCache,
+                               DownloadCache,
+                               UploadDeleteCache,
+                               DownloadDeleteCache)
 from tsdapiclient.tools import HELP_URL, has_api_connectivity, user_agent, debug_step
 
 requests.utils.default_user_agent = user_agent
@@ -327,12 +331,24 @@ def construct_correct_upload_path(path):
     required=False,
     help='Sync a remote directory, incrementally'
 )
-# flags:
-# --delete-missing
-# --cache-enable
-# --download-sync
-# --download-delete
-# --sync-cache?
+@click.option(
+    '--cache-sync',
+    is_flag=True,
+    required=False,
+    help='Enable caching for sync'
+)
+@click.option(
+    '--keep-missing',
+    is_flag=True,
+    required=False,
+    help='Do not delete missing files in the target directory while syncing'
+)
+@click.option(
+    '--keep-updated',
+    is_flag=True,
+    required=False,
+    help='Do not over-write updated files in the target directory while syncing'
+)
 def cli(
     pnum,
     guide,
@@ -364,6 +380,9 @@ def cli(
     download_cache_delete_all,
     upload_sync,
     download_sync,
+    cache_sync,
+    keep_missing,
+    keep_updated,
 ):
     """tacl - TSD API client."""
     token = None
@@ -459,7 +478,9 @@ def cli(
             syncer = SerialDirectoryUploadSynchroniser(
                 env, pnum, upload_sync, token, group,
                 prefixes=ignore_prefixes, suffixes=ignore_suffixes,
-                use_cache=False # TODO configurable
+                use_cache=False if not cache_sync else True,
+                sync_mtime=True, keep_missing=keep_missing,
+                keep_updated=keep_updated
             )
             syncer.sync()
         elif resume_list:
@@ -500,12 +521,17 @@ def cli(
             syncer = SerialDirectoryDownloadSynchroniser(
                 env, pnum, download_sync, token,
                 prefixes=ignore_prefixes, suffixes=ignore_suffixes,
-                use_cache=False # TODO configurable
+                use_cache=False if not cache_sync else True,
+                sync_mtime=True, keep_missing=keep_missing,
+                keep_updated=keep_updated
             )
             syncer.sync()
         return
     else:
-        if (upload_cache_show or upload_cache_delete or upload_cache_delete_all):
+        if (upload_cache_show or
+            upload_cache_delete or
+            upload_cache_delete_all
+        ):
             if not pnum:
                 sys.exit('cache operations are project specific - missing pnum argument')
         if config_show:
@@ -520,18 +546,26 @@ def cli(
         elif upload_cache_delete:
             cache = UploadCache(env, pnum)
             cache.destroy(key=upload_cache_delete)
+            delete_cache = UploadDeleteCache(env, pnum)
+            delete_cache.destroy(key=upload_cache_delete)
         elif upload_cache_delete_all:
             cache = UploadCache(env, pnum)
             cache.destroy_all()
+            delete_cache = UploadDeleteCache(env, pnum)
+            delete_cache.destroy_all()
         elif download_cache_show:
             cache = DownloadCache(env, pnum)
             cache.print()
         elif download_cache_delete:
             cache = DownloadCache(env, pnum)
             cache.destroy(hey=download_cache_delete)
+            delete_cache = DownloadDeleteCache(env, pnum)
+            delete_cache.destroy(key=download_cache_delete)
         elif download_cache_delete_all:
             cache = DownloadCache(env, pnum)
             cache.destroy_all()
+            delete_cache = DownloadDeleteCache(env, pnum)
+            delete_cache.destroy_all()
         elif register:
             prod = "1 - for normal production usage"
             fx = "2 - for use over fx03 network"
