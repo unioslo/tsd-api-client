@@ -530,7 +530,7 @@ class SerialDirectoryUploadSynchroniser(GenericDirectoryTransporter):
         )
         return resource
 
-    def _delete(self, resource):
+    def _delete(self, resource) -> str:
         resource = self._delete_remote_resource(resource, endpoint='import')
         return resource
 
@@ -564,5 +564,5 @@ class SerialDirectoryDownloadSynchroniser(GenericDirectoryTransporter):
         )
         return resource
 
-    def _delete(self, resource):
+    def _delete(self, resource) -> str:
         pass # TODO
