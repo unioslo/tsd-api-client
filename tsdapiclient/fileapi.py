@@ -13,7 +13,7 @@ import requests
 from progress.bar import Bar
 
 from tsdapiclient.client_config import ENV, API_VERSION
-from tsdapiclient.tools import handle_request_errors, debug_step
+from tsdapiclient.tools import handle_request_errors, debug_step, HELP_URL
 
 
 def _init_progress_bar(current_chunk, chunksize, filename):
@@ -134,11 +134,11 @@ def streamfile(
     filename,
     token,
     chunksize=4096,
-    custom_headers=None,
     group=None,
     backend='files',
     is_dir=False,
-    session=requests
+    session=requests,
+    set_mtime=False
 ):
     """
     Idempotent, lazy data upload from files.
@@ -156,6 +156,9 @@ def streamfile(
     is_dir: bool, True if uploading a directory of files,
             will create a different URL structure
     session: requests.session, optional
+    set_mtime: bool, default False, if True send information
+               about the file's client-side mtime, asking the server
+               to set it remotely
 
     Returns
     -------
@@ -165,14 +168,15 @@ def streamfile(
     resource = upload_resource_name(filename, is_dir, group=group)
     url = f'{ENV[env]}/{pnum}/{backend}/stream/{resource}?group={group}'
     headers = {'Authorization': 'Bearer {0}'.format(token)}
-    if custom_headers is not None:
-        new_headers = headers.copy()
-        new_headers.update(custom_headers)
-    else:
-        new_headers = headers
     debug_step(f'streaming data to {url}')
-    resp = session.put(url, data=lazy_reader(filename, chunksize, with_progress=True),
-                        headers=new_headers)
+    if set_mtime:
+        current_mtime = os.stat(filename).st_mtime
+        headers['Modified-Time'] = str(current_mtime)
+    resp = session.put(
+        url,
+        data=lazy_reader(filename, chunksize, with_progress=True),
+        headers=headers
+    )
     resp.raise_for_status()
     return resp
 
@@ -386,7 +390,8 @@ def export_get(
     dev_url=None,
     backend='files',
     session=requests,
-    no_print_id=False
+    no_print_id=False,
+    set_mtime=False
 ):
     """
     Download a file to the current directory.
@@ -447,6 +452,20 @@ def export_get(
                     bar.next()
             bar.next()
     bar.finish()
+    if set_mtime:
+        err = 'could not set Modified-Time'
+        err_consequence = 'incremental sync will not work for this file'
+        try:
+            debug_step(f'setting mtime for {filename} to {mtime}')
+            mtime = int(resp.headers.get('Modified-Time'))
+            os.utime(filename, (mtime, mtime))
+        except TypeError:
+            print(f'{err}: {filename} - {err_consequence}')
+            print('issue most likely due to not getting the correct header from the API')
+            print(f'please report the issue: {HELP_URL}')
+        except OSError:
+            print(f'{err}: {filename} - {err_consequence}')
+            print('issue due to local operating system problem')
     return filename
 
 
@@ -578,7 +597,8 @@ def initiate_resumable(
     stop_at=None,
     backend='files',
     is_dir=False,
-    session=requests
+    session=requests,
+    set_mtime=False
 ):
     """
     Performs a resumable upload, either by resuming a broken one,
@@ -601,6 +621,9 @@ def initiate_resumable(
     is_dir: bool, True if uploading a directory of files,
             will create a different URL structure
     session:  requests.session, optional
+    set_mtime: bool, default False, if True send information
+               about the file's client-side mtime, asking the server
+               to set it remotely
 
     Returns
     -------
@@ -625,7 +648,7 @@ def initiate_resumable(
             return continue_resumable(
                 env, pnum, filename, token, to_resume,
                 group, verify, dev_url, backend, is_dir,
-                session=session
+                session=session, set_mtime=set_mtime
             )
         except Exception as e:
             print(e)
@@ -634,13 +657,22 @@ def initiate_resumable(
         return start_resumable(
             env, pnum, filename, token, chunksize,
             group, dev_url, stop_at, backend, is_dir,
-            session=session
+            session=session, set_mtime=set_mtime
         )
 
 
 @handle_request_errors
-def _complete_resumable(filename, token, url, bar, session=requests):
+def _complete_resumable(
+    filename,
+    token,
+    url,
+    bar,
+    session=requests,
+    mtime=None
+):
     headers = {'Authorization': 'Bearer {0}'.format(token)}
+    if mtime:
+        headers['Modified-Time'] = mtime
     debug_step('completing resumable')
     resp = session.patch(url, headers=headers)
     resp.raise_for_status()
@@ -661,7 +693,8 @@ def start_resumable(
     stop_at=None,
     backend='files',
     is_dir=False,
-    session=requests
+    session=requests,
+    set_mtime=False
 ):
     """
     Start a new resumable upload, reding a file, chunk-by-chunk
@@ -681,6 +714,9 @@ def start_resumable(
     is_dir: bool, True if uploading a directory of files,
             will create a different URL structure
     session:  requests.session, optional
+    set_mtime: bool, default False, if True send information
+               about the file's client-side mtime, asking the server
+               to set it remotely
 
     Returns
     -------
@@ -689,6 +725,9 @@ def start_resumable(
     """
     url = _resumable_url(env, pnum, filename, dev_url, backend, is_dir, group=group)
     headers = {'Authorization': 'Bearer {0}'.format(token)}
+    current_mtime = os.stat(filename).st_mtime if set_mtime else None
+    if set_mtime:
+        headers['Modified-Time'] = str(current_mtime)
     chunk_num = 1
     for chunk in lazy_reader(filename, chunksize):
         if chunk_num == 1:
@@ -713,7 +752,9 @@ def start_resumable(
     if not group:
         group = '{0}-member-group'.format(pnum)
     parmaterised_url = '{0}?chunk={1}&id={2}&group={3}'.format(url, 'end', upload_id, group)
-    resp = _complete_resumable(filename, token, parmaterised_url, bar, session=session)
+    resp = _complete_resumable(
+        filename, token, parmaterised_url, bar, session=session, mtime=current_mtime
+    )
     return resp
 
 
@@ -729,7 +770,8 @@ def continue_resumable(
     dev_url=None,
     backend='files',
     is_dir=False,
-    session=requests
+    session=requests,
+    set_mtime=False
 ):
     """
     Continue a resumable upload, reding a file, from the
@@ -751,6 +793,9 @@ def continue_resumable(
     is_dir: bool, True if uploading a directory of files,
             will create a different URL structure
     session:  requests.session, optional
+    set_mtime: bool, default False, if True send information
+               about the file's client-side mtime, asking the server
+               to set it remotely
 
     Returns
     -------
@@ -759,6 +804,9 @@ def continue_resumable(
     """
     url = _resumable_url(env, pnum, filename, dev_url, backend, is_dir, group=group)
     headers = {'Authorization': 'Bearer {0}'.format(token)}
+    current_mtime = os.stat(filename).st_mtime if set_mtime else None
+    if set_mtime:
+        headers['Modified-Time'] = str(current_mtime)
     max_chunk = to_resume['max_chunk']
     chunksize = to_resume['chunk_size']
     previous_offset = to_resume['previous_offset']
@@ -781,7 +829,9 @@ def continue_resumable(
     if not group:
         group = '{0}-member-group'.format(pnum)
     parmaterised_url = '{0}?chunk={1}&id={2}&group={3}'.format(url, 'end', upload_id, group)
-    resp = _complete_resumable(filename, token, parmaterised_url, bar, session=session)
+    resp = _complete_resumable(
+        filename, token, parmaterised_url, bar, session=session, mtime=current_mtime
+    )
     return resp
 
 
