@@ -19,7 +19,8 @@ from tsdapiclient.fileapi import (streamfile, initiate_resumable, get_resumable,
                                   delete_resumable, delete_all_resumables,
                                   export_get, export_list, print_export_list,
                                   print_resumables_list, export_head)
-from tsdapiclient.guide import topics, config, uploads, downloads, debugging, automation
+from tsdapiclient.guide import (topics, config, uploads, downloads,
+                                debugging, automation, sync)
 from tsdapiclient.session import (session_is_expired, session_expires_soon,
                                   session_update, session_clear, session_token)
 from tsdapiclient.sync import (SerialDirectoryUploader,
@@ -46,7 +47,8 @@ GUIDES = {
     'uploads': uploads,
     'downloads': downloads,
     'debugging': debugging,
-    'automation': automation
+    'automation': automation,
+    'sync': sync
 }
 
 def print_version_info():
