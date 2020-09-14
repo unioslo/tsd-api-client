@@ -1,6 +1,7 @@
 
 import os
 import time
+import shutil
 import sqlite3
 import sys
 
@@ -218,7 +219,8 @@ class GenericDirectoryTransporter(object):
         group=None,
         use_cache=True,
         prefixes=None,
-        suffixes=None
+        suffixes=None,
+        sync_mtime=False
     ):
         self.env = env
         self.pnum = pnum
@@ -233,6 +235,8 @@ class GenericDirectoryTransporter(object):
         self.delete_cache.create(key=directory)
         self.ignore_prefixes = self._parse_ignore_data(prefixes)
         self.ignore_suffixes = self._parse_ignore_data(suffixes)
+        self.sync_mtime = sync_mtime
+        self.integrity_reference_key = 'etag' if not sync_mtime else 'mtime'
 
     def _parse_ignore_data(self, patterns) -> list:
         # e.g. .git,build,dist
@@ -365,7 +369,9 @@ class GenericDirectoryTransporter(object):
                     if entry.get('mime-type') == 'directory':
                         subdirs.append(ref)
                     else:
-                        resources.append((ref, entry.get('etag')))
+                        resources.append(
+                            (ref, str(entry.get(self.integrity_reference_key)))
+                        )
             # follow next_page(s) for a given path, until exhaustively listed
             # break if no other subdirs were found
             if not next_page and not subdirs:
@@ -386,13 +392,14 @@ class GenericDirectoryTransporter(object):
         if os.stat(resource).st_size > CHUNK_THRESHOLD:
             resp = initiate_resumable(
                 self.env, self.pnum, resource, self.token, chunksize=CHUNK_SIZE,
-                group=self.group, verify=True, is_dir=True, session=self.session
+                group=self.group, verify=True, is_dir=True, session=self.session,
+                set_mtime=self.sync_mtime
             )
         else:
             resp = streamfile(
                 self.env, self.pnum, resource,
                 self.token, group=self.group, is_dir=True,
-                session=self.session
+                session=self.session, set_mtime=self.sync_mtime
             )
         return resource
 
@@ -411,7 +418,7 @@ class GenericDirectoryTransporter(object):
         resp = export_get(
             self.env, self.pnum, resource, self.token,
             session=self.session, etag=integrity_reference,
-            no_print_id=True
+            no_print_id=True, set_mtime=self.sync_mtime
         )
         return resource
 
@@ -452,7 +459,7 @@ class GenericDirectoryTransporter(object):
         """
         raise NotImplementedError
 
-    def _delete(self, resource):
+    def _delete(self, resource) -> str:
         """
         Delete a given resource.
 
@@ -504,13 +511,14 @@ class SerialDirectoryDownloader(GenericDirectoryTransporter):
 class SerialDirectoryUploadSynchroniser(GenericDirectoryTransporter):
 
     """
-    Incremental directory sync, for uploads.
-    This is a one-way sync, local -> remote,
-    based on paths.
+    Incremental, one-way, local-to-remote directory sync.
+
+    Defaults (can be changed by caller):
+    - no caching
+    - remote updates over-written
+    - remote files missing from local are deleted
 
     """
-
-    # TODO: add mtime support: os.utime
 
     transfer_cache_class = UploadCache
     delete_cache_class = UploadDeleteCache
@@ -538,13 +546,14 @@ class SerialDirectoryUploadSynchroniser(GenericDirectoryTransporter):
 class SerialDirectoryDownloadSynchroniser(GenericDirectoryTransporter):
 
     """
-    Incremental directory sync, for downloads.
-    This is a one-way sync, remote -> local,
-    based on paths.
+    Incremental, one-way, remote-to-local directory sync.
+
+    Defaults (can be changed by caller):
+    - no caching
+    - local updates over-written
+    - local files missing from remote are deleted
 
     """
-
-    # TODO: add mtime support: os.utime
 
     transfer_cache_class = DownloadCache
     delete_cache_class = DownloadDeleteCache
@@ -565,4 +574,8 @@ class SerialDirectoryDownloadSynchroniser(GenericDirectoryTransporter):
         return resource
 
     def _delete(self, resource) -> str:
-        pass # TODO
+        if os.path.isdir(resource):
+            shutil.rmtree(resource)
+        else:
+            os.remove(resource)
+        return resource
