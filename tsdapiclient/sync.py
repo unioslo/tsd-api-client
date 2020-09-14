@@ -220,7 +220,9 @@ class GenericDirectoryTransporter(object):
         use_cache=True,
         prefixes=None,
         suffixes=None,
-        sync_mtime=False
+        sync_mtime=False,
+        keep_missing=False,
+        keep_updated=False
     ):
         self.env = env
         self.pnum = pnum
@@ -237,6 +239,8 @@ class GenericDirectoryTransporter(object):
         self.ignore_suffixes = self._parse_ignore_data(suffixes)
         self.sync_mtime = sync_mtime
         self.integrity_reference_key = 'etag' if not sync_mtime else 'mtime'
+        self.keep_missing = keep_missing
+        self.keep_updated = keep_updated
 
     def _parse_ignore_data(self, patterns) -> list:
         # e.g. .git,build,dist
@@ -316,13 +320,15 @@ class GenericDirectoryTransporter(object):
                 if ignore_suffix:
                     continue
                 target = f'{directory}/{file}'
+                if self.sync_mtime:
+                    integrity_reference = str(os.stat(target).st_mtime)
                 resources.append((target, integrity_reference))
         return resources
 
     def _find_remote_resources(self, path, endpoint='export') -> list:
         """
         Recursively list a remote path.
-        Ignore prefixes a and suffixes if they exist.
+        Ignore prefixes and suffixes if they exist.
         Collect integrity references for all resources.
 
         """
@@ -438,6 +444,62 @@ class GenericDirectoryTransporter(object):
         )
         return resource
 
+    def _find_sync_lists(
+        self,
+        source=None,
+        target=None,
+        keep_updated=False,
+        keep_missing=False
+    ) -> tuple:
+        """
+        Given an authoritative source and a target,
+        find the list of items to delete in the target
+        and the list of items to update in the target,
+        conditional on the keep_updated and keep_missing
+        parameters.
+
+        For example, given two sets of filenames, and modified times (higher == more recent):
+
+        source = {               ('file1', 10), ('file2', 20), ('file3', 13), ('file4', 89)}
+        target = {('file0', 32), ('file1', 10), ('file2', 10), ('file3', 15)               }
+
+        The default return values will be:
+
+        deletes:   ['file0']
+        transfers: ['file2', 'file3', 'file4']
+
+        If both keep_updated and keep_missing are True, the return values will be:
+
+        deletes: []
+        transfers: ['file2', 'file4']
+
+        """
+        # the integrity reference is not relevant
+        # so None is passed as the second tuple value
+        if not keep_missing:
+            target_names = set([ r for r, i in target ])
+            source_names = set([ r for r, i in source ])
+            deletes = [ (r, None) for r in target_names.difference(source_names) ]
+        else:
+            deletes = []
+        if not keep_updated:
+            source_names_mtimes = set([ (r, i) for r, i in source ])
+            target_names_mtimes = set([ (r, i) for r, i in target ])
+            transfers = [ (r, None) for r, i in source_names_mtimes.difference(target_names_mtimes) ]
+        else:
+            sources = { r: i for r, i in source }
+            remotes = { r: i for r, i in target }
+            transfers = []
+            for k, v in sources.items():
+                if k not in remotes.keys():
+                    transfers.append((k, None))
+                if k in remotes.keys():
+                    if sources[k] > remotes[k]:
+                        transfers.append((k, None))
+                    else:
+                        continue
+        return transfers, deletes
+
     # Implement the following methods for specific Transport classes
 
     def _find_resources_to_handle(self, path) -> tuple:
@@ -524,12 +586,13 @@ class SerialDirectoryUploadSynchroniser(GenericDirectoryTransporter):
     delete_cache_class = UploadDeleteCache
 
     def _find_resources_to_handle(self, path) -> tuple:
-        local_resources = self._find_local_resources(path)
-        remote_resources = self._find_remote_resources(path, endpoint='import')
-        local = set([ r for r, i in local_resources ])
-        remote = set([ r for r, i in remote_resources ])
-        resources = [ (r, None) for r in local.difference(remote) ]
-        deletes = [ (r, None) for r in remote.difference(local) ]
+        source = self._find_local_resources(path)
+        target = self._find_remote_resources(path, endpoint='import')
+        resources, deletes = self._find_sync_lists(
+            source=source, target=target,
+            keep_missing=self.keep_missing,
+            keep_updated=self.keep_updated
+        )
         return resources, deletes
 
     def _transfer(self, resource, integrity_reference=None) -> str:
@@ -559,12 +622,13 @@ class SerialDirectoryDownloadSynchroniser(GenericDirectoryTransporter):
     delete_cache_class = DownloadDeleteCache
 
     def _find_resources_to_handle(self, path) -> tuple:
-        local_resources = self._find_local_resources(path)
-        remote_resources = self._find_remote_resources(path)
-        local = set([ r for r, i in local_resources ])
-        remote = set([ r for r, i in remote_resources ])
-        resources = [ (r, None) for r in remote.difference(local) ]
-        deletes = [ (r, None) for r in local.difference(remote) ]
+        target = self._find_local_resources(path)
+        source = self._find_remote_resources(path)
+        resources, deletes = self._find_sync_lists(
+            source=source, target=target,
+            keep_missing=self.keep_missing,
+            keep_updated=self.keep_updated
+        )
         return resources, deletes
 
     def _transfer(self, resource, integrity_reference=None) -> str:
@@ -574,6 +638,7 @@ class SerialDirectoryDownloadSynchroniser(GenericDirectoryTransporter):
         return resource
 
     def _delete(self, resource) -> str:
+        print(f'deleting: {resource}')
         if os.path.isdir(resource):
             shutil.rmtree(resource)
         else:

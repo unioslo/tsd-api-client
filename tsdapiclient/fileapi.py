@@ -456,8 +456,8 @@ def export_get(
         err = 'could not set Modified-Time'
         err_consequence = 'incremental sync will not work for this file'
         try:
+            mtime = float(resp.headers.get('Modified-Time'))
             debug_step(f'setting mtime for {filename} to {mtime}')
-            mtime = int(resp.headers.get('Modified-Time'))
             os.utime(filename, (mtime, mtime))
         except TypeError:
             print(f'{err}: {filename} - {err_consequence}')
