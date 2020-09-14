@@ -116,3 +116,30 @@ and run the problematic command in verbose mode:
 Take contact with TSD, sending the output: {HELP_URL}
 
 """
+
+sync = f"""
+To incrementally synchronise directories:
+
+    tacl p11 --upload-sync mydir
+    tacl p11 --download-sync mydir
+
+By default, files that are present in the source, but missing
+in the target are deleted. Furthermore, if there are files in
+the target that have been updated (relative to their source
+counterparts), the default sync will replace them. To avoid
+these behaviours, e.g.:
+
+    tacl p11 --upload-sync mydir --keep-missing --keep-updated
+
+By default, there is no caching for sync, because the normal
+use case would be to copy a directory which has many files
+in total, but only a few changing ones. If you are in control
+of the changes, and you know there will not be any changes while
+your transfer is running, then you can enable caching like this:
+
+    tacl p11 --download-sync mydir --cache-sync
+
+This will allow resuming the sync without having to query the API
+and the local filesystem for its current state.
+
+"""

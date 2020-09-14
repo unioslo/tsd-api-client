@@ -17,6 +17,7 @@ Get started with `tacl`:
 tacl --guide config
 tacl --guide uploads
 tacl --guide downloads
+tacl --guide sync
 tacl --guide topics # to see all guides available
 tacl --help
 ```
