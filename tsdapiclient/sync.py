@@ -491,9 +491,9 @@ class GenericDirectoryTransporter(object):
             remotes = { r: i for r, i in target }
             transfers = []
             for k, v in sources.items():
-                if k not in remotes.keys():
+                if not remotes.get(k):
                     transfers.append((k, None))
-                if k in remotes.keys():
+                else:
                     if sources[k] > remotes[k]:
                         transfers.append((k, None))
                     else:
