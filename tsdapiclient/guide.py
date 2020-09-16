@@ -123,8 +123,8 @@ To incrementally synchronise directories:
     tacl p11 --upload-sync mydir
     tacl p11 --download-sync mydir
 
-By default, files that are present in the source, but missing
-in the target are deleted. Furthermore, if there are files in
+By default, files that are present in the target, but missing
+in the source are deleted. Furthermore, if there are files in
 the target that have been updated (relative to their source
 counterparts), the default sync will replace them. To avoid
 these behaviours, e.g.:
