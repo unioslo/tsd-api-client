@@ -18,7 +18,7 @@ from tsdapiclient.configurer import (read_config, update_config,
 from tsdapiclient.fileapi import (streamfile, initiate_resumable, get_resumable,
                                   delete_resumable, delete_all_resumables,
                                   export_get, export_list, print_export_list,
-                                  print_resumables_list, export_head)
+                                  print_resumables_list, export_head, export_delete)
 from tsdapiclient.guide import (topics, config, uploads, downloads,
                                 debugging, automation, sync)
 from tsdapiclient.session import (session_is_expired, session_expires_soon,
@@ -216,6 +216,7 @@ def construct_correct_upload_path(path):
 )
 @click.option(
     '--download',
+    default=None,
     required=False,
     help='Download a file'
 )
@@ -351,6 +352,11 @@ def construct_correct_upload_path(path):
     required=False,
     help='Do not over-write updated files in the target directory while syncing'
 )
+@click.option(
+    '--download-delete',
+    required=False,
+    help='Delete a file/folder which is available for download'
+)
 def cli(
     pnum,
     guide,
@@ -385,6 +391,7 @@ def cli(
     cache_sync,
     keep_missing,
     keep_updated,
+    download_delete,
 ):
     """tacl - TSD API client."""
     token = None
@@ -514,6 +521,9 @@ def cli(
             debug_step('listing export directory')
             data = export_list(env, pnum, token)
             print_export_list(data)
+        elif download_delete:
+            debug_step('listing export directory')
+            export_delete(env, pnum, token, download_delete)
         elif download_sync:
             filename = download_sync
             debug_step('starting directory sync')
