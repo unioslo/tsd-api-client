@@ -80,6 +80,10 @@ To download a directory (resumable):
 
     tacl p11 --download mydir --ignore-prefixes mydir/.git
 
+To delete a downloadable resource:
+
+    tacl p11 --download-delete myfile
+
 To view and manage the directory download cache:
 
     tacl p11 --download-cache-show
@@ -104,6 +108,17 @@ you can set up automated data import in the following way:
 
     tacl p11 --basic --upload myfile
 
+The above example supposes that you have registered your client as
+described in the tacl --guide config section. This is suitable when
+you have a small number of clients. If, however, you have so many clients
+that registering them one-by-one is impractical, you can contact TSD
+at {HELP_URL}
+and request a standalone API client. This will give you an API key
+which you can use with tacl as such:
+
+    tacl p11 --api-key $KEY --upload myfile
+
+Invoking tacl like this will over-ride any other local config.
 """
 
 debugging = f"""

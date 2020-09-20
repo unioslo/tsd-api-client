@@ -354,8 +354,15 @@ def construct_correct_upload_path(path):
 )
 @click.option(
     '--download-delete',
+    default=None,
     required=False,
     help='Delete a file/folder which is available for download'
+)
+@click.option(
+    '--api-key',
+    required=False,
+    default=None,
+    help='Pass an explicit API key - over-rides tacl config'
 )
 def cli(
     pnum,
@@ -392,6 +399,7 @@ def cli(
     keep_missing,
     keep_updated,
     download_delete,
+    api_key,
 ):
     """tacl - TSD API client."""
     token = None
@@ -437,7 +445,8 @@ def cli(
         if not expires_soon and expired:
             auth_required = True
         if auth_required:
-            api_key = get_api_key(env, pnum)
+            if not api_key:
+                api_key = get_api_key(env, pnum)
             username, password, otp = get_user_credentials()
             token = get_jwt_tsd_auth(env, pnum, api_key, username, password, otp, token_type)
             if token:
