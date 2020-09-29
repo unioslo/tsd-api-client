@@ -41,6 +41,21 @@ API_ENVS = {
     'test': 'test.api.tsd.usit.no'
 }
 
+TOKENS = {
+    'prod': {
+        'upload': 'import',
+        'download': 'export'
+    },
+    'test': {
+        'upload': 'import',
+        'downloads': 'export'
+    },
+    'alt': {
+        'upload': 'import-alt',
+        'download': 'export-alt'
+    }
+}
+
 GUIDES = {
     'topics': topics,
     'config': config,
@@ -405,6 +420,8 @@ def cli(
     token = None
     if verbose:
         os.environ['DEBUG'] = '1'
+
+    # 1. Determine necessary authentication options
     if (upload or
         resume_list or
         resume_delete or
@@ -412,16 +429,21 @@ def cli(
         upload_sync
     ):
         if basic:
-            requires_user_credentials, token_type = False, 'import'
+            requires_user_credentials, token_type = False, TOKENS[env]['upload']
         else:
-            requires_user_credentials, token_type = True, 'import'
+            requires_user_credentials, token_type = True, TOKENS[env]['upload']
     elif download or download_list or download_sync:
-        if basic:
+        if env == 'alt' and basic:
+            requires_user_credentials, token_type = False, TOKENS[env]['download']
+        elif env != 'alt' and basic:
             click.echo('download not authorized with basic auth')
             sys.exit(1)
-        requires_user_credentials, token_type = True, 'export'
+        else:
+            requires_user_credentials, token_type = True, TOKENS[env]['download']
     else:
         requires_user_credentials = False
+
+    # 2. Try to get a valid access token
     if requires_user_credentials:
         check_api_connection(env)
         if not pnum:
@@ -460,12 +482,15 @@ def cli(
             click.echo('missing pnum argument')
             sys.exit(1)
         check_api_connection(env)
-        api_key = get_api_key(env, pnum)
+        if not api_key:
+            api_key = get_api_key(env, pnum)
         debug_step('using basic authentication')
         token = get_jwt_basic_auth(env, pnum, api_key)
     if (requires_user_credentials or basic) and not token:
         click.echo('authentication failed')
         sys.exit(1)
+
+    # 3. Given a valid access token, perform a given action
     if token:
         group = f'{pnum}-member-group' if not group else group
         if upload:
@@ -548,13 +573,18 @@ def cli(
             )
             syncer.sync()
         return
+
+    # 4. Optionally perform actions which do no require authentication
     else:
         if (upload_cache_show or
             upload_cache_delete or
-            upload_cache_delete_all
-        ):
-            if not pnum:
-                sys.exit('cache operations are project specific - missing pnum argument')
+            upload_cache_delete_all or
+            download_cache_show or
+            download_cache_delete or
+            download_cache_delete_all
+        ) and not pnum:
+            sys.exit('cache operations are project specific - missing pnum argument')
+        # 4.1 Interact with config, sessions, and caches
         if config_show:
             print_config()
         elif config_delete:
@@ -587,6 +617,7 @@ def cli(
             cache.destroy_all()
             delete_cache = DownloadDeleteCache(env, pnum)
             delete_cache.destroy_all()
+        # 4.2 Register a client
         elif register:
             prod = "1 - for normal production usage"
             fx = "2 - for use over fx03 network"
@@ -604,6 +635,7 @@ def cli(
             key = get_tsd_api_key(env, pnum, username, password, otp)
             update_config(env, pnum, key)
             click.echo(f'Successfully registered for {pnum}, and API environment hosted at {ENV[env]}')
+        # 4.3 Introspection
         elif version:
             print_version_info()
         elif guide:
