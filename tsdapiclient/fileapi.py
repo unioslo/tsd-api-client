@@ -376,7 +376,8 @@ def export_get(
     backend='files',
     session=requests,
     no_print_id=False,
-    set_mtime=False
+    set_mtime=False,
+    nobar=False,
 ):
     """
     Download a file to the current directory.
@@ -428,16 +429,20 @@ def export_get(
         print('Warning: could not retrieve download id, resumable download will not work')
         download_id = None
     total_file_size = int(resp.headers['Content-Length'])
-    bar = _init_export_progress_bar(unquote(filename), current_file_size, total_file_size, chunksize)
+    if not nobar:
+        bar = _init_export_progress_bar(unquote(filename), current_file_size, total_file_size, chunksize)
     with session.get(url, headers=headers, stream=True) as r:
         r.raise_for_status()
         with open(unquote(filename), filemode) as f:
             for chunk in r.iter_content(chunk_size=chunksize):
                 if chunk:
                     f.write(chunk)
-                    bar.next()
-            bar.next()
-    bar.finish()
+                    if not nobar:
+                        bar.next()
+            if not nobar:
+                bar.next()
+    if not nobar:
+        bar.finish()
     if set_mtime:
         err = 'could not set Modified-Time'
         err_consequence = 'incremental sync will not work for this file'
