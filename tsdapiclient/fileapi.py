@@ -416,7 +416,8 @@ def export_get(
     if dev_url:
         url = dev_url
     else:
-        endpoint = f'export/{filename}'
+        urlpath = '' if backend == 'survey' else 'export/'
+        endpoint = f'{urlpath}{filename}'
         url = f'{file_api_url(env, pnum, backend, endpoint=endpoint)}'
     debug_step(f'fecthing file info using: {url}')
     resp = session.head(url, headers=headers)
