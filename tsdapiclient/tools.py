@@ -17,8 +17,56 @@ from requests.exceptions import (ConnectionError, HTTPError, RequestException,
                                  Timeout)
 
 from . import __version__
+from tsdapiclient.client_config import API_VERSION
 
 HELP_URL = 'https://www.uio.no/english/services/it/research/sensitive-data/contact/index.html'
+
+HOSTS = {
+    'test': 'test.api.tsd.usit.no',
+    'prod': 'api.tsd.usit.no',
+    'alt': 'alt.api.tsd.usit.no',
+    'int': 'internal.api.tsd.usit.no',
+}
+
+def auth_api_url(env, pnum, auth_method):
+    endpoints = {
+        'default': {
+            'basic': f'{pnum}/auth/basic/token',
+            'tsd': f'{pnum}/auth/tsd/token',
+        },
+        'int': {
+            'basic': f'{pnum}/internal/basic/token',
+            'tsd': f'{pnum}/internal/tsd/token',
+        }
+    }
+    try:
+        assert auth_method in ['basic', 'tsd'], f'Unrecognised auth_method: {auth_method}'
+        host = HOSTS.get(env)
+        endpoint_env = env if env == 'int' else 'default'
+        endpoint = endpoints.get(endpoint_env).get(auth_method)
+        url = f'https://{host}/{API_VERSION}/{endpoint}'
+        return url
+    except (AssertionError, Exception) as e:
+        raise e
+
+
+def file_api_url(env, pnum, service, endpoint='', formid='', page=None):
+    try:
+        services = ['files', 'survey']
+        err = f'Unrecognised service: {service}'
+        assert service in services, err
+        host = HOSTS.get(env)
+        if page:
+            return f'https://{host}{page}'
+        if formid:
+            endpoint = f'{formid}/{endpoint}'
+        url = f'https://{host}/{API_VERSION}/{pnum}/{service}/{endpoint}'
+        if url.endswith('/'):
+            url = url[:-1]
+        return url
+    except (AssertionError, Exception) as e:
+        raise e
+
 
 def debug_step(step):
     if os.getenv('DEBUG'):
