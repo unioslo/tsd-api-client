@@ -531,9 +531,9 @@ def cli(
             overview = get_resumable(env, pnum, token)
             print_resumables_list(overview)
         elif resume_delete:
-            filename = resume_delete
+            filename = None
             debug_step('deleting resumable')
-            delete_resumable(env, pnum, token, filename, upload_id)
+            delete_resumable(env, pnum, token, filename, resume_delete)
         elif resume_delete_all:
             debug_step('deleting all resumables')
             delete_all_resumables(env, pnum, token)

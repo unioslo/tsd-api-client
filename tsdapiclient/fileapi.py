@@ -432,7 +432,8 @@ def _resumable_url(
 ):
     resource = upload_resource_name(filename, is_dir, group=group)
     if not dev_url:
-        url = f'{ENV[env]}/{pnum}/{backend}/stream/{resource}'
+        endpoint = f'stream/{resource}'
+        url = f'{file_api_url(env, pnum, backend, endpoint=endpoint)}'
     else:
         url = dev_url
     return url
@@ -509,19 +510,9 @@ def get_resumable(
 
     """
     if not dev_url:
-        if filename:
-            url = '{0}/{1}/{2}/resumables/{3}'.format(
-                ENV[env],
-                pnum,
-                backend,
-                quote(format_filename(filename))
-            )
-        else:
-            url = '{0}/{1}/{2}/resumables'.format(
-                ENV[env],
-                pnum,
-                backend
-            )
+        filename = f'/{quote(format_filename(filename))}' if filename else ''
+        endpoint = f'resumables{filename}'
+        url = f'{file_api_url(env, pnum, backend, endpoint=endpoint)}'
     else:
         url = dev_url
     if upload_id:
@@ -820,13 +811,9 @@ def delete_resumable(
     if dev_url:
         url = dev_url
     else:
-        url = '{0}/{1}/{2}/resumables/{3}?id={4}'.format(
-                    ENV[env],
-                    pnum,
-                    backend,
-                    quote(format_filename(filename)),
-                    upload_id
-                )
+        filename = f'/{quote(format_filename(filename))}' if filename else ''
+        endpoint = f'resumables{filename}?id={upload_id}'
+        url = f'{file_api_url(env, pnum, backend, endpoint=endpoint)}'
     debug_step(f'deleting {filename} using: {url}')
     resp = session.delete(url, headers={'Authorization': 'Bearer {0}'.format(token)})
     resp.raise_for_status()
