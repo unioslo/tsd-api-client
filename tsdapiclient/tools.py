@@ -52,9 +52,6 @@ def auth_api_url(env, pnum, auth_method):
 
 def file_api_url(env, pnum, service, endpoint='', formid='', page=None):
     try:
-        services = ['files', 'survey']
-        err = f'Unrecognised service: {service}'
-        assert service in services, err
         host = HOSTS.get(env)
         if page:
             return f'https://{host}{page}'

@@ -333,18 +333,25 @@ class GenericDirectoryTransporter(object):
 
         """
         list_funcs = {
-            'export': export_list,
-            'import': import_list,
+            'export': {
+                'func':export_list,
+                'backend': 'files',
+            },
+            'import': {
+                'func':import_list,
+                'backend': 'files',
+            },
         }
         resources = []
         subdirs = []
         next_page = None
         while True:
             click.echo(f'fetching information about directory: {path}')
-            out = list_funcs[endpoint](
+            out = list_funcs[endpoint]['func'](
                 self.env, self.pnum, self.token,
                 session=self.session, directory=path,
-                page=next_page, group=self.group
+                page=next_page, group=self.group,
+                backend=list_funcs[endpoint]['backend']
             )
             found = out.get('files')
             next_page = out.get('page')
