@@ -432,7 +432,7 @@ def cli(
             requires_user_credentials, token_type = False, TOKENS[env]['upload']
         else:
             requires_user_credentials, token_type = True, TOKENS[env]['upload']
-    elif download or download_list or download_sync:
+    elif download or download_list or download_sync or download_delete:
         if env == 'alt' and basic:
             requires_user_credentials, token_type = False, TOKENS[env]['download']
         elif env != 'alt' and basic:
@@ -556,7 +556,7 @@ def cli(
             data = export_list(env, pnum, token)
             print_export_list(data)
         elif download_delete:
-            debug_step('listing export directory')
+            debug_step(f'deleting {download_delete}')
             export_delete(env, pnum, token, download_delete)
         elif download_sync:
             filename = download_sync
