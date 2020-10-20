@@ -13,7 +13,8 @@ import requests
 from progress.bar import Bar
 
 from tsdapiclient.client_config import ENV, API_VERSION
-from tsdapiclient.tools import handle_request_errors, debug_step, HELP_URL
+from tsdapiclient.tools import (handle_request_errors, debug_step,
+                                HELP_URL, file_api_url, HOSTS)
 
 
 def _init_progress_bar(current_chunk, chunksize, filename):
@@ -166,7 +167,8 @@ def streamfile(
 
     """
     resource = upload_resource_name(filename, is_dir, group=group)
-    url = f'{ENV[env]}/{pnum}/{backend}/stream/{resource}?group={group}'
+    endpoint=f"stream/{resource}?group={group}"
+    url = f'{file_api_url(env, pnum, backend, endpoint=endpoint)}'
     headers = {'Authorization': 'Bearer {0}'.format(token)}
     debug_step(f'streaming data to {url}')
     if set_mtime:
@@ -177,56 +179,6 @@ def streamfile(
         data=lazy_reader(filename, chunksize, with_progress=True),
         headers=headers
     )
-    resp.raise_for_status()
-    return resp
-
-@handle_request_errors
-def streamstdin(env, pnum, fileinput, filename, token,
-                chunksize=4096, custom_headers=None,
-                group=None, backend='files'):
-    """
-    Idempotent, lazy data upload from stdin.
-
-    Parameters
-    ----------
-    env: str, 'test' or 'prod'
-    pnum: str, project number
-    filename: str, path to file
-    token: str, JWT
-    chunksize: int, bytes to read per chunk
-    custom_headers: dict, header controlling API data processing
-    group: str, name of file group which should own upload
-    backend: str, API backend
-
-    Returns
-    -------
-    requests.response
-
-    """
-    if not group:
-        url = '{0}/{1}/{2}/stream/{3}'.format(
-            ENV[env],
-            pnum,
-            backend,
-            quote(format_filename(filename))
-        )
-    elif group:
-        url = '{0}/{1}/{2}/stream/{3}?group={4}'.format(
-            ENV[env],
-            pnum,
-            backend,
-            quote(format_filename(filename)),
-            group
-        )
-    headers = {'Authorization': 'Bearer {0}'.format(token)}
-    if custom_headers is not None:
-        new_headers = headers.copy()
-        new_headers.update(custom_headers)
-    else:
-        new_headers = headers
-    print('PUT: {0}'.format(url))
-    resp = requests.put(url, data=lazy_stdin_handler(fileinput, chunksize),
-                        headers=new_headers)
     resp.raise_for_status()
     return resp
 
@@ -273,10 +225,8 @@ def import_list(
 
     """
     resource = f'/{directory}' if directory else ''
-    if not page:
-        url = f'{ENV[env]}/{pnum}/{backend}/stream/{group}{resource}'
-    else:
-        url = f'{ENV[env].replace(f"/{API_VERSION}", "")}{page}'
+    endpoint=f"stream/{group}{resource}"
+    url = f'{file_api_url(env, pnum, backend, endpoint=endpoint , page=page)}'
     headers = {'Authorization': 'Bearer {0}'.format(token)}
     debug_step(f'listing resources at {url}')
     resp = session.get(url, headers=headers)
@@ -296,7 +246,8 @@ def import_delete(
     session=requests,
     group=None
 ):
-    url = f'{ENV[env]}/{pnum}/files/stream/{group}/{filename}'
+    endpoint = f'stream/{group}/{filename}'
+    url = f'{file_api_url(env, pnum, "files", endpoint=endpoint)}'
     headers = {'Authorization': 'Bearer {0}'.format(token)}
     print(f'deleting: {filename}')
     resp = session.delete(url, headers=headers)
@@ -312,7 +263,8 @@ def export_delete(
     session=requests,
     group=None
 ):
-    url = f'{ENV[env]}/{pnum}/files/export/{filename}'
+    endpoint = f'export/{filename}'
+    url = f'{file_api_url(env, pnum, "files", endpoint=endpoint)}'
     headers = {'Authorization': 'Bearer {0}'.format(token)}
     print(f'deleting: {filename}')
     resp = session.delete(url, headers=headers)
@@ -351,10 +303,8 @@ def export_list(
 
     """
     resource = f'/{directory}' if directory else ''
-    if not page:
-        url = f'{ENV[env]}/{pnum}/{backend}/export{resource}'
-    else:
-        url = f'{ENV[env].replace(f"/{API_VERSION}", "")}{page}'
+    endpoint = f'export{resource}'
+    url = f'{file_api_url(env, pnum, backend, endpoint=endpoint, page=page)}'
     headers = {'Authorization': 'Bearer {0}'.format(token)}
     debug_step(f'listing resources at {url}')
     resp = session.get(url, headers=headers)
@@ -374,7 +324,8 @@ def export_head(
     session=requests
 ):
     headers = {'Authorization': 'Bearer {0}'.format(token)}
-    url = f'{ENV[env]}/{pnum}/{backend}/export/{filename}'
+    endpoint = f'export/{filename}'
+    url = f'{file_api_url(env, pnum, backend, endpoint=endpoint)}'
     resp = session.head(url, headers=headers)
     return resp
 
@@ -430,7 +381,8 @@ def export_get(
     if dev_url:
         url = dev_url
     else:
-        url = '{0}/{1}/{2}/export/{3}'.format(ENV[env], pnum, backend, filename)
+        endpoint = f'export/{filename}'
+        url = f'{file_api_url(env, pnum, backend, endpoint=endpoint)}'
     debug_step(f'fecthing file info using: {url}')
     resp = session.head(url, headers=headers)
     resp.raise_for_status()
