@@ -439,9 +439,15 @@ class GenericDirectoryTransporter(object):
             debug_step(f'creating directory: {target}')
             os.makedirs(target)
         resp = export_get(
-            self.env, self.pnum, resource, self.token,
-            session=self.session, etag=integrity_reference,
-            no_print_id=True, set_mtime=self.sync_mtime
+            self.env,
+            self.pnum,
+            resource,
+            self.token,
+            session=self.session,
+            etag=integrity_reference,
+            no_print_id=True,
+            set_mtime=self.sync_mtime,
+            backend=self.remote_key,
         )
         return resource
 

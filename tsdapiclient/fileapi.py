@@ -406,7 +406,12 @@ def export_get(
     else:
         urlpath = '' if backend == 'survey' else 'export/'
         endpoint = f'{urlpath}{filename}'
-        url = f'{file_api_url(env, pnum, backend, endpoint=endpoint)}'
+        # make provision for unsatisfactory semantics
+        if backend in ['export', 'files']:
+            service = 'files'
+        elif backend == 'survey':
+            service = backend
+        url = f'{file_api_url(env, pnum, service, endpoint=endpoint)}'
     debug_step(f'fecthing file info using: {url}')
     resp = session.head(url, headers=headers)
     resp.raise_for_status()
