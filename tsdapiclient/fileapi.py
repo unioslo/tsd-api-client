@@ -260,18 +260,6 @@ def survey_list(
 
 
 @handle_request_errors
-def survey_delete(
-    env,
-    pnum,
-    token,
-    filename,
-    session=requests,
-    group=None
-):
-    pass
-
-
-@handle_request_errors
 def import_delete(
     env,
     pnum,
