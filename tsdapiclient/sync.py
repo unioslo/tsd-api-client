@@ -14,7 +14,7 @@ import requests
 from tsdapiclient.client_config import CHUNK_THRESHOLD, CHUNK_SIZE
 from tsdapiclient.fileapi import (streamfile, initiate_resumable, import_list,
                                   export_head, export_list, export_get,
-                                  import_delete, export_delete)
+                                  import_delete, export_delete, survey_list)
 from tsdapiclient.tools import debug_step, get_data_path
 
 
@@ -222,7 +222,8 @@ class GenericDirectoryTransporter(object):
         suffixes=None,
         sync_mtime=False,
         keep_missing=False,
-        keep_updated=False
+        keep_updated=False,
+        remote_key=None,
     ):
         self.env = env
         self.pnum = pnum
@@ -241,6 +242,7 @@ class GenericDirectoryTransporter(object):
         self.integrity_reference_key = 'etag' if not sync_mtime else 'mtime'
         self.keep_missing = keep_missing
         self.keep_updated = keep_updated
+        self.remote_key = remote_key
 
     def _parse_ignore_data(self, patterns) -> list:
         # e.g. .git,build,dist
@@ -325,7 +327,7 @@ class GenericDirectoryTransporter(object):
                 resources.append((target, integrity_reference))
         return resources
 
-    def _find_remote_resources(self, path, endpoint='export') -> list:
+    def _find_remote_resources(self, path) -> list:
         """
         Recursively list a remote path.
         Ignore prefixes and suffixes if they exist.
@@ -334,24 +336,32 @@ class GenericDirectoryTransporter(object):
         """
         list_funcs = {
             'export': {
-                'func':export_list,
+                'func': export_list,
                 'backend': 'files',
             },
             'import': {
-                'func':import_list,
+                'func': import_list,
                 'backend': 'files',
             },
+            'survey': {
+                'func': survey_list,
+                'backend': 'survey',
+            }
         }
         resources = []
         subdirs = []
         next_page = None
         while True:
             click.echo(f'fetching information about directory: {path}')
-            out = list_funcs[endpoint]['func'](
-                self.env, self.pnum, self.token,
-                session=self.session, directory=path,
-                page=next_page, group=self.group,
-                backend=list_funcs[endpoint]['backend']
+            out = list_funcs[self.remote_key]['func'](
+                self.env,
+                self.pnum,
+                self.token,
+                session=self.session,
+                directory=path,
+                page=next_page,
+                group=self.group,
+                backend=list_funcs[self.remote_key]['backend']
             )
             found = out.get('files')
             next_page = out.get('page')
@@ -435,7 +445,7 @@ class GenericDirectoryTransporter(object):
         )
         return resource
 
-    def _delete_remote_resource(self, resource, endpoint='export') -> str:
+    def _delete_remote_resource(self, resource) -> str:
         """
         Choose a function, invoke it to delete a remote resource.
 
@@ -445,7 +455,7 @@ class GenericDirectoryTransporter(object):
             'import': import_delete,
         }
         debug_step(f'deleting: {resource}')
-        resp = delete_funcs[endpoint](
+        resp = delete_funcs[self.remote_key](
             self.env, self.pnum, self.token, resource,
             session=self.session, group=self.group
         )
@@ -594,7 +604,7 @@ class SerialDirectoryUploadSynchroniser(GenericDirectoryTransporter):
 
     def _find_resources_to_handle(self, path) -> tuple:
         source = self._find_local_resources(path)
-        target = self._find_remote_resources(path, endpoint='import')
+        target = self._find_remote_resources(path)
         resources, deletes = self._find_sync_lists(
             source=source, target=target,
             keep_missing=self.keep_missing,
@@ -609,7 +619,7 @@ class SerialDirectoryUploadSynchroniser(GenericDirectoryTransporter):
         return resource
 
     def _delete(self, resource) -> str:
-        resource = self._delete_remote_resource(resource, endpoint='import')
+        resource = self._delete_remote_resource(resource)
         return resource
 
 

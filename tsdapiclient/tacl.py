@@ -523,7 +523,8 @@ def cli(
                 prefixes=ignore_prefixes, suffixes=ignore_suffixes,
                 use_cache=False if not cache_sync else True,
                 sync_mtime=True, keep_missing=keep_missing,
-                keep_updated=keep_updated
+                keep_updated=keep_updated,
+                remote_key='import',
             )
             syncer.sync()
         elif resume_list:
@@ -546,7 +547,8 @@ def cli(
                 downloader = SerialDirectoryDownloader(
                     env, pnum, download, token,
                     prefixes=ignore_prefixes, suffixes=ignore_suffixes,
-                    use_cache=True if not cache_disable else False
+                    use_cache=True if not cache_disable else False,
+                    remote_key='export',
                 )
                 downloader.sync()
             else:
@@ -569,7 +571,8 @@ def cli(
                 prefixes=ignore_prefixes, suffixes=ignore_suffixes,
                 use_cache=False if not cache_sync else True,
                 sync_mtime=True, keep_missing=keep_missing,
-                keep_updated=keep_updated
+                keep_updated=keep_updated,
+                remote_key='export',
             )
             syncer.sync()
         return
