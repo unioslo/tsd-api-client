@@ -236,6 +236,40 @@ def import_list(
     data = json.loads(resp.text)
     return data
 
+@handle_request_errors
+def survey_list(
+    env,
+    pnum,
+    token,
+    backend=None,
+    session=requests,
+    directory=None,
+    page=None,
+    group=None,
+):
+    endpoint=f"{directory}/attachments"
+    url = f'{file_api_url(env, pnum, backend, endpoint=endpoint, page=page)}'
+    headers = {'Authorization': 'Bearer {0}'.format(token)}
+    debug_step(f'listing resources at {url}')
+    resp = session.get(url, headers=headers)
+    if resp.status_code == 404:
+        return {'files': [], 'page': None}
+    resp.raise_for_status()
+    data = json.loads(resp.text)
+    return data
+
+
+@handle_request_errors
+def survey_delete(
+    env,
+    pnum,
+    token,
+    filename,
+    session=requests,
+    group=None
+):
+    pass
+
 
 @handle_request_errors
 def import_delete(
