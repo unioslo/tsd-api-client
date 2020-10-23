@@ -366,6 +366,7 @@ def export_get(
     no_print_id=False,
     set_mtime=False,
     nobar=False,
+    target_dir=None,
 ):
     """
     Download a file to the current directory.
@@ -425,6 +426,7 @@ def export_get(
     total_file_size = int(resp.headers['Content-Length'])
     if not nobar:
         bar = _init_export_progress_bar(unquote(filename), current_file_size, total_file_size, chunksize)
+    filename = filename if not target_dir else os.path.normpath(f'{target_dir}/{filename}')
     with session.get(url, headers=headers, stream=True) as r:
         r.raise_for_status()
         with open(unquote(filename), filemode) as f:
