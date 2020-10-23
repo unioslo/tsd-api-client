@@ -150,6 +150,7 @@ def get_api_key(env, pnum):
 
 def check_api_connection(env):
     if os.getenv("HTTPS_PROXY"):
+        debug_step('skipping connection test as a proxy is set')
         return
     if not has_api_connectivity(hostname=API_ENVS[env]):
         sys.exit(
