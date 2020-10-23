@@ -224,6 +224,7 @@ class GenericDirectoryTransporter(object):
         keep_missing=False,
         keep_updated=False,
         remote_key=None,
+        target_dir=None,
     ):
         self.env = env
         self.pnum = pnum
@@ -243,6 +244,7 @@ class GenericDirectoryTransporter(object):
         self.keep_missing = keep_missing
         self.keep_updated = keep_updated
         self.remote_key = remote_key
+        self.target_dir = target_dir
 
     def _parse_ignore_data(self, patterns) -> list:
         # e.g. .git,build,dist
@@ -299,8 +301,14 @@ class GenericDirectoryTransporter(object):
         """
         Recursively list the given path.
         Ignore prefixes a and suffixes if they exist.
+        If self.target_dir is specified, then it is
+        prepended to the path before the recursive listing
+        and removed again before compiling the list.
+        It is removed because the target directory does not
+        exist remotely.
 
         """
+        path = path if not self.target_dir else os.path.normpath(f'{self.target_dir}/{path}')
         resources = []
         integrity_reference = None
         debug_step('finding local resources to transfer')
@@ -324,6 +332,8 @@ class GenericDirectoryTransporter(object):
                 target = f'{directory}/{file}'
                 if self.sync_mtime:
                     integrity_reference = str(os.stat(target).st_mtime)
+                if self.target_dir:
+                    target = os.path.normpath(target.replace(f'{self.target_dir}/', ''))
                 resources.append((target, integrity_reference))
         return resources
 
@@ -435,6 +445,7 @@ class GenericDirectoryTransporter(object):
 
         """
         target = os.path.dirname(resource)
+        target = target if not self.target_dir else os.path.normpath(f'{self.target_dir}/{target}')
         if not os.path.lexists(target):
             debug_step(f'creating directory: {target}')
             os.makedirs(target)
@@ -448,6 +459,7 @@ class GenericDirectoryTransporter(object):
             no_print_id=True,
             set_mtime=self.sync_mtime,
             backend=self.remote_key,
+            target_dir=self.target_dir,
         )
         return resource
 
