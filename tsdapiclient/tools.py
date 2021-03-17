@@ -77,10 +77,7 @@ def _check_present(_input, name):
 
 
 def user_agent(name='tsd-api-client'):
-    try:
-        user = os.environ.get('USER')
-    except (Exception, OSError) as e:
-        user = 'not-found'
+    user = os.environ.get('USER', default='not-found')
     hu = hashlib.md5(user.encode('utf-8')).hexdigest()
     return '{0}-{1}-{2}'.format(name, __version__, hu)
 
