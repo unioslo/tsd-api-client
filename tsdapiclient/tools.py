@@ -144,10 +144,10 @@ def _get_system_config_path() -> pathlib.Path:
     elif sys.platform == 'darwin':
         return home_path / 'Library/Application Support'
 
-    xdg_path = os.environ.get('XDG_CONFIG_PATH')
+    xdg_config_home = os.environ.get('XDG_CONFIG_HOME')
 
-    if xdg_path:
-        return pathlib.Path(xdg_path)
+    if xdg_config_home:
+        return pathlib.Path(xdg_config_home)
 
     return home_path / '.config'
 
