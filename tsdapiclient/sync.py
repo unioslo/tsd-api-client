@@ -313,6 +313,8 @@ class GenericDirectoryTransporter(object):
         integrity_reference = None
         debug_step('finding local resources to transfer')
         for directory, subdirectory, files in os.walk(path):
+            if sys.platform == 'win32':
+                directory = directory.replace("\\", "/")
             folder = directory.replace(f'{path}/', '')
             ignore_prefix = False
             for prefix in self.ignore_prefixes:
