@@ -373,7 +373,8 @@ class GenericDirectoryTransporter(object):
                 directory=path,
                 page=next_page,
                 group=self.group,
-                backend=list_funcs[self.remote_key]['backend']
+                backend=list_funcs[self.remote_key]['backend'],
+                per_page=10000, # for better sync performance
             )
             found = out.get('files')
             next_page = out.get('page')
