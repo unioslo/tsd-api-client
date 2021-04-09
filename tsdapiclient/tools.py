@@ -50,16 +50,29 @@ def auth_api_url(env, pnum, auth_method):
         raise e
 
 
-def file_api_url(env, pnum, service, endpoint='', formid='', page=None):
+def file_api_url(
+    env,
+    pnum,
+    service,
+    endpoint='',
+    formid='',
+    page=None,
+    per_page=None,
+):
     try:
         host = HOSTS.get(env)
         if page:
-            return f'https://{host}{page}'
+            url = f'https://{host}{page}'
+            if per_page:
+                url += f'&per_page={per_page}'
+            return url
         if formid:
             endpoint = f'{formid}/{endpoint}'
         url = f'https://{host}/{API_VERSION}/{pnum}/{service}/{endpoint}'
         if url.endswith('/'):
             url = url[:-1]
+        if per_page:
+            url += f'?per_page={per_page}'
         return url
     except (AssertionError, Exception) as e:
         raise e

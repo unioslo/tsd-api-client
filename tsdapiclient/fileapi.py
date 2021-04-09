@@ -203,7 +203,8 @@ def import_list(
     session=requests,
     directory=None,
     page=None,
-    group=None
+    group=None,
+    per_page=None,
 ):
     """
     Get the list of files in the import direcctory, for a given group.
@@ -226,7 +227,7 @@ def import_list(
     """
     resource = f'/{directory}' if directory else ''
     endpoint=f"stream/{group}{resource}"
-    url = f'{file_api_url(env, pnum, backend, endpoint=endpoint , page=page)}'
+    url = f'{file_api_url(env, pnum, backend, endpoint=endpoint , page=page, per_page=per_page)}'
     headers = {'Authorization': 'Bearer {0}'.format(token)}
     debug_step(f'listing resources at {url}')
     resp = session.get(url, headers=headers)
@@ -246,9 +247,10 @@ def survey_list(
     directory=None,
     page=None,
     group=None,
+    per_page=None,
 ):
     endpoint=f"{directory}/attachments"
-    url = f'{file_api_url(env, pnum, backend, endpoint=endpoint, page=page)}'
+    url = f'{file_api_url(env, pnum, backend, endpoint=endpoint, page=page, per_page=per_page)}'
     headers = {'Authorization': 'Bearer {0}'.format(token)}
     debug_step(f'listing resources at {url}')
     resp = session.get(url, headers=headers)
@@ -303,7 +305,8 @@ def export_list(
     session=requests,
     directory=None,
     page=None,
-    group=None
+    group=None,
+    per_page=None,
 ):
     """
     Get the list of files available for export.
@@ -326,7 +329,7 @@ def export_list(
     """
     resource = f'/{directory}' if directory else ''
     endpoint = f'export{resource}'
-    url = f'{file_api_url(env, pnum, backend, endpoint=endpoint, page=page)}'
+    url = f'{file_api_url(env, pnum, backend, endpoint=endpoint, page=page, per_page=per_page)}'
     headers = {'Authorization': 'Bearer {0}'.format(token)}
     debug_step(f'listing resources at {url}')
     resp = session.get(url, headers=headers)
