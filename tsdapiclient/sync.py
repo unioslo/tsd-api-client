@@ -424,6 +424,9 @@ class GenericDirectoryTransporter(object):
         size of the $CHUNK_THRESHOLD.
 
         """
+        if not os.path.lexists(resource):
+            print(f'WARNING: could not find {resource} on local disk')
+            return resource
         if os.stat(resource).st_size > CHUNK_THRESHOLD:
             resp = initiate_resumable(
                 self.env, self.pnum, resource, self.token, chunksize=CHUNK_SIZE,
