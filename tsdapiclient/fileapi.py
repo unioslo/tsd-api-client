@@ -4,12 +4,15 @@
 import hashlib
 import json
 import os
+
 from functools import cmp_to_key
+from typing import Optional, Union, Any
 from urllib.parse import quote, unquote
 
 import humanfriendly
 import humanfriendly.tables
 import requests
+
 from progress.bar import Bar
 
 from tsdapiclient.client_config import ENV, API_VERSION
@@ -17,7 +20,7 @@ from tsdapiclient.tools import (handle_request_errors, debug_step,
                                 HELP_URL, file_api_url, HOSTS)
 
 
-def _init_progress_bar(current_chunk, chunksize, filename):
+def _init_progress_bar(current_chunk: int, chunksize: int, filename: str) -> Bar:
     # this is an approximation, better than nothing
     fsize = os.stat(filename).st_size
     num_chunks = fsize / chunksize
@@ -28,11 +31,16 @@ def _init_progress_bar(current_chunk, chunksize, filename):
         f'{filename}',
         index=current_chunk,
         max=num_chunks,
-        suffix='%(percent)d%%'
+        suffix='%(percent)d%%',
     )
 
 
-def _init_export_progress_bar(filename, current_file_size, total_file_size, chunksize):
+def _init_export_progress_bar(
+    filename: str,
+    current_file_size: int,
+    total_file_size: int,
+    chunksize: int,
+) -> Bar:
     try:
         if current_file_size is not None:
             if chunksize < current_file_size:
@@ -58,11 +66,11 @@ def _init_export_progress_bar(filename, current_file_size, total_file_size, chun
     return Bar(f'{filename}', index=index, max=_max, suffix='%(percent)d%%')
 
 
-def format_filename(filename):
+def format_filename(filename: str) -> str:
     return os.path.basename(filename)
 
 
-def upload_resource_name(filename, is_dir, group=None):
+def upload_resource_name(filename: str, is_dir: bool, group: Optional[str] = None) -> str:
     if not is_dir:
         debug_step('uploading file')
         resource = quote(format_filename(filename))
@@ -77,14 +85,14 @@ def upload_resource_name(filename, is_dir, group=None):
 
 
 def lazy_reader(
-    filename,
-    chunksize,
-    previous_offset=None,
-    next_offset=None,
-    verify=None,
-    server_chunk_md5=None,
-    with_progress=False
-):
+    filename: str,
+    chunksize: int,
+    previous_offset: Optional[int] = None,
+    next_offset: Optional[int] = None,
+    verify: bool = False,
+    server_chunk_md5: Optional[str] = None,
+    with_progress: bool = False,
+) -> bytes:
     debug_step(f'reading file: {filename}')
     with open(filename, 'rb') as f:
         if verify:
@@ -118,52 +126,36 @@ def lazy_reader(
                 debug_step('chunk read complete')
                 yield data
 
-
-def lazy_stdin_handler(fileinput, chunksize):
-    while True:
-        chunk = fileinput.read(chunksize)
-        if not chunk:
-            break
-        else:
-            yield chunk
-
-
 @handle_request_errors
 def streamfile(
-    env,
-    pnum,
-    filename,
-    token,
-    chunksize=4096,
-    group=None,
-    backend='files',
-    is_dir=False,
-    session=requests,
-    set_mtime=False
-):
+    env: str,
+    pnum: str,
+    filename: str,
+    token: str,
+    chunksize: int = 4096,
+    group: Optional[str] = None,
+    backend: str = 'files',
+    is_dir: bool = False,
+    session: Any = requests,
+    set_mtime: bool = False,
+) -> requests.Response:
     """
     Idempotent, lazy data upload from files.
 
     Parameters
     ----------
-    env: str - 'test' or 'prod'
-    pnum: str - project number
+    env: 'test', 'prod', or 'alt'
+    pnum: project number
     filename: path to file
     token: JWT
     chunksize: bytes to read per chunk
-    custom_headers: header controlling API data processing
     group: name of file group which should own upload
     backend: which API backend to send data to
-    is_dir: bool, True if uploading a directory of files,
+    is_dir: True if uploading a directory of files,
             will create a different URL structure
-    session: requests.session, optional
-    set_mtime: bool, default False, if True send information
-               about the file's client-side mtime, asking the server
-               to set it remotely
-
-    Returns
-    -------
-    requests.response
+    session: e.g. requests.session
+    set_mtime: if True send information about the file's client-side mtime,
+               asking the server to set it remotely
 
     """
     resource = upload_resource_name(filename, is_dir, group=group)
@@ -183,7 +175,7 @@ def streamfile(
     return resp
 
 
-def print_export_list(data):
+def print_export_list(data: dict) -> None:
     colnames = ['Filename', 'Owner', 'Modified', 'Size', 'Type', 'Exportable']
     values = []
     for entry in data['files']:
@@ -196,33 +188,30 @@ def print_export_list(data):
 
 @handle_request_errors
 def import_list(
-    env,
-    pnum,
-    token,
-    backend='files',
-    session=requests,
-    directory=None,
-    page=None,
-    group=None,
-    per_page=None,
-):
+    env: str,
+    pnum: str,
+    token: str,
+    backend: str = 'files',
+    session: Any = requests,
+    directory: Optional[str] = None,
+    page: Optional[str] = None,
+    group: Optional[str] = None,
+    per_page: Optional[int] = None,
+) -> dict:
     """
     Get the list of files in the import direcctory, for a given group.
 
     Parameters
     ----------
-    env: str, 'test' or 'prod'
-    pnum: str, project number
+    env: 'test', 'prod', or 'alt'
+    pnum:project number
     token: JWT
-    backend: str, API backend
-    session: requests.session, optional
-    directory: str, name, optional
-    page: str (url) next page to list
+    backend: API backend
+    session: requests.session
+    directory: name
+    page: (url) next page to list
     group: group owner of the upload
-
-    Returns
-    -------
-    str
+    per_page: number of files to list per page
 
     """
     resource = f'/{directory}' if directory else ''
@@ -239,16 +228,32 @@ def import_list(
 
 @handle_request_errors
 def survey_list(
-    env,
-    pnum,
-    token,
-    backend=None,
-    session=requests,
-    directory=None,
-    page=None,
-    group=None,
-    per_page=None,
-):
+    env: str,
+    pnum: str,
+    token: str,
+    backend: str = 'survey',
+    session: Any = requests,
+    directory: Optional[str] = None,
+    page: Optional[str] = None,
+    group: Optional[str] = None,
+    per_page: Optional[int] = None,
+) -> dict:
+    """
+    Get the list of attachments in the survey API.
+
+    Parameters
+    ----------
+    env: 'test', 'prod', or 'alt'
+    pnum:project number
+    token: JWT
+    backend: API backend: survey
+    session: requests.session
+    directory: form id
+    page: (url) next page to list
+    group: group owner - not relevant here
+    per_page: number of files to list per page
+
+    """
     endpoint=f"{directory}/attachments"
     url = f'{file_api_url(env, pnum, backend, endpoint=endpoint, page=page, per_page=per_page)}'
     headers = {'Authorization': 'Bearer {0}'.format(token)}
@@ -263,13 +268,13 @@ def survey_list(
 
 @handle_request_errors
 def import_delete(
-    env,
-    pnum,
-    token,
-    filename,
-    session=requests,
-    group=None
-):
+    env: str,
+    pnum: str,
+    token: str,
+    filename: str,
+    session: Any = requests,
+    group: Optional[str] = None,
+) -> requests.Response:
     endpoint = f'stream/{group}/{filename}'
     url = f'{file_api_url(env, pnum, "files", endpoint=endpoint)}'
     headers = {'Authorization': 'Bearer {0}'.format(token)}
@@ -280,13 +285,13 @@ def import_delete(
 
 @handle_request_errors
 def export_delete(
-    env,
-    pnum,
-    token,
-    filename,
-    session=requests,
-    group=None
-):
+    env: str,
+    pnum: str,
+    token: str,
+    filename: str,
+    session: Any = requests,
+    group: Optional[str] = None,
+) -> requests.Response:
     endpoint = f'export/{filename}'
     url = f'{file_api_url(env, pnum, "files", endpoint=endpoint)}'
     headers = {'Authorization': 'Bearer {0}'.format(token)}
@@ -298,33 +303,30 @@ def export_delete(
 
 @handle_request_errors
 def export_list(
-    env,
-    pnum,
-    token,
-    backend='files',
-    session=requests,
-    directory=None,
-    page=None,
-    group=None,
-    per_page=None,
-):
+    env: str,
+    pnum: str,
+    token: str,
+    backend: str = 'files',
+    session: Any = requests,
+    directory: Optional[str] = None,
+    page: Optional[str] = None,
+    group: Optional[str] = None,
+    per_page: Optional[int] = None,
+) -> dict:
     """
     Get the list of files available for export.
 
     Parameters
     ----------
-    env: str, 'test' or 'prod'
-    pnum: str, project number
+    env: 'test' or 'prod', or 'alt'
+    pnum: project number
     token: JWT
-    backend: str, API backend
-    session: requests.session, optional
-    directory: str, name, optional
-    page: str (url) next page to list
+    backend: API backend
+    session: requests.session
+    directory: name
+    page: url, next page to list
     group: irrelevant for exports (present for compatibility with import_list signature)
-
-    Returns
-    -------
-    str
+    per_page: number of files to list per page
 
     """
     resource = f'/{directory}' if directory else ''
@@ -341,13 +343,13 @@ def export_list(
 
 @handle_request_errors
 def export_head(
-    env,
-    pnum,
-    filename,
-    token,
-    backend='files',
-    session=requests
-):
+    env: str,
+    pnum: str,
+    filename: str,
+    token: str,
+    backend: str = 'files',
+    session: Any = requests,
+) -> requests.Response:
     headers = {'Authorization': 'Bearer {0}'.format(token)}
     endpoint = f'export/{filename}'
     url = f'{file_api_url(env, pnum, backend, endpoint=endpoint)}'
@@ -357,39 +359,38 @@ def export_head(
 
 @handle_request_errors
 def export_get(
-    env,
-    pnum,
-    filename,
-    token,
-    chunksize=4096,
-    etag=None,
-    dev_url=None,
-    backend='files',
-    session=requests,
-    no_print_id=False,
-    set_mtime=False,
-    nobar=False,
-    target_dir=None,
-):
+    env: str,
+    pnum: str,
+    filename: str,
+    token: str,
+    chunksize: int = 4096,
+    etag: Optional[str] = None,
+    dev_url: Optional[str] = None,
+    backend: str = 'files',
+    session: Any = requests,
+    no_print_id: bool = False,
+    set_mtime: bool = False,
+    nobar: bool = False,
+    target_dir: Optional[str] = None,
+) -> str:
     """
     Download a file to the current directory.
 
     Parameters
     ----------
-    env: str, 'test' or 'prod'
-    pnum: str, project number
-    filename: str
-    token: str, JWT
-    chunksize: int, bytes per iteration
-    etag: str, content reference for remote resource
+    env: 'test' or 'prod', or 'alt'
+    pnum: project number
+    filename: filename to download
+    token: JWT
+    chunksize: bytes per iteration
+    etag: content reference for remote resource
     dev_url: development url
-    backend: str, API backend
-    session: requests.session, optional
-    no_print_id: bool, supress printing the download id, optional
-
-    Returns
-    -------
-    str
+    backend: API backend
+    session: requests.session
+    no_print_id: supress printing the download id
+    set_mtime: set local file mtime to be the same as remote resource
+    nobar: disable the progress bar
+    target_dir: where to save the file locally
 
     """
     filemode = 'wb'
@@ -460,14 +461,14 @@ def export_get(
 
 
 def _resumable_url(
-    env,
-    pnum,
-    filename,
-    dev_url=None,
-    backend='files',
-    is_dir=False,
-    group=None
-):
+    env: str,
+    pnum: str,
+    filename: str,
+    dev_url: Optional[str] = None,
+    backend: str = 'files',
+    is_dir: bool = False,
+    group: Optional[str] = None,
+) -> str:
     resource = upload_resource_name(filename, is_dir, group=group)
     if not dev_url:
         endpoint = f'stream/{resource}'
@@ -477,7 +478,7 @@ def _resumable_url(
     return url
 
 
-def _resumable_key(is_dir, filename):
+def _resumable_key(is_dir: bool, filename: str) -> str:
     if not is_dir:
         key = None
     elif is_dir:
@@ -486,7 +487,7 @@ def _resumable_key(is_dir, filename):
     return key
 
 
-def resumables_cmp(a, b):
+def resumables_cmp(a: dict, b: dict) -> int:
     a = a['next_offset']
     b = b['next_offset']
     if a < b:
@@ -497,7 +498,11 @@ def resumables_cmp(a, b):
         return -1
 
 
-def print_resumables_list(data, filename=None, upload_id=None):
+def print_resumables_list(
+    data: dict,
+    filename: Optional[str] = None,
+    upload_id: Optional[str] = None,
+) -> None:
     if filename and upload_id:
         pass # not implemented
     else:
@@ -514,33 +519,33 @@ def print_resumables_list(data, filename=None, upload_id=None):
 
 @handle_request_errors
 def get_resumable(
-    env,
-    pnum,
-    token,
-    filename=None,
-    upload_id=None,
-    dev_url=None,
-    backend='files',
-    is_dir=False,
-    key=None,
-    session=requests
-):
+    env: str,
+    pnum: str,
+    token: str,
+    filename: Optional[str] = None,
+    upload_id: Optional[str] = None,
+    dev_url: Optional[str] = None,
+    backend: str = 'files',
+    is_dir: bool = False,
+    key: Optional[str] = None,
+    session: Any = requests,
+) -> dict:
     """
     List uploads which can be resumed.
 
     Parameters
     ----------
-    env: str, 'test' or 'prod'
-    pnum: str, project number
-    token: str, JWT
-    filename: str, path
-    upload_id: str, uuid identifying a specific upload to resume
-    dev_url: str, development URL
-    backend: str, API backend
-    is_dir: bool, True if uploading a directory of files,
+    env: 'test' or 'prod'
+    pnum: project number
+    token: JWT
+    filename: path
+    upload_id: uuid identifying a specific upload to resume
+    dev_url: development URL
+    backend: API backend
+    is_dir: True if uploading a directory of files,
             will create a different URL structure
-    key: str, resumable key (direcctory path)
-    session:  requests.session, optional
+    key: resumable key (direcctory path)
+    session: requests.session, optional
 
     Returns
     -------
@@ -565,50 +570,46 @@ def get_resumable(
 
 
 def initiate_resumable(
-    env,
-    pnum,
-    filename,
-    token,
-    chunksize=None,
-    new=None,
-    group=None,
-    verify=False,
-    upload_id=None,
-    dev_url=None,
-    stop_at=None,
-    backend='files',
-    is_dir=False,
-    session=requests,
-    set_mtime=False
-):
+    env: str,
+    pnum: str,
+    filename: str,
+    token: str,
+    chunksize: Optional[int] = None,
+    new: bool = False,
+    group: Optional[str] = None,
+    verify: bool = False,
+    upload_id: Optional[str] = None,
+    dev_url: Optional[str] = None,
+    stop_at: Optional[int] = None,
+    backend: str = 'files',
+    is_dir: bool = False,
+    session: Any = requests,
+    set_mtime: bool = False,
+) -> dict:
     """
     Performs a resumable upload, either by resuming a broken one,
     or by starting a new one.
 
     Parameters
     ----------
-    env: str, 'test' or 'prod'
-    pnum: str, project numnber
-    filename: str
-    token: str, JWT
-    chunksize: int, user specified chunkszie in bytes
-    new: boolean, flag to enable resume
-    group: str, group owner after upload
-    verify: boolean, verify md5 chunk integrity before resume
-    upload_id: str
-    dev_url: str, pass a complete url (useful for development)
-    stop_at: int, chunk number at which to stop upload (useful for development)
-    backend: str, API backend
+    env: 'test' or 'prod'
+    pnum: project numnber
+    filename: filename
+    token: JWT
+    chunksize: user specified chunkszie in bytes
+    new: flag to enable resume
+    group: group owner after upload
+    verify: verify md5 chunk integrity before resume
+    upload_id: identifies the resumable
+    dev_url: pass a complete url (useful for development)
+    stop_at: chunk number at which to stop upload (useful for development)
+    backend: API backend
     is_dir: bool, True if uploading a directory of files,
             will create a different URL structure
-    session:  requests.session, optional
-    set_mtime: bool, default False, if True send information
+    session:  requests.session
+    set_mtime: if True send information
                about the file's client-side mtime, asking the server
                to set it remotely
-
-    Returns
-    -------
-    dict
 
     """
     to_resume = False
@@ -644,12 +645,12 @@ def initiate_resumable(
 
 @handle_request_errors
 def _complete_resumable(
-    filename,
-    token,
-    url,
-    bar,
-    session=requests,
-    mtime=None
+    filename: str,
+    token: str,
+    url: str,
+    bar: Bar,
+    session: Any = requests,
+    mtime: Optional[int] = None,
 ):
     headers = {'Authorization': 'Bearer {0}'.format(token)}
     if mtime:
@@ -664,44 +665,40 @@ def _complete_resumable(
 
 @handle_request_errors
 def start_resumable(
-    env,
-    pnum,
-    filename,
-    token,
-    chunksize,
-    group=None,
-    dev_url=None,
-    stop_at=None,
-    backend='files',
-    is_dir=False,
-    session=requests,
-    set_mtime=False
-):
+    env: str,
+    pnum: str,
+    filename: str,
+    token: str,
+    chunksize: int,
+    group: Optional[str] = None,
+    dev_url: Optional[str] = None,
+    stop_at: Optional[int] = None,
+    backend: str = 'files',
+    is_dir: bool = False,
+    session: Any = requests,
+    set_mtime: bool = False,
+) -> dict:
     """
     Start a new resumable upload, reding a file, chunk-by-chunk
     and performaing a PATCH request per chunk.
 
     Parameters
     ----------
-    env: str, 'test' or 'prod'
-    pnum: str, project number
-    filename: str, filename
-    token: str, JWT
-    chunksize: int, number of bytes to read and send per request
-    group: str, group which should own the file
-    dev_url: str, pass a complete url (useful for development)
-    stop_at: int, chunk number at which to stop upload (useful for development)
-    backend: str, API backend
-    is_dir: bool, True if uploading a directory of files,
+    env: 'test' or 'prod'
+    pnum: project number
+    filename: filename
+    token: JWT
+    chunksize: number of bytes to read and send per request
+    group: group which should own the file
+    dev_url: pass a complete url (useful for development)
+    stop_at: chunk number at which to stop upload (useful for development)
+    backend: API backend
+    is_dir: True if uploading a directory of files,
             will create a different URL structure
-    session:  requests.session, optional
-    set_mtime: bool, default False, if True send information
+    session:  requests.session
+    set_mtime: default False, if True send information
                about the file's client-side mtime, asking the server
                to set it remotely
-
-    Returns
-    -------
-    dict
 
     """
     url = _resumable_url(env, pnum, filename, dev_url, backend, is_dir, group=group)
@@ -741,19 +738,19 @@ def start_resumable(
 
 @handle_request_errors
 def continue_resumable(
-    env,
-    pnum,
-    filename,
-    token,
-    to_resume,
-    group=None,
-    verify=False,
-    dev_url=None,
-    backend='files',
-    is_dir=False,
-    session=requests,
-    set_mtime=False
-):
+    env: str,
+    pnum: str,
+    filename: str,
+    token: str,
+    to_resume: str,
+    group: Optional[str] = None,
+    verify: bool = False,
+    dev_url: Optional[str] = None,
+    backend: str = 'files',
+    is_dir: bool = False,
+    session: Any = requests,
+    set_mtime: bool = False,
+) -> dict:
     """
     Continue a resumable upload, reding a file, from the
     appopriate byte offset, chunk-by-chunk and performaing
@@ -762,25 +759,21 @@ def continue_resumable(
 
     Parameters
     ----------
-    env: str, 'test' or 'prod'
-    pnum: str, project number
-    filename: str, filename
-    token: str, JWT
-    chunksize: int, number of bytes to read and send per request
-    group: str, group which should own the file
-    verify: bool, if True then last chunk md5 is checked between client and server
-    dev_url: str, pass a complete url (useful for development)
-    backend: str, API backend
-    is_dir: bool, True if uploading a directory of files,
+    env: 'test' or 'prod'
+    pnum: project number
+    filename: filename
+    token: JWT
+    chunksize: number of bytes to read and send per request
+    group: group which should own the file
+    verify: if True then last chunk md5 is checked between client and server
+    dev_url: pass a complete url (useful for development)
+    backend: API backend
+    is_dir: True if uploading a directory of files,
             will create a different URL structure
     session:  requests.session, optional
-    set_mtime: bool, default False, if True send information
+    set_mtime: default False, if True send information
                about the file's client-side mtime, asking the server
                to set it remotely
-
-    Returns
-    -------
-    dict
 
     """
     url = _resumable_url(env, pnum, filename, dev_url, backend, is_dir, group=group)
@@ -818,28 +811,28 @@ def continue_resumable(
 
 @handle_request_errors
 def delete_resumable(
-    env,
-    pnum,
-    token,
-    filename,
-    upload_id,
-    dev_url=None,
-    backend='files',
-    session=requests
-):
+    env: str,
+    pnum: str,
+    token: str,
+    filename: str,
+    upload_id: str,
+    dev_url: Optional[str] = None,
+    backend: str = 'files',
+    session: Any = requests,
+) -> dict:
     """
     Delete a specific incomplete resumable.
 
     Parameters
     ----------
-    env: str, 'test' or 'prod'
-    pnum: str, project number
-    token: str, JWT
-    filename: str, filename
-    upload_id: str, uuid
-    dev_url: str, pass a complete url (useful for development)
-    backend: str, API backend
-    session:  requests.session, optional
+    env: 'test' or 'prod'
+    pnum: project number
+    token: JWT
+    filename: filename
+    upload_id: uuid
+    dev_url: pass a complete url (useful for development)
+    backend: API backend
+    session: requests.session, optional
 
     Returns
     -------
@@ -860,23 +853,23 @@ def delete_resumable(
 
 
 def delete_all_resumables(
-    env,
-    pnum,
-    token,
-    dev_url=None,
-    backend='files',
-    session=requests
+    env: str,
+    pnum: str,
+    token: str,
+    dev_url: Optional[str] = None,
+    backend: str = 'files',
+    session: Any = requests,
 ):
     """
     Delete all incomplete resumables.
 
     Parameters
     ----------
-    env: str, 'test' or 'prod'
-    pnum: str, project number
-    token: str, JWT
-    dev_url: str, pass a complete url (useful for development)
-    backend: str, API backend
+    env: 'test' or 'prod'
+    pnum: project number
+    token: JWT
+    dev_url: pass a complete url (useful for development)
+    backend: API backend
     session:  requests.session, optional
 
     Returns

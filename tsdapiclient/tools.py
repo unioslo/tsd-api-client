@@ -9,7 +9,9 @@ import pathlib
 import socket
 import sys
 import time
+
 from functools import wraps
+from typing import Optional, Callable, Any
 
 import click
 
@@ -28,7 +30,7 @@ HOSTS = {
     'int': 'internal.api.tsd.usit.no',
 }
 
-def auth_api_url(env, pnum, auth_method):
+def auth_api_url(env: str, pnum: str, auth_method: str) -> str:
     endpoints = {
         'default': {
             'basic': f'{pnum}/auth/basic/token',
@@ -51,14 +53,14 @@ def auth_api_url(env, pnum, auth_method):
 
 
 def file_api_url(
-    env,
-    pnum,
-    service,
-    endpoint='',
-    formid='',
-    page=None,
-    per_page=None,
-):
+    env: str,
+    pnum: str,
+    service: str,
+    endpoint: str = '',
+    formid: str = '',
+    page: Optional[str] = None,
+    per_page: Optional[int] = None,
+) -> str:
     try:
         host = HOSTS.get(env)
         if page:
@@ -78,30 +80,30 @@ def file_api_url(
         raise e
 
 
-def debug_step(step):
+def debug_step(step: str) -> None:
     if os.getenv('DEBUG'):
         click.echo(click.style(f'\nDEBUG {step}', fg='yellow'))
 
 
-def _check_present(_input, name):
+def _check_present(_input: str, name: str) -> None:
     if not _input:
         print('missing {0}'.format(name))
         sys.exit(1)
 
 
-def user_agent(name='tsd-api-client'):
+def user_agent(name: str = 'tsd-api-client') -> str:
     user = os.environ.get('USER', default='not-found')
     hu = hashlib.md5(user.encode('utf-8')).hexdigest()
     return '{0}-{1}-{2}'.format(name, __version__, hu)
 
 
-def b64_padder(payload):
+def b64_padder(payload: str) -> str:
     if payload is not None:
         payload += '=' * (-len(payload) % 4)
         return payload
 
 
-def check_if_key_has_expired(key, when=int(time.time())):
+def check_if_key_has_expired(key: str, when: int = int(time.time())) -> bool:
     try:
         enc_claim_text = key.split('.')[1]
         dec_claim_text = base64.b64decode(b64_padder(enc_claim_text))
@@ -114,7 +116,7 @@ def check_if_key_has_expired(key, when=int(time.time())):
     except Exception:
         return None
 
-def check_if_exp_is_within_range(key, lower, upper):
+def check_if_exp_is_within_range(key: str, lower: int, upper: int) -> bool:
     try:
         enc_claim_text = key.split('.')[1]
         dec_claim_text = base64.b64decode(b64_padder(enc_claim_text))
@@ -127,7 +129,7 @@ def check_if_exp_is_within_range(key, lower, upper):
     except Exception:
         return None
 
-def handle_request_errors(f):
+def handle_request_errors(f: Callable) -> Any:
     @wraps(f)
     def decorator(*args, **kwargs):
         try:
