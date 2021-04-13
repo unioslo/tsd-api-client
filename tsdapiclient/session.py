@@ -11,10 +11,10 @@ from tsdapiclient.tools import (check_if_exp_is_within_range,
 
 SESSION_STORE = get_config_path() + '/session'
 
-def session_file_exists():
+def session_file_exists() -> bool:
     return False if not os.path.lexists(SESSION_STORE) else True
 
-def session_is_expired(env, pnum, token_type):
+def session_is_expired(env: str, pnum: str, token_type: str) -> bool:
     if not session_file_exists():
         return True
     token = session_token(env, pnum, token_type)
@@ -28,7 +28,7 @@ def session_is_expired(env, pnum, token_type):
         debug_step('session has not expired')
         return False
 
-def session_expires_soon(env, pnum, token_type, minutes=10):
+def session_expires_soon(env: str, pnum: str, token_type: str, minutes: int = 10) -> bool:
     if not session_file_exists():
         return None
     token = session_token(env, pnum, token_type)
@@ -44,7 +44,7 @@ def session_expires_soon(env, pnum, token_type, minutes=10):
         debug_step('session will not expire soon')
         return False
 
-def session_update(env, pnum, token_type, token):
+def session_update(env: str, pnum: str, token_type: str, token: str) -> None:
     if not session_file_exists():
         debug_step('creating new tacl session')
         data = {'prod': {}, 'alt': {}, 'test': {}}
@@ -60,12 +60,12 @@ def session_update(env, pnum, token_type, token):
     with open(SESSION_STORE, 'w') as f:
         f.write(yaml.dump(data, Dumper=yaml.Dumper))
 
-def session_token(env, pnum, token_type):
+def session_token(env: str, pnum: str, token_type: str) -> str:
     with open(SESSION_STORE, 'r') as f:
         data = yaml.load(f, Loader=yaml.Loader)
     return data.get(env, {}).get(pnum, {}).get(token_type)
 
-def session_clear():
+def session_clear() -> None:
     data = {'prod': {}, 'alt': {}, 'test': {}}
     with open(SESSION_STORE, 'w') as f:
         f.write(yaml.dump(data, Dumper=yaml.Dumper))

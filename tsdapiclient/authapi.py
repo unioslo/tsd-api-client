@@ -4,11 +4,18 @@
 import json
 import requests
 
+from typing import Optional
+
 from tsdapiclient.client_config import ENV
 from tsdapiclient.tools import handle_request_errors, auth_api_url
 
 @handle_request_errors
-def get_jwt_basic_auth(env, pnum, api_key, token_type='import'):
+def get_jwt_basic_auth(
+    env: str,
+    pnum: str,
+    api_key: str,
+    token_type: str = 'import',
+) -> Optional[str]:
     headers = {
         'Content-Type': 'application/json',
         'Authorization': f'Bearer {api_key}'
@@ -26,22 +33,22 @@ def get_jwt_basic_auth(env, pnum, api_key, token_type='import'):
 
 @handle_request_errors
 def get_jwt_tsd_auth(
-    env,
-    pnum,
-    api_key,
-    user_name,
-    password,
-    otp,
-    token_type
-):
+    env: str,
+    pnum: str,
+    api_key: str,
+    user_name: str,
+    password: str,
+    otp: str,
+    token_type: str,
+) -> Optional[str]:
     headers = {
         'Content-Type': 'application/json',
-        'Authorization': f'Bearer {api_key}'
+        'Authorization': f'Bearer {api_key}',
     }
     data = {
         'user_name': user_name,
         'password': password,
-        'otp': otp
+        'otp': otp,
     }
     url = f'{auth_api_url(env, pnum, "tsd")}?type={token_type}'
     try:

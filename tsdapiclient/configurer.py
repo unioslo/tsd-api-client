@@ -11,7 +11,7 @@ from tsdapiclient.tools import get_config_path
 TACL_CONFIG = get_config_path() + '/config'
 
 
-def read_config(filename=TACL_CONFIG):
+def read_config(filename: str = TACL_CONFIG) -> dict:
     try:
         with open(filename, 'r') as f:
             config = yaml.load(f, Loader=yaml.Loader)
@@ -20,12 +20,12 @@ def read_config(filename=TACL_CONFIG):
         return None
 
 
-def write_config(data, filename=TACL_CONFIG):
+def write_config(data: dict, filename: str = TACL_CONFIG) -> None:
     with open(filename, 'w') as f:
         f.write(yaml.dump(data, Dumper=yaml.Dumper))
 
 
-def update_config(env, key, val):
+def update_config(env: str, key: str, val: str) -> None:
     if env not in ['test', 'prod', 'alt']:
         raise Exception('Unrecognised environment: {0}'.format(env))
     try:
@@ -64,7 +64,7 @@ def update_config(env, key, val):
         new_config = {}
         write_config(new_config)
 
-def print_config(filename=TACL_CONFIG):
+def print_config(filename: str = TACL_CONFIG) -> None:
     try:
         with open(filename, 'r') as f:
             cf = f.read()
@@ -72,14 +72,14 @@ def print_config(filename=TACL_CONFIG):
     except FileNotFoundError:
         print("No config found")
 
-def delete_config(filename=TACL_CONFIG):
+def delete_config(filename: str = TACL_CONFIG) -> None:
     try:
         with open(filename, 'w+') as f:
             f.write(yaml.dump({'test': {}, 'prod': {}, 'alt': {}}, Dumper=yaml.Dumper))
     except FileNotFoundError:
         print("No config found")
 
-def print_config_tsd_2fa_key(env, pnum):
+def print_config_tsd_2fa_key(env: str, pnum: str) -> None:
     try:
         with open(TACL_CONFIG, 'r') as f:
             cf = yaml.load(f, Loader=yaml.Loader)

@@ -66,7 +66,7 @@ GUIDES = {
     'sync': sync
 }
 
-def print_version_info():
+def print_version_info() -> None:
     version_text = """\
         tacl v{version}
         - OS/Arch: {os}/{arch}
@@ -80,15 +80,15 @@ def print_version_info():
     print(dedent(version_text))
 
 
-def get_api_envs(ctx, args, incomplete):
+def get_api_envs(ctx: str, args: list, incomplete: str) -> list:
     return [k for k, v in API_ENVS.items() if incomplete in k]
 
 
-def get_guide_options(ctx, args, incomplete):
+def get_guide_options(ctx: str, args: list, incomplete: str) -> list:
     return [k for k,v in GUIDES.items() if incomplete in k]
 
 
-def get_dir_contents(ctx, args, incomplete):
+def get_dir_contents(ctx: str, args: list, incomplete: str) -> list:
     sep = os.path.sep
     if os.path.lexists(incomplete):
         if os.path.isdir(incomplete):
@@ -121,14 +121,14 @@ def get_dir_contents(ctx, args, incomplete):
                 return [f'{base}{sep}{entry}' for entry in sorted(os.listdir(base)) if entry.startswith(fragment)]
 
 
-def get_user_credentials():
+def get_user_credentials() -> tuple:
     username = input('username > ')
     password = getpass.getpass('password > ')
     otp = input('one time code > ')
     return username, password, otp
 
 
-def get_api_key(env, pnum):
+def get_api_key(env: str, pnum: str) -> str:
     config = read_config()
     if not config:
         print('client not registered')
@@ -148,7 +148,7 @@ def get_api_key(env, pnum):
     return api_key
 
 
-def check_api_connection(env):
+def check_api_connection(env: str) -> None:
     if os.getenv("HTTPS_PROXY"):
         debug_step('skipping connection test as a proxy is set')
         return
@@ -161,7 +161,7 @@ def check_api_connection(env):
         )
 
 
-def construct_correct_upload_path(path):
+def construct_correct_upload_path(path: str) -> str:
     if path.startswith('../'):
         return os.path.abspath(path)
     elif path.startswith('~/'):
@@ -383,42 +383,42 @@ def construct_correct_upload_path(path):
     help='Pass an explicit API key - over-rides tacl config'
 )
 def cli(
-    pnum,
-    guide,
-    env,
-    group,
-    basic,
-    upload,
-    upload_id,
-    resume_list,
-    resume_delete,
-    resume_delete_all,
-    download,
-    download_id,
-    download_list,
-    version,
-    verbose,
-    config_show,
-    config_delete,
-    session_delete,
-    register,
-    ignore_prefixes,
-    ignore_suffixes,
-    upload_cache_show,
-    upload_cache_delete,
-    upload_cache_delete_all,
-    cache_disable,
-    download_cache_show,
-    download_cache_delete,
-    download_cache_delete_all,
-    upload_sync,
-    download_sync,
-    cache_sync,
-    keep_missing,
-    keep_updated,
-    download_delete,
-    api_key,
-):
+    pnum: str,
+    guide: str,
+    env: str,
+    group: str,
+    basic: bool,
+    upload: str,
+    upload_id: str,
+    resume_list: bool,
+    resume_delete: str,
+    resume_delete_all: bool,
+    download: str,
+    download_id: str,
+    download_list: bool,
+    version: bool,
+    verbose: bool,
+    config_show: bool,
+    config_delete: bool,
+    session_delete: bool,
+    register: bool,
+    ignore_prefixes: str,
+    ignore_suffixes: str,
+    upload_cache_show: bool,
+    upload_cache_delete: str,
+    upload_cache_delete_all: bool,
+    cache_disable: bool,
+    download_cache_show: str,
+    download_cache_delete: str,
+    download_cache_delete_all: bool,
+    upload_sync: str,
+    download_sync: str,
+    cache_sync: bool,
+    keep_missing: bool,
+    keep_updated: bool,
+    download_delete: str,
+    api_key: str,
+) -> None:
     """tacl - TSD API client."""
     token = None
     if verbose:
