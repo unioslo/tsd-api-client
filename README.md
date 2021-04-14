@@ -1,6 +1,6 @@
 ## TSD API Client
 
-Command-line client for the TSD File API.
+Transport files and directories, no limits on size or amount, resumable by default, synchronise if needed.
 
 ## Install
 
