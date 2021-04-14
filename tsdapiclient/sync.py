@@ -513,8 +513,8 @@ class GenericDirectoryTransporter(object):
 
         For example, given two sets of filenames, and modified times (higher == more recent):
 
-        source = {               ('file1', 10), ('file2', 20), ('file3', 13), ('file4', 89)}
-        target = {('file0', 32), ('file1', 10), ('file2', 10), ('file3', 15)               }
+        source = {               ('file1', 10), ('file2', 20), ('file3', 15), ('file4', 89)}
+        target = {('file0', 32), ('file1', 10), ('file2', 10), ('file3', 13)               }
 
         The default return values will be:
 
