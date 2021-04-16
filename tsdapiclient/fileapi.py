@@ -650,7 +650,7 @@ def _complete_resumable(
     url: str,
     bar: Bar,
     session: Any = requests,
-    mtime: Optional[int] = None,
+    mtime: Optional[str] = None,
 ):
     headers = {'Authorization': 'Bearer {0}'.format(token)}
     if mtime:
@@ -731,7 +731,7 @@ def start_resumable(
         group = '{0}-member-group'.format(pnum)
     parmaterised_url = '{0}?chunk={1}&id={2}&group={3}'.format(url, 'end', upload_id, group)
     resp = _complete_resumable(
-        filename, token, parmaterised_url, bar, session=session, mtime=current_mtime
+        filename, token, parmaterised_url, bar, session=session, mtime=str(current_mtime)
     )
     return resp
 
@@ -804,7 +804,7 @@ def continue_resumable(
         group = '{0}-member-group'.format(pnum)
     parmaterised_url = '{0}?chunk={1}&id={2}&group={3}'.format(url, 'end', upload_id, group)
     resp = _complete_resumable(
-        filename, token, parmaterised_url, bar, session=session, mtime=current_mtime
+        filename, token, parmaterised_url, bar, session=session, mtime=str(current_mtime)
     )
     return resp
 
