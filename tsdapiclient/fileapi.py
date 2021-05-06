@@ -431,6 +431,10 @@ def export_get(
     if not nobar:
         bar = _init_export_progress_bar(unquote(filename), current_file_size, total_file_size, chunksize)
     filename = filename if not target_dir else os.path.normpath(f'{target_dir}/{filename}')
+    destination_dir = os.path.dirname(filename)
+    if not os.path.lexists(destination_dir):
+        debug_step(f'creating directory: {destination_dir}')
+        os.makedirs(destination_dir)
     with session.get(url, headers=headers, stream=True) as r:
         r.raise_for_status()
         with open(unquote(filename), filemode) as f:

@@ -48,7 +48,7 @@ TOKENS = {
     },
     'test': {
         'upload': 'import',
-        'downloads': 'export'
+        'download': 'export'
     },
     'alt': {
         'upload': 'import-alt',
