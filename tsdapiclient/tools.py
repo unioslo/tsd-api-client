@@ -167,7 +167,7 @@ def get_config_path() -> str:
     config_path = _get_system_config_path() / 'tacl'
 
     if not config_path.exists():
-        config_path.mkdir()
+        config_path.mkdir(parents=True)
 
         home_path = pathlib.Path.home()
         old_config = home_path / '.tacl_config'
@@ -183,10 +183,10 @@ def get_config_path() -> str:
 def get_data_path(env: str, pnum: str) -> str:
     home_path = pathlib.Path.home()
     xdg_path = os.environ.get('XDG_DATA_HOME')
-    base = xdg_path if xdg_path else home_path / '.local/share'
+    base = pathlib.Path(xdg_path) if xdg_path else home_path / '.local/share'
     data_path = base / f'tacl/{env}/{pnum}'
     if not data_path.exists():
-        os.makedirs(str(data_path))
+        data_path.mkdir(parents=True)
     return str(data_path)
 
 
