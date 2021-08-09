@@ -615,7 +615,7 @@ def cli(
             cache.print()
         elif download_cache_delete:
             cache = DownloadCache(env, pnum)
-            cache.destroy(hey=download_cache_delete)
+            cache.destroy(key=download_cache_delete)
             delete_cache = DownloadDeleteCache(env, pnum)
             delete_cache.destroy(key=download_cache_delete)
         elif download_cache_delete_all:
