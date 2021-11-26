@@ -11,7 +11,7 @@ import requests
 
 from tsdapiclient import __version__
 from tsdapiclient.administrator import get_tsd_api_key
-from tsdapiclient.authapi import get_jwt_tsd_auth, get_jwt_basic_auth
+from tsdapiclient.authapi import get_jwt_two_factor_auth, get_jwt_basic_auth
 from tsdapiclient.client_config import ENV, CHUNK_THRESHOLD, CHUNK_SIZE
 from tsdapiclient.configurer import (read_config, update_config,
                                      print_config, delete_config)
@@ -38,7 +38,9 @@ requests.utils.default_user_agent = user_agent
 API_ENVS = {
     'prod': 'api.tsd.usit.no',
     'alt': 'alt.api.tsd.usit.no',
-    'test': 'test.api.tsd.usit.no'
+    'test': 'test.api.tsd.usit.no',
+    'ec-prod': 'api.fp.educloud.no',
+    'ec-test': 'test-api-educloud.uio.no'
 }
 
 TOKENS = {
@@ -53,6 +55,14 @@ TOKENS = {
     'alt': {
         'upload': 'import-alt',
         'download': 'export-alt'
+    },
+    'ec-prod': {
+        'upload': 'import-alt',
+        'download': 'export-alt'
+    },
+    'ec-test': {
+        'upload': 'import',
+        'download': 'export'
     }
 }
 
@@ -473,7 +483,8 @@ def cli(
             if not api_key:
                 api_key = get_api_key(env, pnum)
             username, password, otp = get_user_credentials()
-            token = get_jwt_tsd_auth(env, pnum, api_key, username, password, otp, token_type)
+            token = get_jwt_two_factor_auth(env, pnum, api_key, username, password, otp, token_type, 
+                                            auth_method="iam" if env.startswith('ec-') else "tsd")
             if token:
                 debug_step('updating login session')
                 session_update(env, pnum, token_type, token)
@@ -628,17 +639,22 @@ def cli(
             prod = "1 - for normal production usage"
             fx = "2 - for use over fx03 network"
             test = "3 - for testing"
+            ec_prod = "4 - for Educloud normal production usage"
+            ec_test = "5 - for Educloud testing"
             prompt = "Choose the API environment by typing one of the following numbers"
-            choice = input(f"""{prompt}:\n{prod}\n{fx}\n{test} > """)
-            if choice not in '123':
+            choice = input(f"""{prompt}:\n{prod}\n{fx}\n{test}\n{ec_prod}\n{ec_test}\n > """)
+            if choice not in '12345':
                 click.echo(f'Invalid choice: {choice} for API environment')
                 sys.exit(1)
-            choices = {'1': 'prod', '2': 'alt', '3': 'test'}
+            choices = {'1': 'prod', '2': 'alt', '3': 'test', '4': 'ec-prod', '5': 'ec-test'}
             env = choices[choice]
             check_api_connection(env)
             username, password, otp = get_user_credentials()
-            pnum = username.split('-')[0]
-            key = get_tsd_api_key(env, pnum, username, password, otp)
+            if env.startswith('ec-'):
+                pnum = input('ec project > ')
+            else:
+                pnum = username.split('-')[0]
+            key = get_tsd_api_key(env, pnum, username, password, otp, auth_method="iam" if env.startswith('ec-') else "tsd")
             update_config(env, pnum, key)
             click.echo(f'Successfully registered for {pnum}, and API environment hosted at {ENV[env]}')
         # 4.3 Introspection

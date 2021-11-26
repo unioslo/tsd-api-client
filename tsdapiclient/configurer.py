@@ -26,12 +26,12 @@ def write_config(data: dict, filename: str = TACL_CONFIG) -> None:
 
 
 def update_config(env: str, key: str, val: str) -> None:
-    if env not in ['test', 'prod', 'alt']:
+    if env not in ['test', 'prod', 'alt', 'ec-prod', 'ec-test']:
         raise Exception('Unrecognised environment: {0}'.format(env))
     try:
         config = read_config(TACL_CONFIG)
     except IOError:
-        config = {'test': {}, 'prod': {}, 'alt': {}}
+        config = {'test': {}, 'prod': {}, 'alt': {}, 'ec-prod': {}, 'ec-test': {}}
     try:
         if config and config.get(env):
             curr_env = config[env]
@@ -43,7 +43,7 @@ def update_config(env: str, key: str, val: str) -> None:
             if 'alt' not in new_config.keys():
                 new_config['alt'] = {}
         else:
-            new_config = {'test': {}, 'prod': {}, 'alt': {}}
+            new_config = {'test': {}, 'prod': {}, 'alt': {}, 'ec-prod': {}, 'ec-test': {}}
         if not new_env.get(key):
             print('updating {0}'.format(key))
             new_config[env].update({key:val})
@@ -75,7 +75,7 @@ def print_config(filename: str = TACL_CONFIG) -> None:
 def delete_config(filename: str = TACL_CONFIG) -> None:
     try:
         with open(filename, 'w+') as f:
-            f.write(yaml.dump({'test': {}, 'prod': {}, 'alt': {}}, Dumper=yaml.Dumper))
+            f.write(yaml.dump({'test': {}, 'prod': {}, 'alt': {}, 'ec-prod': {}, 'ec-test': {}}, Dumper=yaml.Dumper))
     except FileNotFoundError:
         print("No config found")
 

@@ -26,6 +26,8 @@ HELP_URL = 'https://www.uio.no/english/services/it/research/sensitive-data/conta
 HOSTS = {
     'test': 'test.api.tsd.usit.no',
     'prod': 'api.tsd.usit.no',
+    'ec-prod': 'api.fp.educloud.no',
+    'ec-test': 'test-api-educloud.uio.no',
     'alt': 'alt.api.tsd.usit.no',
     'int': 'internal.api.tsd.usit.no',
 }
@@ -35,6 +37,7 @@ def auth_api_url(env: str, pnum: str, auth_method: str) -> str:
         'default': {
             'basic': f'{pnum}/auth/basic/token',
             'tsd': f'{pnum}/auth/tsd/token',
+            'iam': f'{pnum}/auth/iam/token',
         },
         'int': {
             'basic': f'{pnum}/internal/basic/token',
@@ -42,7 +45,7 @@ def auth_api_url(env: str, pnum: str, auth_method: str) -> str:
         }
     }
     try:
-        assert auth_method in ['basic', 'tsd'], f'Unrecognised auth_method: {auth_method}'
+        assert auth_method in ['basic', 'tsd', 'iam'], f'Unrecognised auth_method: {auth_method}'
         host = HOSTS.get(env)
         endpoint_env = env if env == 'int' else 'default'
         endpoint = endpoints.get(endpoint_env).get(auth_method)

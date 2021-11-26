@@ -32,7 +32,7 @@ def get_jwt_basic_auth(
         return None
 
 @handle_request_errors
-def get_jwt_tsd_auth(
+def get_jwt_two_factor_auth(
     env: str,
     pnum: str,
     api_key: str,
@@ -40,6 +40,7 @@ def get_jwt_tsd_auth(
     password: str,
     otp: str,
     token_type: str,
+    auth_method: str = "tsd" 
 ) -> Optional[str]:
     headers = {
         'Content-Type': 'application/json',
@@ -50,7 +51,7 @@ def get_jwt_tsd_auth(
         'password': password,
         'otp': otp,
     }
-    url = f'{auth_api_url(env, pnum, "tsd")}?type={token_type}'
+    url = f'{auth_api_url(env, pnum, auth_method=auth_method)}?type={token_type}'
     try:
         resp = requests.post(url, data=json.dumps(data), headers=headers)
     except Exception as e:
