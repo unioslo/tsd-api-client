@@ -47,7 +47,7 @@ def session_expires_soon(env: str, pnum: str, token_type: str, minutes: int = 10
 def session_update(env: str, pnum: str, token_type: str, token: str) -> None:
     if not session_file_exists():
         debug_step('creating new tacl session')
-        data = {'prod': {}, 'alt': {}, 'test': {}}
+        data = {'prod': {}, 'alt': {}, 'test': {}, 'ec-prod': {}, 'ec-test': {}}
     try:
         with open(SESSION_STORE, 'r') as f:
             data = yaml.load(f, Loader=yaml.Loader)
@@ -66,6 +66,6 @@ def session_token(env: str, pnum: str, token_type: str) -> str:
     return data.get(env, {}).get(pnum, {}).get(token_type)
 
 def session_clear() -> None:
-    data = {'prod': {}, 'alt': {}, 'test': {}}
+    data = {'prod': {}, 'alt': {}, 'test': {}, 'ec-prod': {}, 'ec-test': {}}
     with open(SESSION_STORE, 'w') as f:
         f.write(yaml.dump(data, Dumper=yaml.Dumper))

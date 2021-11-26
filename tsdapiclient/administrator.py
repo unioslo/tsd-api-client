@@ -14,11 +14,12 @@ def get_tsd_api_key(
     pnum: str,
     user_name: str,
     password: str,
-    otp: str
+    otp: str,
+    auth_method:str = 'tsd'
 ) -> str:
     headers = {'Content-Type': 'application/json'}
     data = {'user_name': user_name, 'password': password, 'otp': otp}
-    url = '{0}/{1}/auth/tsd/api_key'.format(ENV[env], pnum)
+    url = f'{ENV[env]}/{pnum}/auth/{auth_method}/api_key'
     print('GET: {0}'.format(url))
     resp = requests.get(url, headers=headers, data=json.dumps(data))
     return json.loads(resp.text)['api_key']

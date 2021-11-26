@@ -15,7 +15,7 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     author='Leon du Toit, Eirik Haatveit',
-    author_email='l.c.d.toit@usit.uio.no',
+    author_email='l.c.d.toit@usit.uio.no, haatveit@usit.uio.no',
     url='https://github.com/unioslo/tsd-api-client',
     packages=['tsdapiclient'],
     install_requires = [
