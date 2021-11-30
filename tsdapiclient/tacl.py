@@ -57,7 +57,7 @@ TOKENS = {
         'download': 'export-alt'
     },
     'ec-prod': {
-        'upload': 'import-alt',
+        'upload': 'import',
         'download': 'export-alt'
     },
     'ec-test': {
