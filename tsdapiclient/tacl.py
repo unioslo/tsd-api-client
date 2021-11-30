@@ -456,6 +456,8 @@ def cli(
     else:
         requires_user_credentials = False
 
+    auth_method = "iam" if env.startswith("ec-") else "tsd"
+
     # 2. Try to get a valid access token
     if requires_user_credentials:
         check_api_connection(env)
@@ -484,7 +486,7 @@ def cli(
                 api_key = get_api_key(env, pnum)
             username, password, otp = get_user_credentials()
             token = get_jwt_two_factor_auth(env, pnum, api_key, username, password, otp, token_type, 
-                                            auth_method="iam" if env.startswith('ec-') else "tsd")
+                                            auth_method=auth_method)
             if token:
                 debug_step('updating login session')
                 session_update(env, pnum, token_type, token)
@@ -654,7 +656,7 @@ def cli(
                 pnum = input('ec project > ')
             else:
                 pnum = username.split('-')[0]
-            key = get_tsd_api_key(env, pnum, username, password, otp, auth_method="iam" if env.startswith('ec-') else "tsd")
+            key = get_tsd_api_key(env, pnum, username, password, otp, auth_method=auth_method)
             update_config(env, pnum, key)
             click.echo(f'Successfully registered for {pnum}, and API environment hosted at {ENV[env]}')
         # 4.3 Introspection
