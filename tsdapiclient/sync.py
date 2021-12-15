@@ -10,6 +10,7 @@ from typing import ContextManager, Iterable, Optional
 
 import click
 import humanfriendly.tables
+import libnacl.public
 import requests
 
 from tsdapiclient.client_config import CHUNK_THRESHOLD, CHUNK_SIZE
@@ -228,6 +229,7 @@ class GenericDirectoryTransporter(object):
         keep_updated: bool = False,
         remote_key: Optional[str] = None,
         target_dir: Optional[str] = None,
+        public_key: Optional[libnacl.public.PublicKey] = None,
     ) -> None:
         self.env = env
         self.pnum = pnum
@@ -248,6 +250,7 @@ class GenericDirectoryTransporter(object):
         self.keep_updated = keep_updated
         self.remote_key = remote_key
         self.target_dir = target_dir
+        self.public_key = public_key
 
     def _parse_ignore_data(self, patterns: str) -> list:
         # e.g. .git,build,dist
@@ -437,15 +440,29 @@ class GenericDirectoryTransporter(object):
             return resource
         if os.stat(resource).st_size > CHUNK_THRESHOLD:
             resp = initiate_resumable(
-                self.env, self.pnum, resource, self.token, chunksize=CHUNK_SIZE,
-                group=self.group, verify=True, is_dir=True, session=self.session,
-                set_mtime=self.sync_mtime
+                self.env,
+                self.pnum,
+                resource,
+                self.token,
+                chunksize=CHUNK_SIZE,
+                group=self.group,
+                verify=True,
+                is_dir=True,
+                session=self.session,
+                set_mtime=self.sync_mtime,
+                public_key=self.public_key,
             )
         else:
             resp = streamfile(
-                self.env, self.pnum, resource,
-                self.token, group=self.group, is_dir=True,
-                session=self.session, set_mtime=self.sync_mtime
+                self.env,
+                self.pnum,
+                resource,
+                self.token,
+                group=self.group,
+                is_dir=True,
+                session=self.session,
+                set_mtime=self.sync_mtime,
+                public_key=self.public_key,
             )
         return resource
 
