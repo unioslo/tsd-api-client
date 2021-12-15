@@ -15,6 +15,7 @@ from tsdapiclient.authapi import get_jwt_two_factor_auth, get_jwt_basic_auth
 from tsdapiclient.client_config import ENV, CHUNK_THRESHOLD, CHUNK_SIZE
 from tsdapiclient.configurer import (read_config, update_config,
                                      print_config, delete_config)
+from tsdapiclient.crypto import nacl_get_server_public_key
 from tsdapiclient.fileapi import (streamfile, initiate_resumable, get_resumable,
                                   delete_resumable, delete_all_resumables,
                                   export_get, export_list, print_export_list,
@@ -392,6 +393,12 @@ def construct_correct_upload_path(path: str) -> str:
     default=None,
     help='Pass an explicit API key - over-rides tacl config'
 )
+@click.option(
+    '--encrypt',
+    is_flag=True,
+    required=False,
+    help='Encrypt data while sending it, requesting automatic decryption'
+)
 def cli(
     pnum: str,
     guide: str,
@@ -428,6 +435,7 @@ def cli(
     keep_updated: bool,
     download_delete: str,
     api_key: str,
+    encrypt: bool,
 ) -> None:
     """tacl - TSD API client."""
     token = None
@@ -485,8 +493,9 @@ def cli(
             if not api_key:
                 api_key = get_api_key(env, pnum)
             username, password, otp = get_user_credentials()
-            token = get_jwt_two_factor_auth(env, pnum, api_key, username, password, otp, token_type, 
-                                            auth_method=auth_method)
+            token = get_jwt_two_factor_auth(
+                env, pnum, api_key, username, password, otp, token_type, auth_method=auth_method,
+            )
             if token:
                 debug_step('updating login session')
                 session_update(env, pnum, token_type, token)
@@ -508,25 +517,42 @@ def cli(
 
     # 3. Given a valid access token, perform a given action
     if token:
+        if encrypt:
+            public_key = nacl_get_server_public_key(env, pnum)
+        else:
+            public_key = None
         group = f'{pnum}-member-group' if not group else group
         if upload:
             if os.path.isfile(upload):
                 if upload_id or os.stat(upload).st_size > CHUNK_THRESHOLD:
                     resp = initiate_resumable(
-                        env, pnum, upload, token, chunksize=CHUNK_SIZE,
-                        group=group, verify=True, upload_id=upload_id
+                        env,
+                        pnum,
+                        upload,
+                        token,
+                        chunksize=CHUNK_SIZE,
+                        group=group,
+                        verify=True,
+                        upload_id=upload_id,
+                        public_key=public_key,
                     )
                 else:
                     resp = streamfile(
-                        env, pnum, upload, token, group=group
+                        env, pnum, upload, token, group=group, public_key=public_key,
                     )
             else:
                 click.echo(f'uploading directory {upload}')
                 upload = construct_correct_upload_path(upload)
                 uploader = SerialDirectoryUploader(
-                    env, pnum, upload, token, group,
-                    prefixes=ignore_prefixes, suffixes=ignore_suffixes,
-                    use_cache=True if not cache_disable else False
+                    env,
+                    pnum,
+                    upload,
+                    token,
+                    group,
+                    prefixes=ignore_prefixes,
+                    suffixes=ignore_suffixes,
+                    use_cache=True if not cache_disable else False,
+                    public_key=public_key,
                 )
                 uploader.sync()
         elif upload_sync:
@@ -535,12 +561,19 @@ def cli(
             click.echo(f'uploading directory {upload_sync}')
             upload_sync = construct_correct_upload_path(upload_sync)
             syncer = SerialDirectoryUploadSynchroniser(
-                env, pnum, upload_sync, token, group,
-                prefixes=ignore_prefixes, suffixes=ignore_suffixes,
+                env,
+                pnum,
+                upload_sync,
+                token,
+                group,
+                prefixes=ignore_prefixes,
+                suffixes=ignore_suffixes,
                 use_cache=False if not cache_sync else True,
-                sync_mtime=True, keep_missing=keep_missing,
+                sync_mtime=True,
+                keep_missing=keep_missing,
                 keep_updated=keep_updated,
                 remote_key='import',
+                public_key=public_key,
             )
             syncer.sync()
         elif resume_list:
@@ -561,8 +594,12 @@ def cli(
             if resp.headers.get('Content-Type') == 'directory':
                 click.echo(f'downloading directory: {download}')
                 downloader = SerialDirectoryDownloader(
-                    env, pnum, download, token,
-                    prefixes=ignore_prefixes, suffixes=ignore_suffixes,
+                    env,
+                    pnum,
+                    download,
+                    token,
+                    prefixes=ignore_prefixes,
+                    suffixes=ignore_suffixes,
                     use_cache=True if not cache_disable else False,
                     remote_key='export',
                 )
@@ -583,10 +620,15 @@ def cli(
             if resp.headers.get('Content-Type') != 'directory':
                 sys.exit('directory sync does not apply to files')
             syncer = SerialDirectoryDownloadSynchroniser(
-                env, pnum, download_sync, token,
-                prefixes=ignore_prefixes, suffixes=ignore_suffixes,
+                env,
+                pnum,
+                download_sync,
+                token,
+                prefixes=ignore_prefixes,
+                suffixes=ignore_suffixes,
                 use_cache=False if not cache_sync else True,
-                sync_mtime=True, keep_missing=keep_missing,
+                sync_mtime=True,
+                keep_missing=keep_missing,
                 keep_updated=keep_updated,
                 remote_key='export',
             )
