@@ -61,6 +61,11 @@ To view and manage directory upload cache:
     tacl p11 --upload-cache-delete mydirectory
     tacl p11 --upload-cache-delete-all
 
+Using on-the-fly encryption, with automatic server-side decryption:
+
+ tacl p11 --upload myfile.txt --encrypt
+ tacl p11 --upload mydirectory --encrypt
+
 """
 
 downloads = """
@@ -156,5 +161,9 @@ your transfer is running, then you can enable caching like this:
 
 This will allow resuming the sync without having to query the API
 and the local filesystem for its current state.
+
+Using on-the-fly encryption, with automatic server-side decryption:
+
+    tacl p11 --upload-sync mydir --encrypt
 
 """
