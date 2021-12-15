@@ -11,11 +11,15 @@ from urllib.parse import quote, unquote
 
 import humanfriendly
 import humanfriendly.tables
+import libnacl.public
 import requests
 
 from progress.bar import Bar
 
 from tsdapiclient.client_config import ENV, API_VERSION
+from tsdapiclient.crypto import (nacl_encrypt_data, nacl_gen_nonce,
+                                 nacl_gen_key, nacl_encrypt_header,
+                                 nacl_encode_header)
 from tsdapiclient.tools import (handle_request_errors, debug_step,
                                 HELP_URL, file_api_url, HOSTS)
 
@@ -92,7 +96,14 @@ def lazy_reader(
     verify: bool = False,
     server_chunk_md5: Optional[str] = None,
     with_progress: bool = False,
-) -> bytes:
+    public_key: Optional[libnacl.public.PublicKey] = None,
+) -> tuple:
+    enc_nonce, enc_key = None, None
+    if public_key:
+        debug_step(f'sending {filename} with encryption')
+        nonce, key = nacl_gen_nonce(), nacl_gen_key()
+        enc_nonce = nacl_encrypt_header(public_key, nonce)
+        enc_key = nacl_encrypt_header(public_key, key)
     debug_step(f'reading file: {filename}')
     with open(filename, 'rb') as f:
         if verify:
@@ -124,7 +135,10 @@ def lazy_reader(
                 break
             else:
                 debug_step('chunk read complete')
-                yield data
+                if public_key:
+                    data = nacl_encrypt_data(data, nonce, key)
+                yield data, enc_nonce, enc_key, chunksize
+
 
 @handle_request_errors
 def streamfile(
@@ -138,6 +152,7 @@ def streamfile(
     is_dir: bool = False,
     session: Any = requests,
     set_mtime: bool = False,
+    public_key: Optional[libnacl.public.PublicKey] = None,
 ) -> requests.Response:
     """
     Idempotent, lazy data upload from files.
@@ -156,6 +171,7 @@ def streamfile(
     session: e.g. requests.session
     set_mtime: if True send information about the file's client-side mtime,
                asking the server to set it remotely
+    public_key: encrypt data on-the-fly (with automatic server-side decryption)
 
     """
     resource = upload_resource_name(filename, is_dir, group=group)
@@ -168,8 +184,8 @@ def streamfile(
         headers['Modified-Time'] = str(current_mtime)
     resp = session.put(
         url,
-        data=lazy_reader(filename, chunksize, with_progress=True),
-        headers=headers
+        data=lazy_reader(filename, chunksize, with_progress=True, public_key=public_key),
+        headers=headers,
     )
     resp.raise_for_status()
     return resp
@@ -589,6 +605,7 @@ def initiate_resumable(
     is_dir: bool = False,
     session: Any = requests,
     set_mtime: bool = False,
+    public_key: Optional[libnacl.public.PublicKey] = None,
 ) -> dict:
     """
     Performs a resumable upload, either by resuming a broken one,
@@ -614,14 +631,23 @@ def initiate_resumable(
     set_mtime: if True send information
                about the file's client-side mtime, asking the server
                to set it remotely
+    public_key: encrypt data on-the-fly (with automatic server-side decryption)
 
     """
     to_resume = False
     if not new:
         key = _resumable_key(is_dir, filename)
         data = get_resumable(
-            env, pnum, token, filename, upload_id, dev_url,
-            backend, is_dir=is_dir, key=key, session=session
+            env,
+            pnum,
+            token,
+            filename,
+            upload_id,
+            dev_url,
+            backend,
+            is_dir=is_dir,
+            key=key,
+            session=session,
         )
         if not data.get('id'):
             pass
@@ -632,18 +658,38 @@ def initiate_resumable(
     if to_resume:
         try:
             return continue_resumable(
-                env, pnum, filename, token, to_resume,
-                group, verify, dev_url, backend, is_dir,
-                session=session, set_mtime=set_mtime
+                env,
+                pnum,
+                filename,
+                token,
+                to_resume,
+                group,
+                verify,
+                dev_url,
+                backend,
+                is_dir,
+                session=session,
+                set_mtime=set_mtime,
+                public_key=public_key,
             )
         except Exception as e:
             print(e)
             return
     else:
         return start_resumable(
-            env, pnum, filename, token, chunksize,
-            group, dev_url, stop_at, backend, is_dir,
-            session=session, set_mtime=set_mtime
+            env,
+            pnum,
+            filename,
+            token,
+            chunksize,
+            group,
+            dev_url,
+            stop_at,
+            backend,
+            is_dir,
+            session=session,
+            set_mtime=set_mtime,
+            public_key=public_key,
         )
 
 
@@ -681,6 +727,7 @@ def start_resumable(
     is_dir: bool = False,
     session: Any = requests,
     set_mtime: bool = False,
+    public_key: Optional[libnacl.public.PublicKey] = None,
 ) -> dict:
     """
     Start a new resumable upload, reding a file, chunk-by-chunk
@@ -703,6 +750,7 @@ def start_resumable(
     set_mtime: default False, if True send information
                about the file's client-side mtime, asking the server
                to set it remotely
+    public_key: encrypt data on-the-fly (with automatic server-side decryption)
 
     """
     url = _resumable_url(env, pnum, filename, dev_url, backend, is_dir, group=group)
@@ -711,7 +759,12 @@ def start_resumable(
     if set_mtime:
         headers['Modified-Time'] = str(current_mtime)
     chunk_num = 1
-    for chunk in lazy_reader(filename, chunksize):
+    for chunk, enc_nonce, enc_key, ch_size in lazy_reader(filename, chunksize, public_key=public_key):
+        if public_key:
+            headers['Content-Type'] = 'application/octet-stream+nacl'
+            headers['Nacl-Nonce'] = nacl_encode_header(enc_nonce)
+            headers['Nacl-Key'] = nacl_encode_header(enc_key)
+            headers['Nacl-Chunksize'] = str(ch_size)
         if chunk_num == 1:
             parmaterised_url = '{0}?chunk={1}'.format(url, str(chunk_num))
         else:
@@ -754,6 +807,7 @@ def continue_resumable(
     is_dir: bool = False,
     session: Any = requests,
     set_mtime: bool = False,
+    public_key: Optional[libnacl.public.PublicKey] = None,
 ) -> dict:
     """
     Continue a resumable upload, reding a file, from the
@@ -778,6 +832,7 @@ def continue_resumable(
     set_mtime: default False, if True send information
                about the file's client-side mtime, asking the server
                to set it remotely
+    public_key: encrypt data on-the-fly (with automatic server-side decryption)
 
     """
     url = _resumable_url(env, pnum, filename, dev_url, backend, is_dir, group=group)
@@ -794,7 +849,14 @@ def continue_resumable(
     chunk_num = max_chunk + 1
     print('Resuming upload with id: {0}'.format(upload_id))
     bar = _init_progress_bar(chunk_num, chunksize, filename)
-    for chunk in lazy_reader(filename, chunksize, previous_offset, next_offset, verify, server_chunk_md5):
+    for chunk, enc_nonce, enc_key, ch_size in lazy_reader(
+        filename, chunksize, previous_offset, next_offset, verify, server_chunk_md5, public_key=public_key,
+    ):
+        if public_key:
+            headers['Content-Type'] = 'application/octet-stream+nacl'
+            headers['Nacl-Nonce'] = nacl_encode_header(enc_nonce)
+            headers['Nacl-Key'] = nacl_encode_header(enc_key)
+            headers['Nacl-Chunksize'] = str(ch_size)
         parmaterised_url = '{0}?chunk={1}&id={2}'.format(url, str(chunk_num), upload_id)
         debug_step(f'sending chunk {chunk_num}, using {parmaterised_url}')
         resp = session.patch(parmaterised_url, data=chunk, headers=headers)
