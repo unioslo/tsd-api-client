@@ -25,9 +25,12 @@ def nacl_gen_key() -> bytes:
     return libnacl.utils.salsa_key()
 
 
-def nacl_get_server_public_key(env: str, pnum: str) -> bytes:
+def nacl_get_server_public_key(env: str, pnum: str, token: str) -> bytes:
     host = HOSTS.get(env)
-    resp = requests.get(f'https://{host}/v1/{pnum}/files/crypto/key')
+    resp = requests.get(
+        f'https://{host}/v1/{pnum}/files/crypto/key',
+        headers={'Authorization': f'Bearer {token}'},
+    )
     encoded_public_key = json.loads(resp.text).get('public_key')
     return libnacl.public.PublicKey(base64.b64decode(encoded_public_key))
 
