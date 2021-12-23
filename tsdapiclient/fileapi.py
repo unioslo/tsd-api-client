@@ -97,9 +97,26 @@ def lazy_reader(
     server_chunk_md5: Optional[str] = None,
     with_progress: bool = False,
     public_key: Optional[libnacl.public.PublicKey] = None,
-) -> tuple:
+    nonce: Optional[bytes] = None,
+    key: Optional[bytes] = None,
+) -> Union[bytes, tuple]:
+    """
+    Create an iterator over a file, returning chunks of bytes.
+
+    Optionally:
+    - verify the hash of a given chunk, between given offsets
+    - create the iterator from a given offset
+
+    Dependig on how the function is called it can return either bytes
+    or tuples. 1) When the caller provides the public_key, but _not_ a nonce
+    and key, then the function will generate the nonce and key, and return a
+    tuple with the encrypted nonce and key, along with the data and chunksize
+    so callers can get that information. 2) If the caller does provide
+    a nonce and key, then only bytes are returned.
+
+    """
     enc_nonce, enc_key = None, None
-    if public_key:
+    if public_key and not (nonce and key):
         debug_step(f'sending {filename} with encryption')
         nonce, key = nacl_gen_nonce(), nacl_gen_key()
         enc_nonce = nacl_encrypt_header(public_key, nonce)
@@ -137,7 +154,15 @@ def lazy_reader(
                 debug_step('chunk read complete')
                 if public_key:
                     data = nacl_encrypt_data(data, nonce, key)
-                yield data, enc_nonce, enc_key, chunksize
+                    if enc_nonce and enc_key:
+                        yield data, enc_nonce, enc_key, chunksize
+                    else:
+                        yield data
+                else:
+                    if nonce and key:
+                        yield data
+                    else:
+                        yield data, enc_nonce, enc_key, chunksize
 
 
 @handle_request_errors
@@ -182,9 +207,27 @@ def streamfile(
     if set_mtime:
         current_mtime = os.stat(filename).st_mtime
         headers['Modified-Time'] = str(current_mtime)
+    if public_key:
+        nonce, key = nacl_gen_nonce(), nacl_gen_key()
+        enc_nonce = nacl_encrypt_header(public_key, nonce)
+        enc_key = nacl_encrypt_header(public_key, key)
+        headers['Content-Type'] = 'application/octet-stream+nacl'
+        headers['Nacl-Nonce'] = nacl_encode_header(enc_nonce)
+        headers['Nacl-Key'] = nacl_encode_header(enc_key)
+        headers['Nacl-Chunksize'] = str(chunksize)
+    else:
+        # so the lazy_reader knows to return bytes only
+        nonce, key = True, True
     resp = session.put(
         url,
-        data=lazy_reader(filename, chunksize, with_progress=True, public_key=public_key),
+        data=lazy_reader(
+            filename,
+            chunksize,
+            with_progress=True,
+            public_key=public_key,
+            nonce=nonce,
+            key=key,
+        ),
         headers=headers,
     )
     resp.raise_for_status()
