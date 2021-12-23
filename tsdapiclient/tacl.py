@@ -518,13 +518,15 @@ def cli(
     # 3. Given a valid access token, perform a given action
     if token:
         if encrypt:
-            public_key = nacl_get_server_public_key(env, pnum)
+            debug_step('getting public key')
+            public_key = nacl_get_server_public_key(env, pnum, token)
         else:
             public_key = None
         group = f'{pnum}-member-group' if not group else group
         if upload:
             if os.path.isfile(upload):
                 if upload_id or os.stat(upload).st_size > CHUNK_THRESHOLD:
+                    debug_step('starting resumable upload')
                     resp = initiate_resumable(
                         env,
                         pnum,
@@ -537,6 +539,7 @@ def cli(
                         public_key=public_key,
                     )
                 else:
+                    debug_step('starting upload')
                     resp = streamfile(
                         env, pnum, upload, token, group=group, public_key=public_key,
                     )
