@@ -13,7 +13,6 @@ import humanfriendly.tables
 import libnacl.public
 import requests
 
-from tsdapiclient.client_config import CHUNK_THRESHOLD, CHUNK_SIZE
 from tsdapiclient.fileapi import (streamfile, initiate_resumable, import_list,
                                   export_head, export_list, export_get,
                                   import_delete, export_delete, survey_list)
@@ -230,6 +229,8 @@ class GenericDirectoryTransporter(object):
         remote_key: Optional[str] = None,
         target_dir: Optional[str] = None,
         public_key: Optional[libnacl.public.PublicKey] = None,
+        chunk_size: Optional[int] = 1000*1000*50,
+        chunk_threshold: Optional[int] = 1000*1000*1000,
     ) -> None:
         self.env = env
         self.pnum = pnum
@@ -251,6 +252,8 @@ class GenericDirectoryTransporter(object):
         self.remote_key = remote_key
         self.target_dir = target_dir
         self.public_key = public_key
+        self.chunk_size = chunk_size
+        self.chunk_threshold = chunk_threshold
 
     def _parse_ignore_data(self, patterns: str) -> list:
         # e.g. .git,build,dist
@@ -438,13 +441,13 @@ class GenericDirectoryTransporter(object):
         if not os.path.lexists(resource):
             print(f'WARNING: could not find {resource} on local disk')
             return resource
-        if os.stat(resource).st_size > CHUNK_THRESHOLD:
+        if os.stat(resource).st_size > self.chunk_threshold:
             resp = initiate_resumable(
                 self.env,
                 self.pnum,
                 resource,
                 self.token,
-                chunksize=CHUNK_SIZE,
+                chunksize=self.chunk_size,
                 group=self.group,
                 verify=True,
                 is_dir=True,

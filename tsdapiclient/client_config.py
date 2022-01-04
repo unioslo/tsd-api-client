@@ -10,5 +10,5 @@ EC_TEST = 'https://test-api-educloud.uio.no/{0}'.format(API_VERSION)
 
 
 ENV = {'test': TEST, 'prod': PROD, 'alt': ALT, 'ec-prod': EC_PROD, 'ec-test': EC_TEST}
-CHUNK_THRESHOLD = 1000*1000*1000 # 1gb
-CHUNK_SIZE = 1000*1000*50 # 50mb
+CHUNK_THRESHOLD = '1gb'
+CHUNK_SIZE = '50mb'
