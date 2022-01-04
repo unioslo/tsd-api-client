@@ -32,7 +32,8 @@ from tsdapiclient.sync import (SerialDirectoryUploader,
                                DownloadCache,
                                UploadDeleteCache,
                                DownloadDeleteCache)
-from tsdapiclient.tools import HELP_URL, has_api_connectivity, user_agent, debug_step
+from tsdapiclient.tools import (HELP_URL, has_api_connectivity, user_agent, debug_step,
+                                as_bytes)
 
 requests.utils.default_user_agent = user_agent
 
@@ -399,6 +400,18 @@ def construct_correct_upload_path(path: str) -> str:
     required=False,
     help='Encrypt data while sending it, requesting automatic decryption'
 )
+@click.option(
+    '--chunk-size',
+    required=False,
+    default=CHUNK_SIZE,
+    help='E.g.: 10mb, size of chunks to both read from disk, and send to the API'
+)
+@click.option(
+    '--resumable-threshold',
+    required=False,
+    default=CHUNK_THRESHOLD,
+    help='E.g.: 1gb, files larger than this size will be sent as resumable uploads'
+)
 def cli(
     pnum: str,
     guide: str,
@@ -436,6 +449,8 @@ def cli(
     download_delete: str,
     api_key: str,
     encrypt: bool,
+    chunk_size: int,
+    resumable_threshold: int,
 ) -> None:
     """tacl - TSD API client."""
     token = None
@@ -525,14 +540,14 @@ def cli(
         group = f'{pnum}-member-group' if not group else group
         if upload:
             if os.path.isfile(upload):
-                if upload_id or os.stat(upload).st_size > CHUNK_THRESHOLD:
+                if upload_id or os.stat(upload).st_size > as_bytes(resumable_threshold):
                     debug_step('starting resumable upload')
                     resp = initiate_resumable(
                         env,
                         pnum,
                         upload,
                         token,
-                        chunksize=CHUNK_SIZE,
+                        chunksize=as_bytes(chunk_size),
                         group=group,
                         verify=True,
                         upload_id=upload_id,
@@ -556,6 +571,8 @@ def cli(
                     suffixes=ignore_suffixes,
                     use_cache=True if not cache_disable else False,
                     public_key=public_key,
+                    chunk_size=as_bytes(chunk_size),
+                    chunk_threshold=as_bytes(resumable_threshold),
                 )
                 uploader.sync()
         elif upload_sync:
@@ -577,6 +594,8 @@ def cli(
                 keep_updated=keep_updated,
                 remote_key='import',
                 public_key=public_key,
+                chunk_size=as_bytes(chunk_size),
+                chunk_threshold=as_bytes(resumable_threshold),
             )
             syncer.sync()
         elif resume_list:

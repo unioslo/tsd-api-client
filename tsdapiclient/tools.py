@@ -204,3 +204,19 @@ def has_api_connectivity(hostname: str, port: int = 443, timeout: float = 0.5) -
     except:
         pass
     return connectivity
+
+
+def as_bytes(amount: str) -> int:
+    """
+    Change a string like '1kb' to 1000, or '12mb' to 12000000.
+
+    """
+    if amount.endswith('kb'):
+        num_bytes = int(amount.replace('kb', ''))*1000
+    elif amount.endswith('mb'):
+        num_bytes = int(amount.replace('mb', ''))*1000*1000
+    elif amount.endswith('gb'):
+        num_bytes = int(amount.replace('gb', ''))*1000*1000*1000
+    else:
+        raise Exception(f'unsupported amount: {amount}, accepted units: "kb", "mb", "gb"')
+    return num_bytes
