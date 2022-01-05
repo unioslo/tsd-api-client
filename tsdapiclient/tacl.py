@@ -508,7 +508,7 @@ def cli(
             if not api_key:
                 api_key = get_api_key(env, pnum)
             username, password, otp = get_user_credentials()
-            token = get_jwt_two_factor_auth(
+            token, refresh_token = get_jwt_two_factor_auth(
                 env, pnum, api_key, username, password, otp, token_type, auth_method=auth_method,
             )
             if token:
@@ -525,7 +525,7 @@ def cli(
         if not api_key:
             api_key = get_api_key(env, pnum)
         debug_step('using basic authentication')
-        token = get_jwt_basic_auth(env, pnum, api_key)
+        token, refresh_token = get_jwt_basic_auth(env, pnum, api_key)
     if (requires_user_credentials or basic) and not token:
         click.echo('authentication failed')
         sys.exit(1)

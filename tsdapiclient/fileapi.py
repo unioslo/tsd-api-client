@@ -744,7 +744,7 @@ def _complete_resumable(
     bar: Bar,
     session: Any = requests,
     mtime: Optional[str] = None,
-):
+) -> dict:
     headers = {'Authorization': 'Bearer {0}'.format(token)}
     if mtime:
         headers['Modified-Time'] = mtime
