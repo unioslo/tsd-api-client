@@ -38,14 +38,18 @@ def auth_api_url(env: str, pnum: str, auth_method: str) -> str:
             'basic': f'{pnum}/auth/basic/token',
             'tsd': f'{pnum}/auth/tsd/token',
             'iam': f'{pnum}/auth/iam/token',
+            'refresh': f'{pnum}/auth/refresh/token',
         },
         'int': {
             'basic': f'{pnum}/internal/basic/token',
             'tsd': f'{pnum}/internal/tsd/token',
+            'refresh': f'{pnum}/auth/refresh/token',
         }
     }
     try:
-        assert auth_method in ['basic', 'tsd', 'iam'], f'Unrecognised auth_method: {auth_method}'
+        assert auth_method in [
+            'basic', 'tsd', 'iam', 'refresh',
+        ], f'Unrecognised auth_method: {auth_method}'
         host = HOSTS.get(env)
         endpoint_env = env if env == 'int' else 'default'
         endpoint = endpoints.get(endpoint_env).get(auth_method)
@@ -106,11 +110,16 @@ def b64_padder(payload: str) -> str:
         return payload
 
 
+def get_claims(key: str) -> dict:
+    enc_claim_text = key.split('.')[1]
+    dec_claim_text = base64.b64decode(b64_padder(enc_claim_text))
+    claims = json.loads(dec_claim_text)
+    return claims
+
+
 def check_if_key_has_expired(key: str, when: int = int(time.time())) -> bool:
     try:
-        enc_claim_text = key.split('.')[1]
-        dec_claim_text = base64.b64decode(b64_padder(enc_claim_text))
-        claims = json.loads(dec_claim_text)
+        claims = get_claims(key)
         exp = claims['exp']
         if when > exp:
             return True
