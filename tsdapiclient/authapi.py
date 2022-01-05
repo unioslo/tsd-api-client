@@ -59,3 +59,26 @@ def get_jwt_two_factor_auth(
         return data.get('token'), data.get('refresh_token')
     else:
         return None, None
+
+@handle_request_errors
+def refresh_access_token(
+    env: str,
+    pnum: str,
+    api_key: str,
+    refresh_token: str,
+) -> tuple:
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': f'Bearer {api_key}',
+    }
+    data = {'refresh_token': refresh_token}
+    url = f'{auth_api_url(env, pnum, auth_method="refresh")}'
+    try:
+        resp = requests.post(url, data=json.dumps(data), headers=headers)
+    except Exception as e:
+        raise e
+    if resp.status_code in [200, 201]:
+        data = json.loads(resp.text)
+        return data.get('token'), data.get('refresh_token')
+    else:
+        return None, None
