@@ -16,6 +16,7 @@ import requests
 
 from progress.bar import Bar
 
+from tsdapiclient.authapi import maybe_refresh
 from tsdapiclient.client_config import ENV, API_VERSION
 from tsdapiclient.crypto import (nacl_encrypt_data, nacl_gen_nonce,
                                  nacl_gen_key, nacl_encrypt_header,
@@ -178,7 +179,10 @@ def streamfile(
     session: Any = requests,
     set_mtime: bool = False,
     public_key: Optional[libnacl.public.PublicKey] = None,
-) -> requests.Response:
+    api_key: Optional[str] = None,
+    refresh_token: Optional[str] = None,
+    refresh_target: Optional[int] = None,
+) -> dict:
     """
     Idempotent, lazy data upload from files.
 
@@ -187,7 +191,7 @@ def streamfile(
     env: 'test', 'prod', or 'alt'
     pnum: project number
     filename: path to file
-    token: JWT
+    token: JWT, access token
     chunksize: bytes to read per chunk
     group: name of file group which should own upload
     backend: which API backend to send data to
@@ -197,12 +201,19 @@ def streamfile(
     set_mtime: if True send information about the file's client-side mtime,
                asking the server to set it remotely
     public_key: encrypt data on-the-fly (with automatic server-side decryption)
+    api_key: client specific JWT allowing token refresh
+    refresh_token: a JWT with which to obtain a new access token
+    refresh_target: time around which to refresh (within a default range)
 
     """
+    tokens = {}
     resource = upload_resource_name(filename, is_dir, group=group)
     endpoint=f"stream/{resource}?group={group}"
     url = f'{file_api_url(env, pnum, backend, endpoint=endpoint)}'
-    headers = {'Authorization': 'Bearer {0}'.format(token)}
+    if refresh_target:
+        tokens = maybe_refresh(env, pnum, api_key, refresh_token, refresh_target)
+        token = tokens.get('access_token')
+    headers = {'Authorization': f'Bearer {token}'}
     debug_step(f'streaming data to {url}')
     if set_mtime:
         current_mtime = os.stat(filename).st_mtime
@@ -231,7 +242,7 @@ def streamfile(
         headers=headers,
     )
     resp.raise_for_status()
-    return resp
+    return {'response': resp, 'tokens': tokens}
 
 
 def print_export_list(data: dict) -> None:
