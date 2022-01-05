@@ -4,8 +4,6 @@
 import json
 import requests
 
-from typing import Optional
-
 from tsdapiclient.client_config import ENV
 from tsdapiclient.tools import handle_request_errors, auth_api_url
 
@@ -15,7 +13,7 @@ def get_jwt_basic_auth(
     pnum: str,
     api_key: str,
     token_type: str = 'import',
-) -> Optional[str]:
+) -> tuple:
     headers = {
         'Content-Type': 'application/json',
         'Authorization': f'Bearer {api_key}'
@@ -26,10 +24,10 @@ def get_jwt_basic_auth(
     except Exception as e:
         raise e
     if resp.status_code in [200, 201]:
-        token = json.loads(resp.text)['token']
-        return token
+        data = json.loads(resp.text)
+        return data.get('token'), data.get('refresh_token')
     else:
-        return None
+        return None, None
 
 @handle_request_errors
 def get_jwt_two_factor_auth(
@@ -40,8 +38,8 @@ def get_jwt_two_factor_auth(
     password: str,
     otp: str,
     token_type: str,
-    auth_method: str = "tsd" 
-) -> Optional[str]:
+    auth_method: str = "tsd"
+) -> tuple:
     headers = {
         'Content-Type': 'application/json',
         'Authorization': f'Bearer {api_key}',
@@ -57,7 +55,7 @@ def get_jwt_two_factor_auth(
     except Exception as e:
         raise e
     if resp.status_code in [200, 201]:
-        token = json.loads(resp.text)['token']
-        return token
+        data = json.loads(resp.text)
+        return data.get('token'), data.get('refresh_token')
     else:
-        return None
+        return None, None

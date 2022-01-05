@@ -15,7 +15,7 @@ def get_tsd_api_key(
     user_name: str,
     password: str,
     otp: str,
-    auth_method:str = 'tsd'
+    auth_method: str = 'tsd',
 ) -> str:
     headers = {'Content-Type': 'application/json'}
     data = {'user_name': user_name, 'password': password, 'otp': otp}
