@@ -23,7 +23,8 @@ from tsdapiclient.fileapi import (streamfile, initiate_resumable, get_resumable,
 from tsdapiclient.guide import (topics, config, uploads, downloads,
                                 debugging, automation, sync)
 from tsdapiclient.session import (session_is_expired, session_expires_soon,
-                                  session_update, session_clear, session_token)
+                                  session_update, session_clear, session_token,
+                                  session_refresh_token)
 from tsdapiclient.sync import (SerialDirectoryUploader,
                                SerialDirectoryDownloader,
                                SerialDirectoryUploadSynchroniser,
@@ -513,10 +514,11 @@ def cli(
             )
             if token:
                 debug_step('updating login session')
-                session_update(env, pnum, token_type, token)
+                session_update(env, pnum, token_type, token, refresh_token)
         else:
             debug_step(f'using token from existing login session')
             token = session_token(env, pnum, token_type)
+            refresh_token = session_refresh_token(env, pnum, token_type)
     elif not requires_user_credentials and basic:
         if not pnum:
             click.echo('missing pnum argument')

@@ -1,7 +1,9 @@
 
 import os
 import time
+
 from datetime import datetime, timedelta
+from typing import Optional
 
 import yaml
 
@@ -44,9 +46,15 @@ def session_expires_soon(env: str, pnum: str, token_type: str, minutes: int = 10
         debug_step('session will not expire soon')
         return False
 
-def session_update(env: str, pnum: str, token_type: str, token: str) -> None:
+def session_update(
+    env: str,
+    pnum: str,
+    token_type: str,
+    token: str,
+    refresh_token: Optional[str] = None,
+) -> None:
     if not session_file_exists():
-        debug_step('creating new tacl session')
+        debug_step('creating new tacl session store')
         data = {'prod': {}, 'alt': {}, 'test': {}, 'ec-prod': {}, 'ec-test': {}}
     try:
         with open(SESSION_STORE, 'r') as f:
@@ -55,6 +63,8 @@ def session_update(env: str, pnum: str, token_type: str, token: str) -> None:
         pass # use default
     target = data.get(env, {}).get(pnum, {})
     target[token_type] = token
+    if refresh_token:
+        target[f'{token_type}_refresh'] = refresh_token
     data[env][pnum] = target
     debug_step('updating session')
     with open(SESSION_STORE, 'w') as f:
@@ -64,6 +74,12 @@ def session_token(env: str, pnum: str, token_type: str) -> str:
     with open(SESSION_STORE, 'r') as f:
         data = yaml.load(f, Loader=yaml.Loader)
     return data.get(env, {}).get(pnum, {}).get(token_type)
+
+def session_refresh_token(env: str, pnum: str, token_type: str) -> str:
+    with open(SESSION_STORE, 'r') as f:
+        data = yaml.load(f, Loader=yaml.Loader)
+    return data.get(env, {}).get(pnum, {}).get(f'{token_type}_refresh')
+
 
 def session_clear() -> None:
     data = {'prod': {}, 'alt': {}, 'test': {}, 'ec-prod': {}, 'ec-test': {}}
