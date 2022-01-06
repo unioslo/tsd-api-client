@@ -63,8 +63,7 @@ def session_update(
         pass # use default
     target = data.get(env, {}).get(pnum, {})
     target[token_type] = token
-    if refresh_token:
-        target[f'{token_type}_refresh'] = refresh_token
+    target[f'{token_type}_refresh'] = refresh_token
     data[env][pnum] = target
     debug_step('updating session')
     with open(SESSION_STORE, 'w') as f:
