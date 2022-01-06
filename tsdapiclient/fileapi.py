@@ -22,7 +22,7 @@ from tsdapiclient.crypto import (nacl_encrypt_data, nacl_gen_nonce,
                                  nacl_gen_key, nacl_encrypt_header,
                                  nacl_encode_header)
 from tsdapiclient.tools import (handle_request_errors, debug_step,
-                                HELP_URL, file_api_url, HOSTS)
+                                HELP_URL, file_api_url, HOSTS, get_claims)
 
 
 def _init_progress_bar(current_chunk: int, chunksize: int, filename: str) -> Bar:
@@ -139,7 +139,6 @@ def lazy_reader(
         if with_progress:
             bar = _init_progress_bar(1, chunksize, filename)
         while True:
-            debug_step('reading chunk')
             if with_progress:
                 try:
                     bar.next()
@@ -147,12 +146,10 @@ def lazy_reader(
                     pass
             data = f.read(chunksize)
             if not data:
-                debug_step('no more data to read')
                 if with_progress:
                     bar.finish()
                 break
             else:
-                debug_step('chunk read complete')
                 if public_key:
                     data = nacl_encrypt_data(data, nonce, key)
                     if enc_nonce and enc_key:
@@ -206,13 +203,11 @@ def streamfile(
     refresh_target: time around which to refresh (within a default range)
 
     """
-    tokens = {}
+    tokens = maybe_refresh(env, pnum, api_key, token, refresh_token, refresh_target)
+    token = tokens.get('access_token') if tokens else token
     resource = upload_resource_name(filename, is_dir, group=group)
     endpoint=f"stream/{resource}?group={group}"
     url = f'{file_api_url(env, pnum, backend, endpoint=endpoint)}'
-    if refresh_target:
-        tokens = maybe_refresh(env, pnum, api_key, refresh_token, refresh_target)
-        token = tokens.get('access_token')
     headers = {'Authorization': f'Bearer {token}'}
     debug_step(f'streaming data to {url}')
     if set_mtime:
@@ -344,14 +339,19 @@ def import_delete(
     filename: str,
     session: Any = requests,
     group: Optional[str] = None,
+    api_key: Optional[str] = None,
+    refresh_token: Optional[str] = None,
+    refresh_target: Optional[int] = None,
 ) -> requests.Response:
+    tokens = maybe_refresh(env, pnum, api_key, token, refresh_token, refresh_target)
+    token = tokens.get("access_token") if tokens else token
     endpoint = f'stream/{group}/{filename}'
     url = f'{file_api_url(env, pnum, "files", endpoint=endpoint)}'
-    headers = {'Authorization': 'Bearer {0}'.format(token)}
+    headers = {'Authorization': f'Bearer {token}'}
     print(f'deleting: {filename}')
     resp = session.delete(url, headers=headers)
     resp.raise_for_status()
-    return resp
+    return {'response': resp, 'tokens': tokens}
 
 @handle_request_errors
 def export_delete(
@@ -361,14 +361,19 @@ def export_delete(
     filename: str,
     session: Any = requests,
     group: Optional[str] = None,
+    api_key: Optional[str] = None,
+    refresh_token: Optional[str] = None,
+    refresh_target: Optional[int] = None,
 ) -> requests.Response:
+    tokens = maybe_refresh(env, pnum, api_key, token, refresh_token, refresh_target)
+    token = tokens.get("access_token") if tokens else token
     endpoint = f'export/{filename}'
     url = f'{file_api_url(env, pnum, "files", endpoint=endpoint)}'
-    headers = {'Authorization': 'Bearer {0}'.format(token)}
+    headers = {'Authorization': f'Bearer {token}'}
     print(f'deleting: {filename}')
     resp = session.delete(url, headers=headers)
     resp.raise_for_status()
-    return resp
+    return {'response': resp, 'tokens': tokens}
 
 
 @handle_request_errors
@@ -442,7 +447,10 @@ def export_get(
     set_mtime: bool = False,
     nobar: bool = False,
     target_dir: Optional[str] = None,
-) -> str:
+    api_key: Optional[str] = None,
+    refresh_token: Optional[str] = None,
+    refresh_target: Optional[int] = None,
+) -> dict:
     """
     Download a file to the current directory.
 
@@ -461,11 +469,16 @@ def export_get(
     set_mtime: set local file mtime to be the same as remote resource
     nobar: disable the progress bar
     target_dir: where to save the file locally
+    api_key: client specific JWT allowing token refresh
+    refresh_token: a JWT with which to obtain a new access token
+    refresh_target: time around which to refresh (within a default range)
 
     """
+    tokens = maybe_refresh(env, pnum, api_key, token, refresh_token, refresh_target)
+    token = tokens.get("access_token") if tokens else token
     filemode = 'wb'
     current_file_size = None
-    headers = {'Authorization': 'Bearer {0}'.format(token)}
+    headers = {'Authorization': f'Bearer {token}'}
     if etag:
         debug_step(f'download_id: {etag}')
         filemode = 'ab'
@@ -531,7 +544,7 @@ def export_get(
         except OSError:
             print(f'{err}: {filename} - {err_consequence}')
             print('issue due to local operating system problem')
-    return filename
+    return {'filename': filename, 'tokens': tokens}
 
 
 def _resumable_url(
@@ -603,27 +616,16 @@ def get_resumable(
     is_dir: bool = False,
     key: Optional[str] = None,
     session: Any = requests,
+    api_key: Optional[str] = None,
+    refresh_token: Optional[str] = None,
+    refresh_target: Optional[int] = None,
 ) -> dict:
     """
     List uploads which can be resumed.
 
-    Parameters
-    ----------
-    env: 'test' or 'prod'
-    pnum: project number
-    token: JWT
-    filename: path
-    upload_id: uuid identifying a specific upload to resume
-    dev_url: development URL
-    backend: API backend
-    is_dir: True if uploading a directory of files,
-            will create a different URL structure
-    key: resumable key (direcctory path)
-    session: requests.session, optional
-
     Returns
     -------
-    dict, {filename, chunk_size, max_chunk, id}
+    dict, {overview: {filename, chunk_size, max_chunk, id}, tokens: {}}
 
     """
     if not dev_url:
@@ -636,11 +638,13 @@ def get_resumable(
         url = '{0}?id={1}'.format(url, upload_id)
     elif not upload_id and is_dir and key:
         url = '{0}?key={1}'.format(url, quote(key, safe=''))
-    headers = {'Authorization': 'Bearer {0}'.format(token)}
     debug_step(f'fetching resumables info, using: {url}')
+    tokens = maybe_refresh(env, pnum, api_key, token, refresh_token, refresh_target)
+    token = tokens.get("access_token") if tokens else token
+    headers = {'Authorization': f'Bearer {token}'}
     resp = session.get(url, headers=headers)
     data = json.loads(resp.text)
-    return data
+    return {'overview': data, 'tokens': tokens}
 
 
 def initiate_resumable(
@@ -660,9 +664,12 @@ def initiate_resumable(
     session: Any = requests,
     set_mtime: bool = False,
     public_key: Optional[libnacl.public.PublicKey] = None,
+    api_key: Optional[str] = None,
+    refresh_token: Optional[str] = None,
+    refresh_target: Optional[int] = None,
 ) -> dict:
     """
-    Performs a resumable upload, either by resuming a broken one,
+    Performs a resumable upload, either by resuming a partial one,
     or by starting a new one.
 
     Parameters
@@ -686,6 +693,9 @@ def initiate_resumable(
                about the file's client-side mtime, asking the server
                to set it remotely
     public_key: encrypt data on-the-fly (with automatic server-side decryption)
+    api_key: client specific JWT allowing token refresh
+    refresh_token: a JWT with which to obtain a new access token
+    refresh_target: time around which to refresh (within a default range)
 
     """
     to_resume = False
@@ -702,16 +712,24 @@ def initiate_resumable(
             is_dir=is_dir,
             key=key,
             session=session,
+            api_key=api_key,
+            refresh_token=refresh_token,
+            refresh_target=refresh_target,
         )
-        if not data.get('id'):
+        if data.get('tokens'):
+            tokens = data.get('tokens')
+            token = tokens.get("access_token")
+            refresh_token = tokens.get("refresh_token")
+            refresh_target = get_claims(token).get('exp')
+        if not data.get('overview', {}).get('id'):
             pass
         else:
-            to_resume = data
+            to_resume = data.get('overview')
     if dev_url:
             dev_url = dev_url.replace('resumables', 'stream')
     if to_resume:
         try:
-            return continue_resumable(
+            return _continue_resumable(
                 env,
                 pnum,
                 filename,
@@ -725,12 +743,15 @@ def initiate_resumable(
                 session=session,
                 set_mtime=set_mtime,
                 public_key=public_key,
+                api_key=api_key,
+                refresh_token=refresh_token,
+                refresh_target=refresh_target,
             )
         except Exception as e:
             print(e)
             return
     else:
-        return start_resumable(
+        return _start_resumable(
             env,
             pnum,
             filename,
@@ -744,19 +765,29 @@ def initiate_resumable(
             session=session,
             set_mtime=set_mtime,
             public_key=public_key,
+            api_key=api_key,
+            refresh_token=refresh_token,
+            refresh_target=refresh_target,
         )
 
 
 @handle_request_errors
 def _complete_resumable(
+    env: str,
+    pnum: str,
     filename: str,
     token: str,
     url: str,
     bar: Bar,
     session: Any = requests,
     mtime: Optional[str] = None,
+    api_key: Optional[str] = None,
+    refresh_token: Optional[str] = None,
+    refresh_target: Optional[int] = None,
 ) -> dict:
-    headers = {'Authorization': 'Bearer {0}'.format(token)}
+    tokens = maybe_refresh(env, pnum, api_key, token, refresh_token, refresh_target)
+    token = tokens.get("access_token") if tokens else token
+    headers = {'Authorization': f'Bearer {token}'}
     if mtime:
         headers['Modified-Time'] = mtime
     debug_step('completing resumable')
@@ -764,11 +795,11 @@ def _complete_resumable(
     resp.raise_for_status()
     bar.finish()
     debug_step('finished')
-    return json.loads(resp.text)
+    return {'response': json.loads(resp.text), 'tokens': tokens}
 
 
 @handle_request_errors
-def start_resumable(
+def _start_resumable(
     env: str,
     pnum: str,
     filename: str,
@@ -782,38 +813,28 @@ def start_resumable(
     session: Any = requests,
     set_mtime: bool = False,
     public_key: Optional[libnacl.public.PublicKey] = None,
+    api_key: Optional[str] = None,
+    refresh_token: Optional[str] = None,
+    refresh_target: Optional[int] = None,
 ) -> dict:
     """
     Start a new resumable upload, reding a file, chunk-by-chunk
     and performaing a PATCH request per chunk.
 
-    Parameters
-    ----------
-    env: 'test' or 'prod'
-    pnum: project number
-    filename: filename
-    token: JWT
-    chunksize: number of bytes to read and send per request
-    group: group which should own the file
-    dev_url: pass a complete url (useful for development)
-    stop_at: chunk number at which to stop upload (useful for development)
-    backend: API backend
-    is_dir: True if uploading a directory of files,
-            will create a different URL structure
-    session:  requests.session
-    set_mtime: default False, if True send information
-               about the file's client-side mtime, asking the server
-               to set it remotely
-    public_key: encrypt data on-the-fly (with automatic server-side decryption)
-
     """
     url = _resumable_url(env, pnum, filename, dev_url, backend, is_dir, group=group)
-    headers = {'Authorization': 'Bearer {0}'.format(token)}
+    headers = {'Authorization': f'Bearer {token}'}
     current_mtime = os.stat(filename).st_mtime if set_mtime else None
     if set_mtime:
         headers['Modified-Time'] = str(current_mtime)
     chunk_num = 1
     for chunk, enc_nonce, enc_key, ch_size in lazy_reader(filename, chunksize, public_key=public_key):
+        tokens = maybe_refresh(env, pnum, api_key, token, refresh_token, refresh_target)
+        if tokens:
+            token = tokens.get("access_token")
+            refresh_token = tokens.get("refresh_token")
+            refresh_target = get_claims(token).get('exp')
+            headers['Authorization'] = f'Bearer {token}'
         if public_key:
             headers['Content-Type'] = 'application/octet-stream+nacl'
             headers['Nacl-Nonce'] = nacl_encode_header(enc_nonce)
@@ -842,13 +863,25 @@ def start_resumable(
         group = '{0}-member-group'.format(pnum)
     parmaterised_url = '{0}?chunk={1}&id={2}&group={3}'.format(url, 'end', upload_id, group)
     resp = _complete_resumable(
-        filename, token, parmaterised_url, bar, session=session, mtime=str(current_mtime)
+        env,
+        pnum,
+        filename,
+        token,
+        parmaterised_url,
+        bar,
+        session=session,
+        mtime=str(current_mtime),
+        api_key=api_key,
+        refresh_token=refresh_token,
+        refresh_target=refresh_target,
     )
-    return resp
+    if not tokens:
+        tokens = resp.get('tokens')
+    return {'response': resp.get('response'), 'tokens': tokens}
 
 
 @handle_request_errors
-def continue_resumable(
+def _continue_resumable(
     env: str,
     pnum: str,
     filename: str,
@@ -862,6 +895,9 @@ def continue_resumable(
     session: Any = requests,
     set_mtime: bool = False,
     public_key: Optional[libnacl.public.PublicKey] = None,
+    api_key: Optional[str] = None,
+    refresh_token: Optional[str] = None,
+    refresh_target: Optional[int] = None,
 ) -> dict:
     """
     Continue a resumable upload, reding a file, from the
@@ -869,28 +905,10 @@ def continue_resumable(
     a PATCH request per chunk. Optional chunk md5 verification
     before resume.
 
-    Parameters
-    ----------
-    env: 'test' or 'prod'
-    pnum: project number
-    filename: filename
-    token: JWT
-    chunksize: number of bytes to read and send per request
-    group: group which should own the file
-    verify: if True then last chunk md5 is checked between client and server
-    dev_url: pass a complete url (useful for development)
-    backend: API backend
-    is_dir: True if uploading a directory of files,
-            will create a different URL structure
-    session:  requests.session, optional
-    set_mtime: default False, if True send information
-               about the file's client-side mtime, asking the server
-               to set it remotely
-    public_key: encrypt data on-the-fly (with automatic server-side decryption)
-
     """
+    tokens = {}
     url = _resumable_url(env, pnum, filename, dev_url, backend, is_dir, group=group)
-    headers = {'Authorization': 'Bearer {0}'.format(token)}
+    headers = {'Authorization': f'Bearer {token}'}
     current_mtime = os.stat(filename).st_mtime if set_mtime else None
     if set_mtime:
         headers['Modified-Time'] = str(current_mtime)
@@ -901,11 +919,17 @@ def continue_resumable(
     upload_id = to_resume['id']
     server_chunk_md5 = str(to_resume['md5sum'])
     chunk_num = max_chunk + 1
-    print('Resuming upload with id: {0}'.format(upload_id))
+    print(f'Resuming upload with id: {upload_id}')
     bar = _init_progress_bar(chunk_num, chunksize, filename)
     for chunk, enc_nonce, enc_key, ch_size in lazy_reader(
         filename, chunksize, previous_offset, next_offset, verify, server_chunk_md5, public_key=public_key,
     ):
+        tokens = maybe_refresh(env, pnum, api_key, token, refresh_token, refresh_target)
+        if tokens:
+            token = tokens.get("access_token")
+            refresh_token = tokens.get("refresh_token")
+            refresh_target = get_claims(token).get('exp')
+            headers['Authorization'] = f'Bearer {token}'
         if public_key:
             headers['Content-Type'] = 'application/octet-stream+nacl'
             headers['Nacl-Nonce'] = nacl_encode_header(enc_nonce)
@@ -919,14 +943,25 @@ def continue_resumable(
         data = json.loads(resp.text)
         upload_id = data['id']
         chunk_num += 1
-    resumable = data
     if not group:
         group = '{0}-member-group'.format(pnum)
     parmaterised_url = '{0}?chunk={1}&id={2}&group={3}'.format(url, 'end', upload_id, group)
     resp = _complete_resumable(
-        filename, token, parmaterised_url, bar, session=session, mtime=str(current_mtime)
+        env,
+        pnum,
+        filename,
+        token,
+        parmaterised_url,
+        bar,
+        session=session,
+        mtime=str(current_mtime),
+        api_key=api_key,
+        refresh_token=refresh_token,
+        refresh_target=refresh_target,
     )
-    return resp
+    if not tokens:
+        tokens = resp.get('tokens')
+    return {'response': resp.get('response'), 'tokens': tokens}
 
 
 @handle_request_errors
@@ -999,7 +1034,7 @@ def delete_all_resumables(
     """
     overview = get_resumable(
         env, pnum, token, dev_url=dev_url, backend=backend, session=session
-    )
+    ).get('overview')
     all_resumables = overview['resumables']
     for r in all_resumables:
         delete_resumable(
