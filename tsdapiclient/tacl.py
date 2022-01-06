@@ -34,7 +34,7 @@ from tsdapiclient.sync import (SerialDirectoryUploader,
                                UploadDeleteCache,
                                DownloadDeleteCache)
 from tsdapiclient.tools import (HELP_URL, has_api_connectivity, user_agent, debug_step,
-                                as_bytes)
+                                as_bytes, get_claims)
 
 requests.utils.default_user_agent = user_agent
 
@@ -505,9 +505,9 @@ def cli(
                 auth_required = False
         if not expires_soon and expired:
             auth_required = True
+        if not api_key:
+            api_key = get_api_key(env, pnum)
         if auth_required:
-            if not api_key:
-                api_key = get_api_key(env, pnum)
             username, password, otp = get_user_credentials()
             token, refresh_token = get_jwt_two_factor_auth(
                 env, pnum, api_key, username, password, otp, token_type, auth_method=auth_method,
@@ -516,9 +516,13 @@ def cli(
                 debug_step('updating login session')
                 session_update(env, pnum, token_type, token, refresh_token)
         else:
-            debug_step(f'using token from existing login session')
             token = session_token(env, pnum, token_type)
+            debug_step(f'using token from existing login session')
             refresh_token = session_refresh_token(env, pnum, token_type)
+            if refresh_token:
+                debug_step(f'using refresh token from existing login session')
+                debug_step(f'refreshes remaining: {get_claims(refresh_token).get("counter")}')
+                debug_step(refresh_token)
     elif not requires_user_credentials and basic:
         if not pnum:
             click.echo('missing pnum argument')
@@ -534,6 +538,7 @@ def cli(
 
     # 3. Given a valid access token, perform a given action
     if token:
+        refresh_target = get_claims(token).get('exp')
         if encrypt:
             debug_step('getting public key')
             public_key = nacl_get_server_public_key(env, pnum, token)
@@ -554,6 +559,9 @@ def cli(
                         verify=True,
                         upload_id=upload_id,
                         public_key=public_key,
+                        api_key=api_key,
+                        refresh_token=refresh_token,
+                        refresh_target=refresh_target,
                     )
                 else:
                     debug_step('starting upload')
@@ -575,6 +583,9 @@ def cli(
                     public_key=public_key,
                     chunk_size=as_bytes(chunk_size),
                     chunk_threshold=as_bytes(resumable_threshold),
+                    api_key=api_key,
+                    refresh_token=refresh_token,
+                    refresh_target=refresh_target,
                 )
                 uploader.sync()
         elif upload_sync:
@@ -598,6 +609,9 @@ def cli(
                 public_key=public_key,
                 chunk_size=as_bytes(chunk_size),
                 chunk_threshold=as_bytes(resumable_threshold),
+                api_key=api_key,
+                refresh_token=refresh_token,
+                refresh_target=refresh_target,
             )
             syncer.sync()
         elif resume_list:
@@ -626,6 +640,9 @@ def cli(
                     suffixes=ignore_suffixes,
                     use_cache=True if not cache_disable else False,
                     remote_key='export',
+                    api_key=api_key,
+                    refresh_token=refresh_token,
+                    refresh_target=refresh_target,
                 )
                 downloader.sync()
             else:
@@ -655,6 +672,9 @@ def cli(
                 keep_missing=keep_missing,
                 keep_updated=keep_updated,
                 remote_key='export',
+                api_key=api_key,
+                refresh_token=refresh_token,
+                refresh_target=refresh_target,
             )
             syncer.sync()
         return
