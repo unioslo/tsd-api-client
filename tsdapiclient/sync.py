@@ -14,9 +14,9 @@ import libnacl.public
 import requests
 
 from tsdapiclient.fileapi import (streamfile, initiate_resumable, import_list,
-                                  export_head, export_list, export_get,
+                                  export_list, export_get,
                                   import_delete, export_delete, survey_list)
-from tsdapiclient.tools import debug_step, get_data_path
+from tsdapiclient.tools import debug_step, get_data_path, get_claims
 
 
 @contextmanager
@@ -231,6 +231,9 @@ class GenericDirectoryTransporter(object):
         public_key: Optional[libnacl.public.PublicKey] = None,
         chunk_size: Optional[int] = 1000*1000*50,
         chunk_threshold: Optional[int] = 1000*1000*1000,
+        api_key: Optional[str] = None,
+        refresh_token: Optional[str] = None,
+        refresh_target: Optional[int] = None,
     ) -> None:
         self.env = env
         self.pnum = pnum
@@ -254,6 +257,9 @@ class GenericDirectoryTransporter(object):
         self.public_key = public_key
         self.chunk_size = chunk_size
         self.chunk_threshold = chunk_threshold
+        self.api_key = api_key
+        self.refresh_token = refresh_token
+        self.refresh_target = refresh_target
 
     def _parse_ignore_data(self, patterns: str) -> list:
         # e.g. .git,build,dist
@@ -309,7 +315,7 @@ class GenericDirectoryTransporter(object):
     def _find_local_resources(self, path: str) -> list:
         """
         Recursively list the given path.
-        Ignore prefixes a and suffixes if they exist.
+        Ignore prefixes and suffixes if they exist.
         If self.target_dir is specified, then it is
         prepended to the path before the recursive listing
         and removed again before compiling the list.
@@ -454,6 +460,9 @@ class GenericDirectoryTransporter(object):
                 session=self.session,
                 set_mtime=self.sync_mtime,
                 public_key=self.public_key,
+                api_key=self.api_key,
+                refresh_token=self.refresh_token,
+                refresh_target=self.refresh_target,
             )
         else:
             resp = streamfile(
@@ -466,7 +475,14 @@ class GenericDirectoryTransporter(object):
                 session=self.session,
                 set_mtime=self.sync_mtime,
                 public_key=self.public_key,
+                api_key=self.api_key,
+                refresh_token=self.refresh_token,
+                refresh_target=self.refresh_target,
             )
+        if resp.get('tokens'):
+            self.token = resp.get('tokens').get('access_token')
+            self.refresh_token = resp.get('tokens').get('refresh_token')
+            self.refresh_target = get_claims(self.token).get('exp')
         return resource
 
     def _transfer_remote_to_local(
@@ -497,7 +513,14 @@ class GenericDirectoryTransporter(object):
             set_mtime=self.sync_mtime,
             backend=self.remote_key,
             target_dir=self.target_dir,
+            api_key=self.api_key,
+            refresh_token=self.refresh_token,
+            refresh_target=self.refresh_target,
         )
+        if resp.get('tokens'):
+            self.token = resp.get('tokens').get('access_token')
+            self.refresh_token = resp.get('tokens').get('refresh_token')
+            self.refresh_target = get_claims(self.token).get('exp')
         return resource
 
     def _delete_remote_resource(self, resource: str) -> str:
@@ -511,9 +534,20 @@ class GenericDirectoryTransporter(object):
         }
         debug_step(f'deleting: {resource}')
         resp = delete_funcs[self.remote_key](
-            self.env, self.pnum, self.token, resource,
-            session=self.session, group=self.group
+            self.env,
+            self.pnum,
+            self.token,
+            resource,
+            session=self.session,
+            group=self.group,
+            api_key=self.api_key,
+            refresh_token=self.refresh_token,
+            refresh_target=self.refresh_target,
         )
+        if resp.get('tokens'):
+            self.token = resp.get('tokens').get('access_token')
+            self.refresh_token = resp.get('tokens').get('refresh_token')
+            self.refresh_target = get_claims(self.token).get('exp')
         return resource
 
     def _find_sync_lists(
