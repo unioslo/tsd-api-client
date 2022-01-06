@@ -8,7 +8,8 @@ import time
 from datetime import datetime, timedelta
 
 from tsdapiclient.client_config import ENV
-from tsdapiclient.tools import handle_request_errors, auth_api_url, debug_step
+from tsdapiclient.session import session_update
+from tsdapiclient.tools import handle_request_errors, auth_api_url, debug_step, get_claims
 
 @handle_request_errors
 def get_jwt_basic_auth(
@@ -85,6 +86,7 @@ def refresh_access_token(
         data = json.loads(resp.text)
         return data.get('token'), data.get('refresh_token')
     else:
+        debug_step(json.loads(resp.text).get('message'))
         return None, None
 
 
@@ -92,17 +94,63 @@ def maybe_refresh(
     env: str,
     pnum: str,
     api_key: str,
+    access_token: str,
     refresh_token: str,
     refresh_target: int,
     before_min: int = 5,
     after_min: int = 1,
+    force: bool = False,
 ) -> dict:
-    tokens = {}
-    target = datetime.fromtimestamp(refresh_target)
-    now = datetime.now().timestamp()
-    start = (target - timedelta(minutes=before_min)).timestamp()
-    end = (target + timedelta(minutes=after_min)).timestamp()
-    if now >= start and now <= end:
-        access, refresh = refresh_access_token(env, pnum, api_key, refresh_token)
-        tokens = {'access_token': access, 'refresh_token': refresh_token}
-    return tokens
+    """
+    Try to refresh an access token, using a refresh token. This
+    is tried when the currnet time falls within a window around
+    the time given by refresh_target, by default within 5 minutes
+    before, or 1 after. If force == True, then a refesh will be
+    performed regardless.
+
+    Access and refresh tokens are returned to clients in pairs,
+    with refresh tokens having a decrementing counter each time
+    they are used.
+
+    Each time a successfull token refresh happens, the session
+    will be updated with the new token pair.
+
+    When the refresh token is exhausted, the last access token is
+    issued without a new refresh token, which means that the next
+    call to this function will be with refresh_token == None. When
+    this happens, the function will return the access token provided
+    by the caller, since it can no longer be refreshed.
+
+    If for some reason the refresh operation fails, then the access
+    token provided by the caller is returned.
+
+    """
+    if not refresh_token or not refresh_target:
+        if access_token:
+            debug_step('no refresh token provided, re-using current access token')
+            return {'access_token': access_token}
+        else:
+            debug_step('no refresh or access token provided')
+            return {}
+    else:
+        token_type = get_claims(access_token).get('name')
+        target = datetime.fromtimestamp(refresh_target)
+        now = datetime.now().timestamp()
+        start = (target - timedelta(minutes=before_min)).timestamp()
+        end = (target + timedelta(minutes=after_min)).timestamp()
+        if now >= start and now <= end or force:
+            if force:
+                debug_step('forcing refresh')
+            access, refresh = refresh_access_token(env, pnum, api_key, refresh_token)
+            if access and refresh:
+                session_update(env, pnum, token_type, access, refresh)
+                debug_step(f"refreshes remaining: {get_claims(refresh).get('counter')}")
+                return {'access_token': access, 'refresh_token': refresh}
+            if access and not refresh:
+                session_update(env, pnum, token_type, access, refresh)
+                debug_step('refreshes remaining: 0')
+                tokens = {'access_token': access}
+            else:
+                session_update(env, pnum, token_type, access_token, refresh)
+                debug_step('could not refresh, using existing access token')
+                return {'access_token': access_token}
