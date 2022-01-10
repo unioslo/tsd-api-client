@@ -516,6 +516,7 @@ class GenericDirectoryTransporter(object):
             api_key=self.api_key,
             refresh_token=self.refresh_token,
             refresh_target=self.refresh_target,
+            public_key=public_key,
         )
         if resp.get('tokens'):
             self.token = resp.get('tokens').get('access_token')
