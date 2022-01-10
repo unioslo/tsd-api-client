@@ -10,10 +10,14 @@ import libnacl.public
 import libnacl.utils
 import requests
 
-from tsdapiclient.tools import HOSTS
+from tsdapiclient.tools import HOSTS, debug_step
 
 
 def nacl_encrypt_data(data: bytes, nonce: bytes, key: bytes) -> bytes:
+    return libnacl.crypto_stream_xor(data, nonce, key)
+
+
+def nacl_decrypt_data(data: bytes, nonce: bytes, key: bytes) -> bytes:
     return libnacl.crypto_stream_xor(data, nonce, key)
 
 
@@ -27,6 +31,7 @@ def nacl_gen_key() -> bytes:
 
 def nacl_get_server_public_key(env: str, pnum: str, token: str) -> bytes:
     host = HOSTS.get(env)
+    debug_step('getting public key')
     resp = requests.get(
         f'https://{host}/v1/{pnum}/files/crypto/key',
         headers={'Authorization': f'Bearer {token}'},
