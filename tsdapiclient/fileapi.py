@@ -18,11 +18,22 @@ from progress.bar import Bar
 
 from tsdapiclient.authapi import maybe_refresh
 from tsdapiclient.client_config import ENV, API_VERSION
-from tsdapiclient.crypto import (nacl_encrypt_data, nacl_gen_nonce,
-                                 nacl_gen_key, nacl_encrypt_header,
-                                 nacl_encode_header)
-from tsdapiclient.tools import (handle_request_errors, debug_step,
-                                HELP_URL, file_api_url, HOSTS, get_claims)
+from tsdapiclient.crypto import (
+    nacl_encrypt_data,
+    nacl_gen_nonce,
+    nacl_gen_key,
+    nacl_encrypt_header,
+    nacl_encode_header,
+    nacl_decrypt_data,
+)
+from tsdapiclient.tools import (
+    handle_request_errors,
+    debug_step,
+    HELP_URL,
+    file_api_url,
+    HOSTS,
+    get_claims,
+)
 
 
 def _init_progress_bar(current_chunk: int, chunksize: int, filename: str) -> Bar:
@@ -450,6 +461,7 @@ def export_get(
     api_key: Optional[str] = None,
     refresh_token: Optional[str] = None,
     refresh_target: Optional[int] = None,
+    public_key: Optional[libnacl.public.PublicKey] = None,
 ) -> dict:
     """
     Download a file to the current directory.
@@ -472,6 +484,7 @@ def export_get(
     api_key: client specific JWT allowing token refresh
     refresh_token: a JWT with which to obtain a new access token
     refresh_target: time around which to refresh (within a default range)
+    public_key: encrypt/decrypt data on-the-fly
 
     """
     tokens = maybe_refresh(env, pnum, api_key, token, refresh_token, refresh_target)
@@ -518,11 +531,22 @@ def export_get(
     if destination_dir and not os.path.lexists(destination_dir):
         debug_step(f'creating directory: {destination_dir}')
         os.makedirs(destination_dir)
+    if public_key:
+        debug_step('generating nonce and key')
+        nonce = nacl_gen_nonce()
+        key = nacl_gen_key()
+        enc_nonce = nacl_encrypt_header(public_key, nonce)
+        enc_key = nacl_encrypt_header(public_key, key)
+        headers['Nacl-Nonce'] = nacl_encode_header(enc_nonce)
+        headers['Nacl-Key'] = nacl_encode_header(enc_key)
+        headers['Nacl-Chunksize'] = str(chunksize)
     with session.get(url, headers=headers, stream=True) as r:
         r.raise_for_status()
         with open(unquote(filename), filemode) as f:
             for chunk in r.iter_content(chunk_size=chunksize):
                 if chunk:
+                    if public_key:
+                        chunk = nacl_decrypt_data(chunk, nonce, key)
                     f.write(chunk)
                     if not nobar:
                         bar.next()
@@ -856,9 +880,8 @@ def _start_resumable(
         if stop_at:
             if chunk_num == stop_at:
                 print('stopping at chunk {0}'.format(chunk_num))
-                return data
+                return {'response': data}
         chunk_num += 1
-    resumable = data
     if not group:
         group = '{0}-member-group'.format(pnum)
     parmaterised_url = '{0}?chunk={1}&id={2}&group={3}'.format(url, 'end', upload_id, group)
