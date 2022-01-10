@@ -95,6 +95,10 @@ To view and manage the directory download cache:
     tacl p11 --download-cache-delete mydir
     tacl p11 --download-cache-delete-all
 
+Using on-the-fly encryption, with automatic decryption:
+
+    tacl p11 --download data.txt --encrypt
+
 """
 
 automation = f"""
@@ -165,5 +169,49 @@ and the local filesystem for its current state.
 Using on-the-fly encryption, with automatic server-side decryption:
 
     tacl p11 --upload-sync mydir --encrypt
+
+"""
+
+encryption = f"""
+tacl, together with the File API, supports end-to-end data
+encryption/decryption for uploads and downloads. It is implemented
+using a combination of asymmetric and symmetric key cryptography
+as follows:
+
+Encrypted upload:
+
+    client                      server
+    ------                      ------
+
+    public_key <------------------|
+    generate:
+        - nonce
+        - key
+    read data
+    encrypt(nonce, public_key) --->
+    encrypt(key, public_key) ----->
+    encrypt(data, nonce, key) ---->
+                              decrypt(nonce, private_key)
+                              decrypt(key, private_key)
+                              decrypt(data, nonce, key)
+                              write data
+
+Encrypted download:
+
+    client                      server
+    ------                      ------
+
+    public_key <------------------|
+    generate:
+        - nonce
+        - key
+    encrypt(nonce, public_key) --->
+    encrypt(key, public_key) ----->
+                              decrypt(nonce, private_key)
+                              decrypt(key, private_key)
+                              read data
+      <---------------------- encrypt(data, nonce, key)
+    write data
+
 
 """
