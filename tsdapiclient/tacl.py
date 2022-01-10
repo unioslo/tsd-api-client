@@ -13,28 +13,52 @@ from tsdapiclient import __version__
 from tsdapiclient.administrator import get_tsd_api_key
 from tsdapiclient.authapi import get_jwt_two_factor_auth, get_jwt_basic_auth
 from tsdapiclient.client_config import ENV, CHUNK_THRESHOLD, CHUNK_SIZE
-from tsdapiclient.configurer import (read_config, update_config,
-                                     print_config, delete_config)
+from tsdapiclient.configurer import (
+    read_config, update_config, print_config, delete_config,
+)
 from tsdapiclient.crypto import nacl_get_server_public_key
-from tsdapiclient.fileapi import (streamfile, initiate_resumable, get_resumable,
-                                  delete_resumable, delete_all_resumables,
-                                  export_get, export_list, print_export_list,
-                                  print_resumables_list, export_head, export_delete)
-from tsdapiclient.guide import (topics, config, uploads, downloads,
-                                debugging, automation, sync)
-from tsdapiclient.session import (session_is_expired, session_expires_soon,
-                                  session_update, session_clear, session_token,
-                                  session_refresh_token)
-from tsdapiclient.sync import (SerialDirectoryUploader,
-                               SerialDirectoryDownloader,
-                               SerialDirectoryUploadSynchroniser,
-                               SerialDirectoryDownloadSynchroniser,
-                               UploadCache,
-                               DownloadCache,
-                               UploadDeleteCache,
-                               DownloadDeleteCache)
-from tsdapiclient.tools import (HELP_URL, has_api_connectivity, user_agent, debug_step,
-                                as_bytes, get_claims)
+from tsdapiclient.fileapi import (
+    streamfile,
+    initiate_resumable,
+    get_resumable,
+    delete_resumable,
+    delete_all_resumables,
+    export_get,
+    export_list,
+    print_export_list,
+    print_resumables_list,
+    export_head,
+    export_delete,
+)
+from tsdapiclient.guide import (
+    topics, config, uploads, downloads, debugging, automation, sync, encryption,
+)
+from tsdapiclient.session import (
+    session_is_expired,
+    session_expires_soon,
+    session_update,
+    session_clear,
+    session_token,
+    session_refresh_token,
+)
+from tsdapiclient.sync import (
+    SerialDirectoryUploader,
+    SerialDirectoryDownloader,
+    SerialDirectoryUploadSynchroniser,
+    SerialDirectoryDownloadSynchroniser,
+    UploadCache,
+    DownloadCache,
+    UploadDeleteCache,
+    DownloadDeleteCache,
+)
+from tsdapiclient.tools import (
+    HELP_URL,
+    has_api_connectivity,
+    user_agent,
+    debug_step,
+    as_bytes,
+    get_claims,
+)
 
 requests.utils.default_user_agent = user_agent
 
@@ -76,7 +100,8 @@ GUIDES = {
     'downloads': downloads,
     'debugging': debugging,
     'automation': automation,
-    'sync': sync
+    'sync': sync,
+    'encryption': encryption,
 }
 
 def print_version_info() -> None:
@@ -399,7 +424,7 @@ def construct_correct_upload_path(path: str) -> str:
     '--encrypt',
     is_flag=True,
     required=False,
-    help='Encrypt data while sending it, requesting automatic decryption'
+    help='Use end-to-end encryption'
 )
 @click.option(
     '--chunk-size',
@@ -540,7 +565,7 @@ def cli(
     if token:
         refresh_target = get_claims(token).get('exp')
         if encrypt:
-            debug_step('getting public key')
+            debug_step('Using end-to-end encryption')
             public_key = nacl_get_server_public_key(env, pnum, token)
         else:
             public_key = None
@@ -643,10 +668,18 @@ def cli(
                     api_key=api_key,
                     refresh_token=refresh_token,
                     refresh_target=refresh_target,
+                    public_key=public_key,
                 )
                 downloader.sync()
             else:
-                export_get(env, pnum, filename, token, etag=download_id)
+                export_get(
+                    env,
+                    pnum,
+                    filename,
+                    token,
+                    etag=download_id,
+                    public_key=public_key,
+                )
         elif download_list:
             debug_step('listing export directory')
             data = export_list(env, pnum, token)
@@ -675,6 +708,7 @@ def cli(
                 api_key=api_key,
                 refresh_token=refresh_token,
                 refresh_target=refresh_target,
+                public_key=public_key,
             )
             syncer.sync()
         return
