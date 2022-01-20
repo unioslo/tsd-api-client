@@ -6,7 +6,7 @@ import json
 import os
 
 from functools import cmp_to_key
-from typing import Optional, Union, Any
+from typing import Optional, Union, Any, Iterable
 from urllib.parse import quote, unquote
 
 import humanfriendly
@@ -90,6 +90,8 @@ def upload_resource_name(filename: str, is_dir: bool, group: Optional[str] = Non
     if not is_dir:
         debug_step('uploading file')
         resource = quote(format_filename(filename))
+        if group:
+            resource = f'{group}/{resource}'
     elif is_dir:
         debug_step('uploading directory (file)')
         if filename.startswith('/'):
@@ -111,7 +113,7 @@ def lazy_reader(
     public_key: Optional[libnacl.public.PublicKey] = None,
     nonce: Optional[bytes] = None,
     key: Optional[bytes] = None,
-) -> Union[bytes, tuple]:
+) -> Union[Iterable[bytes], Iterable[tuple]]:
     """
     Create an iterator over a file, returning chunks of bytes.
 
