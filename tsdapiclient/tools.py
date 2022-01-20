@@ -15,11 +15,15 @@ from typing import Optional, Callable, Any
 
 import click
 
-from requests.exceptions import (ConnectionError, HTTPError, RequestException,
-                                 Timeout)
-
 from . import __version__
+from requests.exceptions import (
+    ConnectionError,
+    HTTPError,
+    RequestException,
+    Timeout,
+)
 from tsdapiclient.client_config import API_VERSION
+from tsdapiclient.exc import AuthzError, AuthnError
 
 HELP_URL = 'https://www.uio.no/english/services/it/research/sensitive-data/contact/index.html'
 
@@ -158,6 +162,12 @@ def handle_request_errors(f: Callable) -> Any:
         except RequestException as err:
             print(err)
             sys.exit("An error has occured. Exiting.")
+        except AuthzError as err:
+            print(err)
+            sys.exit("Request not authorized. Exiting.")
+        except AuthnError as err:
+            print(err)
+            sys.exit("Authentication failed. Exiting.")
     return decorator
 
 def _get_system_config_path() -> pathlib.Path:
