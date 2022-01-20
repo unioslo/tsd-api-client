@@ -7,6 +7,7 @@ import time
 
 from datetime import datetime, timedelta
 
+from tsdapiclient.exc import AuthnError
 from tsdapiclient.client_config import ENV
 from tsdapiclient.session import session_update
 from tsdapiclient.tools import handle_request_errors, auth_api_url, debug_step, get_claims
@@ -26,7 +27,7 @@ def get_jwt_basic_auth(
     try:
         resp = requests.post(url, headers=headers)
     except Exception as e:
-        raise e
+        raise AuthnError from e
     if resp.status_code in [200, 201]:
         data = json.loads(resp.text)
         return data.get('token'), data.get('refresh_token')
@@ -57,7 +58,7 @@ def get_jwt_two_factor_auth(
     try:
         resp = requests.post(url, data=json.dumps(data), headers=headers)
     except Exception as e:
-        raise e
+        raise AuthnError from e
     if resp.status_code in [200, 201]:
         data = json.loads(resp.text)
         return data.get('token'), data.get('refresh_token')
@@ -81,7 +82,7 @@ def refresh_access_token(
         debug_step('refreshing token')
         resp = requests.post(url, data=json.dumps(data), headers=headers)
     except Exception as e:
-        raise e
+        raise AuthnError from e
     if resp.status_code in [200, 201]:
         data = json.loads(resp.text)
         return data.get('token'), data.get('refresh_token')
