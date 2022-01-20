@@ -14,6 +14,7 @@ from functools import wraps
 from typing import Optional, Callable, Any
 
 import click
+import requests
 
 from . import __version__
 from requests.exceptions import (
@@ -239,3 +240,47 @@ def as_bytes(amount: str) -> int:
     else:
         raise Exception(f'unsupported amount: {amount}, accepted units: "kb", "mb", "gb"')
     return num_bytes
+
+
+class Retry(object):
+
+    """
+    When nginx returns a 504 due to an upstream timeout,
+    it does not try to find a new upstream, so we can
+    retry it.
+
+    """
+
+    def __init__(
+        self,
+        func: Callable,
+        url: str,
+        headers: dict,
+        data: bytes,
+        counter: int = 5,
+    ) -> None:
+        self.func = func
+        self.url = url
+        self.headers = headers
+        self.data = data
+        self.counter = counter
+
+    def __enter__(self) -> requests.Response:
+        total = self.counter
+        retry_attempt_no = 0
+        while self.counter > 0:
+            self.resp = self.func(self.url, headers=self.headers, data=self.data)
+            rc = self.resp.status_code
+            if rc >= 200 and rc <= 299:
+                return self.resp # all good
+            elif rc >= 400 and rc <= 499:
+                return self.resp # cannot retry
+            elif rc == 504:
+                self.counter -= 1 # timeout, try again
+                retry_attempt_no += 1
+                debug_step(f'timeout: retrying request attempt {retry_attempt_no}/{total}')
+            else:
+                return self.resp
+
+    def __exit__(self, type, value, traceback) -> requests.Response:
+        return self.resp # caller should raise from that
