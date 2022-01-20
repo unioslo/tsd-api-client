@@ -33,6 +33,7 @@ from tsdapiclient.tools import (
     file_api_url,
     HOSTS,
     get_claims,
+    Retry,
 )
 
 
@@ -135,7 +136,7 @@ def lazy_reader(
         nonce, key = nacl_gen_nonce(), nacl_gen_key()
         enc_nonce = nacl_encrypt_header(public_key, nonce)
         enc_key = nacl_encrypt_header(public_key, key)
-    debug_step(f'reading file: {filename}')
+    debug_step(f'reading file: {filename} in chunks of {chunksize} bytes')
     with open(filename, 'rb') as f:
         if verify:
             debug_step('verifying chunk md5sum')
@@ -871,9 +872,9 @@ def _start_resumable(
         else:
             parmaterised_url = '{0}?chunk={1}&id={2}'.format(url, str(chunk_num), upload_id)
         debug_step(f'sending chunk {chunk_num}, using {parmaterised_url}')
-        resp = session.patch(parmaterised_url, data=chunk, headers=headers)
-        resp.raise_for_status()
-        data = json.loads(resp.text)
+        with Retry(session.patch, parmaterised_url, headers, chunk) as resp:
+            resp.raise_for_status()
+            data = json.loads(resp.text)
         if chunk_num == 1:
             upload_id = data['id']
             print('Upload id: {0}'.format(upload_id))
@@ -962,10 +963,10 @@ def _continue_resumable(
             headers['Nacl-Chunksize'] = str(ch_size)
         parmaterised_url = '{0}?chunk={1}&id={2}'.format(url, str(chunk_num), upload_id)
         debug_step(f'sending chunk {chunk_num}, using {parmaterised_url}')
-        resp = session.patch(parmaterised_url, data=chunk, headers=headers)
-        resp.raise_for_status()
+        with Retry(session.patch, parmaterised_url, headers, chunk) as resp:
+            resp.raise_for_status()
+            data = json.loads(resp.text)
         bar.next()
-        data = json.loads(resp.text)
         upload_id = data['id']
         chunk_num += 1
     if not group:

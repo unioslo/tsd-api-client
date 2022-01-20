@@ -573,7 +573,7 @@ def cli(
         if upload:
             if os.path.isfile(upload):
                 if upload_id or os.stat(upload).st_size > as_bytes(resumable_threshold):
-                    debug_step('starting resumable upload')
+                    debug_step(f'starting resumable upload')
                     resp = initiate_resumable(
                         env,
                         pnum,
