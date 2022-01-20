@@ -99,7 +99,7 @@ def maybe_refresh(
     refresh_token: str,
     refresh_target: int,
     before_min: int = 5,
-    after_min: int = 1,
+    after_min: int = 10,
     force: bool = False,
 ) -> dict:
     """
