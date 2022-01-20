@@ -10,7 +10,8 @@ import libnacl.public
 import libnacl.utils
 import requests
 
-from tsdapiclient.tools import HOSTS, debug_step
+from tsdapiclient.exc import AuthzError
+from tsdapiclient.tools import HOSTS, debug_step, handle_request_errors
 
 
 def nacl_encrypt_data(data: bytes, nonce: bytes, key: bytes) -> bytes:
@@ -29,6 +30,7 @@ def nacl_gen_key() -> bytes:
     return libnacl.utils.salsa_key()
 
 
+@handle_request_errors
 def nacl_get_server_public_key(env: str, pnum: str, token: str) -> bytes:
     host = HOSTS.get(env)
     debug_step('getting public key')
@@ -36,6 +38,8 @@ def nacl_get_server_public_key(env: str, pnum: str, token: str) -> bytes:
         f'https://{host}/v1/{pnum}/files/crypto/key',
         headers={'Authorization': f'Bearer {token}'},
     )
+    if resp.status_code != 200:
+        raise AuthzError
     encoded_public_key = json.loads(resp.text).get('public_key')
     return libnacl.public.PublicKey(base64.b64decode(encoded_public_key))
 
