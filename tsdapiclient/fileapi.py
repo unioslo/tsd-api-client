@@ -18,14 +18,18 @@ from progress.bar import Bar
 
 from tsdapiclient.authapi import maybe_refresh
 from tsdapiclient.client_config import ENV, API_VERSION
-from tsdapiclient.crypto import (
-    nacl_encrypt_data,
-    nacl_gen_nonce,
-    nacl_gen_key,
-    nacl_encrypt_header,
-    nacl_encode_header,
-    nacl_decrypt_data,
-)
+try:
+    from tsdapiclient.crypto import (
+        nacl_encrypt_data,
+        nacl_gen_nonce,
+        nacl_gen_key,
+        nacl_encrypt_header,
+        nacl_encode_header,
+        nacl_decrypt_data,
+    )
+    LIBSODIUM_AVAILABLE = True
+except OSError:
+    LIBSODIUM_AVAILABLE = False
 from tsdapiclient.tools import (
     handle_request_errors,
     debug_step,
