@@ -16,7 +16,11 @@ from tsdapiclient.client_config import ENV, CHUNK_THRESHOLD, CHUNK_SIZE
 from tsdapiclient.configurer import (
     read_config, update_config, print_config, delete_config,
 )
-from tsdapiclient.crypto import nacl_get_server_public_key
+try:
+    from tsdapiclient.crypto import nacl_get_server_public_key
+    LIBSODIUM_AVAILABLE = True
+except OSError:
+    LIBSODIUM_AVAILABLE = False
 from tsdapiclient.fileapi import (
     streamfile,
     initiate_resumable,
@@ -565,8 +569,12 @@ def cli(
     if token:
         refresh_target = get_claims(token).get('exp')
         if encrypt:
-            debug_step('Using end-to-end encryption')
-            public_key = nacl_get_server_public_key(env, pnum, token)
+            if not LIBSODIUM_AVAILABLE:
+                click.echo("libsodium system dependency missing - end-to-end encryption not available")
+                public_key = None
+            else:
+                debug_step('Using end-to-end encryption')
+                public_key = nacl_get_server_public_key(env, pnum, token)
         else:
             public_key = None
         group = f'{pnum}-member-group' if not group else group
