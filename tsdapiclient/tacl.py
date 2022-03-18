@@ -227,7 +227,7 @@ def construct_correct_upload_path(path: str) -> str:
 )
 @click.option(
     '--env',
-    default='prod',
+    default=None,
     help='API environment',
     show_default=True,
     autocompletion=get_api_envs
@@ -483,6 +483,10 @@ def cli(
     resumable_threshold: int,
 ) -> None:
     """tacl - TSD API client."""
+
+    if not env:
+        env = "ec-prod" if pnum and pnum.startswith("ec") else "prod"
+
     token = None
     if verbose:
         os.environ['DEBUG'] = '1'
@@ -509,8 +513,7 @@ def cli(
     else:
         requires_user_credentials = False
 
-    auth_method = "iam" if env.startswith("ec-") else "tsd"
-
+    auth_method = "iam" if env.startswith("ec-") or (pnum and pnum.startswith("ec")) else "tsd"
     # 2. Try to get a valid access token
     if requires_user_credentials:
         check_api_connection(env)
@@ -781,6 +784,7 @@ def cli(
             check_api_connection(env)
             username, password, otp = get_user_credentials()
             if env.startswith('ec-'):
+                auth_method = 'iam'
                 pnum = input('ec project > ')
             else:
                 pnum = username.split('-')[0]
