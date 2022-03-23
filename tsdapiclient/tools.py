@@ -282,9 +282,12 @@ class Retry(object):
         new_session = None
         total = self.counter
         retry_attempt_no = 0
+        rc = 0
         while self.counter > 0:
             try:
                 self.resp = self.func(self.url, headers=self.headers, data=self.data)
+                rc = self.resp.status_code
+                reconnect = False
             except KeyboardInterrupt:
                 sys.exit()
             except ConnectionError:
@@ -292,13 +295,12 @@ class Retry(object):
                 time.sleep(5)
                 self.func, new_session = self._new_func()
                 debug_step("retrying request with new connection")
-                self.resp = self.func(self.url, headers=self.headers, data=self.data)
-            rc = self.resp.status_code
+                reconnect = True
             if rc >= 200 and rc <= 299:
                 return {"resp": self.resp, "new_session": new_session}
             elif rc >= 400 and rc <= 499:
                 return {"resp": self.resp, "new_session": new_session}
-            elif rc == 504:
+            elif rc == 504 or reconnect:
                 self.counter -= 1
                 retry_attempt_no += 1
                 debug_step(f'timeout: retrying request attempt {retry_attempt_no}/{total}')
