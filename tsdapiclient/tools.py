@@ -307,5 +307,5 @@ class Retry(object):
             else:
                 return {"resp": self.resp, "new_session": new_session}
 
-    def __exit__(self, type, value, traceback) -> requests.Response:
-        return self.resp # caller should raise from that
+    def __exit__(self, type, value, traceback) -> dict:
+        return {"resp": self.resp, "new_session": None} # caller should raise from that
