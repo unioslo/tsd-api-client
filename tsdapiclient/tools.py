@@ -11,7 +11,7 @@ import sys
 import time
 
 from functools import wraps
-from typing import Optional, Callable, Any
+from typing import Optional, Callable, Any, Union
 
 import click
 import requests
@@ -256,7 +256,7 @@ class Retry(object):
         func: Callable,
         url: str,
         headers: dict,
-        data: bytes,
+        data: Union[bytes, Callable],
         counter: int = 5,
     ) -> None:
         self.func = func
@@ -264,23 +264,47 @@ class Retry(object):
         self.headers = headers
         self.data = data
         self.counter = counter
+        self.func_str = str(func)
 
-    def __enter__(self) -> requests.Response:
+    def _new_func(self) -> tuple:
+        session = requests.session()
+        if "patch" in self.func_str:
+            func = session.patch
+        elif "put" in self.func_str:
+            func = session.put
+        elif "get" in self.func_str:
+            func = session.get
+        elif "delete" in self.func_str:
+            func = session.delete
+        return func, session
+
+    def __enter__(self) -> dict:
+        new_session = None
         total = self.counter
         retry_attempt_no = 0
         while self.counter > 0:
-            self.resp = self.func(self.url, headers=self.headers, data=self.data)
+            try:
+                raise ConnectionError
+                self.resp = self.func(self.url, headers=self.headers, data=self.data)
+            except KeyboardInterrupt:
+                sys.exit()
+            except ConnectionError:
+                debug_step("trying to re-establish connectivity")
+                time.sleep(5)
+                self.func, new_session = self._new_func()
+                debug_step("retrying request with new connection")
+                self.resp = self.func(self.url, headers=self.headers, data=self.data)
             rc = self.resp.status_code
             if rc >= 200 and rc <= 299:
-                return self.resp # all good
+                return {"resp": self.resp, "new_session": new_session}
             elif rc >= 400 and rc <= 499:
-                return self.resp # cannot retry
+                return {"resp": self.resp, "new_session": new_session}
             elif rc == 504:
-                self.counter -= 1 # timeout, try again
+                self.counter -= 1
                 retry_attempt_no += 1
                 debug_step(f'timeout: retrying request attempt {retry_attempt_no}/{total}')
             else:
-                return self.resp
+                return {"resp": self.resp, "new_session": new_session}
 
     def __exit__(self, type, value, traceback) -> requests.Response:
         return self.resp # caller should raise from that
