@@ -284,7 +284,6 @@ class Retry(object):
         retry_attempt_no = 0
         while self.counter > 0:
             try:
-                raise ConnectionError
                 self.resp = self.func(self.url, headers=self.headers, data=self.data)
             except KeyboardInterrupt:
                 sys.exit()
