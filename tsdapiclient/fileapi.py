@@ -242,9 +242,11 @@ def streamfile(
     else:
         # so the lazy_reader knows to return bytes only
         nonce, key = True, True
-    resp = session.put(
+    with Retry(
+        session.put,
         url,
-        data=lazy_reader(
+        headers,
+        lazy_reader(
             filename,
             chunksize,
             with_progress=True,
@@ -252,10 +254,12 @@ def streamfile(
             nonce=nonce,
             key=key,
         ),
-        headers=headers,
-    )
-    resp.raise_for_status()
-    return {'response': resp, 'tokens': tokens}
+    ) as retriable:
+        if retriable.get("new_session"):
+            session = retriable.get("new_session")
+        resp = retriable.get("resp")
+        resp.raise_for_status()
+    return {'response': resp, 'tokens': tokens, 'session': session}
 
 
 def print_export_list(data: dict) -> None:
@@ -876,7 +880,10 @@ def _start_resumable(
         else:
             parmaterised_url = '{0}?chunk={1}&id={2}'.format(url, str(chunk_num), upload_id)
         debug_step(f'sending chunk {chunk_num}, using {parmaterised_url}')
-        with Retry(session.patch, parmaterised_url, headers, chunk) as resp:
+        with Retry(session.patch, parmaterised_url, headers, chunk) as retriable:
+            if retriable.get("new_session"):
+                session = retriable.get("new_session")
+            resp = retriable.get("resp")
             resp.raise_for_status()
             data = json.loads(resp.text)
         if chunk_num == 1:
@@ -907,7 +914,7 @@ def _start_resumable(
     )
     if not tokens:
         tokens = resp.get('tokens')
-    return {'response': resp.get('response'), 'tokens': tokens}
+    return {'response': resp.get('response'), 'tokens': tokens, 'session': session}
 
 
 @handle_request_errors
@@ -967,7 +974,10 @@ def _continue_resumable(
             headers['Nacl-Chunksize'] = str(ch_size)
         parmaterised_url = '{0}?chunk={1}&id={2}'.format(url, str(chunk_num), upload_id)
         debug_step(f'sending chunk {chunk_num}, using {parmaterised_url}')
-        with Retry(session.patch, parmaterised_url, headers, chunk) as resp:
+        with Retry(session.patch, parmaterised_url, headers, chunk) as retriable:
+            if retriable.get("new_session"):
+                session = retriable.get("new_session")
+            resp = retriable.get("resp")
             resp.raise_for_status()
             data = json.loads(resp.text)
         bar.next()
@@ -991,7 +1001,7 @@ def _continue_resumable(
     )
     if not tokens:
         tokens = resp.get('tokens')
-    return {'response': resp.get('response'), 'tokens': tokens}
+    return {'response': resp.get('response'), 'tokens': tokens, 'session': session}
 
 
 @handle_request_errors

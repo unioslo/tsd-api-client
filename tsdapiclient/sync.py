@@ -479,6 +479,9 @@ class GenericDirectoryTransporter(object):
                 refresh_token=self.refresh_token,
                 refresh_target=self.refresh_target,
             )
+        if resp.get("session"):
+            debug_step("renewing session")
+            self.session = resp.get("session")
         if resp.get('tokens'):
             self.token = resp.get('tokens').get('access_token')
             self.refresh_token = resp.get('tokens').get('refresh_token')
