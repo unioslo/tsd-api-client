@@ -35,6 +35,7 @@ HOSTS = {
     'ec-test': 'test-api-educloud.uio.no',
     'alt': 'alt.api.tsd.usit.no',
     'int': 'internal.api.tsd.usit.no',
+    'dev': 'localhost:3003',
 }
 
 def auth_api_url(env: str, pnum: str, auth_method: str) -> str:
@@ -49,6 +50,10 @@ def auth_api_url(env: str, pnum: str, auth_method: str) -> str:
             'basic': f'{pnum}/internal/basic/token',
             'tsd': f'{pnum}/internal/tsd/token',
             'refresh': f'{pnum}/auth/refresh/token',
+        },
+        'dev': { # use the file api's dev token
+            'basic': f'{pnum}/token',
+            'tsd': f'{pnum}/token',
         }
     }
     try:
@@ -56,9 +61,10 @@ def auth_api_url(env: str, pnum: str, auth_method: str) -> str:
             'basic', 'tsd', 'iam', 'refresh',
         ], f'Unrecognised auth_method: {auth_method}'
         host = HOSTS.get(env)
-        endpoint_env = env if env == 'int' else 'default'
+        endpoint_env = env if env in ['int', 'dev'] else 'default'
         endpoint = endpoints.get(endpoint_env).get(auth_method)
-        url = f'https://{host}/{API_VERSION}/{endpoint}'
+        scheme = 'http' if env == 'dev' else 'https'
+        url = f'{scheme}://{host}/{API_VERSION}/{endpoint}'
         return url
     except (AssertionError, Exception) as e:
         raise e
@@ -82,7 +88,8 @@ def file_api_url(
             return url
         if formid:
             endpoint = f'{formid}/{endpoint}'
-        url = f'https://{host}/{API_VERSION}/{pnum}/{service}/{endpoint}'
+        scheme = 'http' if env == 'dev' else 'https'
+        url = f'{scheme}://{host}/{API_VERSION}/{pnum}/{service}/{endpoint}'
         if url.endswith('/'):
             url = url[:-1]
         if per_page:

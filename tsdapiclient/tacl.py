@@ -5,6 +5,7 @@ import platform
 import sys
 
 from textwrap import dedent
+from typing import Optional
 
 import click
 import requests
@@ -71,7 +72,8 @@ API_ENVS = {
     'alt': 'alt.api.tsd.usit.no',
     'test': 'test.api.tsd.usit.no',
     'ec-prod': 'api.fp.educloud.no',
-    'ec-test': 'test-api-educloud.uio.no'
+    'ec-test': 'test-api-educloud.uio.no',
+    'dev': 'localhost',
 }
 
 TOKENS = {
@@ -94,6 +96,10 @@ TOKENS = {
     'ec-test': {
         'upload': 'import',
         'download': 'export'
+    },
+    'dev': {
+        'upload': 'import',
+        'download': 'export',
     }
 }
 
@@ -163,7 +169,9 @@ def get_dir_contents(ctx: str, args: list, incomplete: str) -> list:
                 return [f'{base}{sep}{entry}' for entry in sorted(os.listdir(base)) if entry.startswith(fragment)]
 
 
-def get_user_credentials() -> tuple:
+def get_user_credentials(env: Optional[str] = None) -> tuple:
+    if env and env == 'dev':
+        return "p11-dev", "password", "123456"
     username = input('username > ')
     password = getpass.getpass('password > ')
     otp = input('one time code > ')
@@ -171,6 +179,8 @@ def get_user_credentials() -> tuple:
 
 
 def get_api_key(env: str, pnum: str) -> str:
+    if env == "dev":
+        return "would-have-been-a-jwt"
     config = read_config()
     if not config:
         print('client not registered')
@@ -191,6 +201,8 @@ def get_api_key(env: str, pnum: str) -> str:
 
 
 def check_api_connection(env: str) -> None:
+    if env == "dev":
+        return
     if os.getenv("HTTPS_PROXY"):
         debug_step('skipping connection test as a proxy is set')
         return
@@ -540,7 +552,7 @@ def cli(
         if not api_key:
             api_key = get_api_key(env, pnum)
         if auth_required:
-            username, password, otp = get_user_credentials()
+            username, password, otp = get_user_credentials(env)
             token, refresh_token = get_jwt_two_factor_auth(
                 env, pnum, api_key, username, password, otp, token_type, auth_method=auth_method,
             )
@@ -782,7 +794,7 @@ def cli(
             choices = {'1': 'prod', '2': 'alt', '3': 'test', '4': 'ec-prod', '5': 'ec-test'}
             env = choices[choice]
             check_api_connection(env)
-            username, password, otp = get_user_credentials()
+            username, password, otp = get_user_credentials(env)
             if env.startswith('ec-'):
                 auth_method = 'iam'
                 pnum = input('ec project > ')

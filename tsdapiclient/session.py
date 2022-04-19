@@ -53,17 +53,27 @@ def session_update(
     token: str,
     refresh_token: Optional[str] = None,
 ) -> None:
+    default = {
+        'prod': {},
+        'alt': {},
+        'test': {},
+        'ec-prod': {},
+        'ec-test': {},
+        'dev': {},
+    }
     if not session_file_exists():
         debug_step('creating new tacl session store')
-        data = {'prod': {}, 'alt': {}, 'test': {}, 'ec-prod': {}, 'ec-test': {}}
+        data = default
     try:
         with open(SESSION_STORE, 'r') as f:
             data = yaml.load(f, Loader=yaml.Loader)
     except FileNotFoundError:
-        pass # use default
+        data = default
     target = data.get(env, {}).get(pnum, {})
     target[token_type] = token
     target[f'{token_type}_refresh'] = refresh_token
+    if not data.get(env):
+        data[env] = {}
     data[env][pnum] = target
     debug_step('updating session')
     with open(SESSION_STORE, 'w') as f:
@@ -81,6 +91,13 @@ def session_refresh_token(env: str, pnum: str, token_type: str) -> str:
 
 
 def session_clear() -> None:
-    data = {'prod': {}, 'alt': {}, 'test': {}, 'ec-prod': {}, 'ec-test': {}}
+    data = {
+        'prod': {},
+        'alt': {},
+        'test': {},
+        'ec-prod': {},
+        'ec-test': {},
+        'dev': {},
+    }
     with open(SESSION_STORE, 'w') as f:
         f.write(yaml.dump(data, Dumper=yaml.Dumper))
