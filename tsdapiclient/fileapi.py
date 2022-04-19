@@ -895,7 +895,7 @@ def _start_resumable(
             if chunk_num == stop_at:
                 print('stopping at chunk {0}'.format(chunk_num))
                 return {'response': data}
-        chunk_num += 1
+        chunk_num = data.get("max_chunk") + 1
     if not group:
         group = '{0}-member-group'.format(pnum)
     parmaterised_url = '{0}?chunk={1}&id={2}&group={3}'.format(url, 'end', upload_id, group)
@@ -982,7 +982,7 @@ def _continue_resumable(
             data = json.loads(resp.text)
         bar.next()
         upload_id = data['id']
-        chunk_num += 1
+        chunk_num = data.get("max_chunk") + 1
     if not group:
         group = '{0}-member-group'.format(pnum)
     parmaterised_url = '{0}?chunk={1}&id={2}&group={3}'.format(url, 'end', upload_id, group)
