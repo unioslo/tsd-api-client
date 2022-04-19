@@ -307,7 +307,7 @@ class Retry(object):
                 return {"resp": self.resp, "new_session": new_session}
             elif rc >= 400 and rc <= 499:
                 return {"resp": self.resp, "new_session": new_session}
-            elif rc == 504 or reconnect:
+            elif rc in [500, 504] or reconnect:
                 self.counter -= 1
                 retry_attempt_no += 1
                 debug_step(f'timeout: retrying request attempt {retry_attempt_no}/{total}')
