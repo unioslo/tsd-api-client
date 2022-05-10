@@ -22,4 +22,5 @@ def get_tsd_api_key(
     url = f'{ENV[env]}/{pnum}/auth/{auth_method}/api_key'
     print('GET: {0}'.format(url))
     resp = requests.get(url, headers=headers, data=json.dumps(data))
+    resp.raise_for_status()
     return json.loads(resp.text)['api_key']
