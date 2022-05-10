@@ -235,14 +235,14 @@ def construct_correct_upload_path(path: str) -> str:
     default=None,
     required=False,
     help='Print a guide',
-    autocompletion=get_guide_options
+    shell_complete=get_guide_options
 )
 @click.option(
     '--env',
     default=None,
     help='API environment',
     show_default=True,
-    autocompletion=get_api_envs
+    shell_complete=get_api_envs
 )
 @click.option(
     '--group',
@@ -259,7 +259,7 @@ def construct_correct_upload_path(path: str) -> str:
     '--upload',
     default=None,
     required=False,
-    autocompletion=get_dir_contents,
+    shell_complete=get_dir_contents,
     help='Import a file or a directory located at given path'
 )
 @click.option(
