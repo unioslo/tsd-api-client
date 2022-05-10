@@ -20,7 +20,7 @@ setup(
     packages=['tsdapiclient'],
     install_requires = [
         'requests',
-        'click',
+        'click>=8.0',
         'PyYAML',
         'progress',
         'humanfriendly',
