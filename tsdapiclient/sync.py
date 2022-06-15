@@ -10,8 +10,13 @@ from typing import ContextManager, Iterable, Optional
 
 import click
 import humanfriendly.tables
-import libnacl.public
 import requests
+
+try:
+    import libnacl.public
+    LIBSODIUM_AVAILABLE = True
+except OSError:
+    LIBSODIUM_AVAILABLE = False
 
 from tsdapiclient.fileapi import (streamfile, initiate_resumable, import_list,
                                   export_list, export_get,
@@ -228,7 +233,7 @@ class GenericDirectoryTransporter(object):
         keep_updated: bool = False,
         remote_key: Optional[str] = None,
         target_dir: Optional[str] = None,
-        public_key: Optional[libnacl.public.PublicKey] = None,
+        public_key: Optional["libnacl.public.PublicKey"] = None,
         chunk_size: Optional[int] = 1000*1000*50,
         chunk_threshold: Optional[int] = 1000*1000*1000,
         api_key: Optional[str] = None,

@@ -11,14 +11,12 @@ from urllib.parse import quote, unquote
 
 import humanfriendly
 import humanfriendly.tables
-import libnacl.public
 import requests
 
 from progress.bar import Bar
 
-from tsdapiclient.authapi import maybe_refresh
-from tsdapiclient.client_config import ENV, API_VERSION
 try:
+    import libnacl.public
     from tsdapiclient.crypto import (
         nacl_encrypt_data,
         nacl_gen_nonce,
@@ -30,6 +28,9 @@ try:
     LIBSODIUM_AVAILABLE = True
 except OSError:
     LIBSODIUM_AVAILABLE = False
+
+from tsdapiclient.authapi import maybe_refresh
+from tsdapiclient.client_config import ENV, API_VERSION
 from tsdapiclient.tools import (
     handle_request_errors,
     debug_step,
@@ -115,7 +116,7 @@ def lazy_reader(
     verify: bool = False,
     server_chunk_md5: Optional[str] = None,
     with_progress: bool = False,
-    public_key: Optional[libnacl.public.PublicKey] = None,
+    public_key: Optional["libnacl.public.PublicKey"] = None,
     nonce: Optional[bytes] = None,
     key: Optional[bytes] = None,
 ) -> Union[Iterable[bytes], Iterable[tuple]]:
@@ -193,7 +194,7 @@ def streamfile(
     is_dir: bool = False,
     session: Any = requests,
     set_mtime: bool = False,
-    public_key: Optional[libnacl.public.PublicKey] = None,
+    public_key: Optional["libnacl.public.PublicKey"] = None,
     api_key: Optional[str] = None,
     refresh_token: Optional[str] = None,
     refresh_target: Optional[int] = None,
@@ -472,7 +473,7 @@ def export_get(
     api_key: Optional[str] = None,
     refresh_token: Optional[str] = None,
     refresh_target: Optional[int] = None,
-    public_key: Optional[libnacl.public.PublicKey] = None,
+    public_key: Optional["libnacl.public.PublicKey"] = None,
 ) -> dict:
     """
     Download a file to the current directory.
@@ -698,7 +699,7 @@ def initiate_resumable(
     is_dir: bool = False,
     session: Any = requests,
     set_mtime: bool = False,
-    public_key: Optional[libnacl.public.PublicKey] = None,
+    public_key: Optional["libnacl.public.PublicKey"] = None,
     api_key: Optional[str] = None,
     refresh_token: Optional[str] = None,
     refresh_target: Optional[int] = None,
@@ -847,7 +848,7 @@ def _start_resumable(
     is_dir: bool = False,
     session: Any = requests,
     set_mtime: bool = False,
-    public_key: Optional[libnacl.public.PublicKey] = None,
+    public_key: Optional["libnacl.public.PublicKey"] = None,
     api_key: Optional[str] = None,
     refresh_token: Optional[str] = None,
     refresh_target: Optional[int] = None,
@@ -931,7 +932,7 @@ def _continue_resumable(
     is_dir: bool = False,
     session: Any = requests,
     set_mtime: bool = False,
-    public_key: Optional[libnacl.public.PublicKey] = None,
+    public_key: Optional["libnacl.public.PublicKey"] = None,
     api_key: Optional[str] = None,
     refresh_token: Optional[str] = None,
     refresh_target: Optional[int] = None,
