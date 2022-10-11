@@ -58,6 +58,7 @@ from tsdapiclient.sync import (
 )
 from tsdapiclient.tools import (
     HELP_URL,
+    check_if_key_has_expired,
     has_api_connectivity,
     user_agent,
     debug_step,
