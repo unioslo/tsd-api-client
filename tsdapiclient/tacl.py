@@ -92,7 +92,7 @@ TOKENS = {
     },
     'ec-prod': {
         'upload': 'import',
-        'download': 'export-alt'
+        'download': 'export'
     },
     'ec-test': {
         'upload': 'import',

@@ -8,3 +8,4 @@ build/
 dist/
 pyproject.toml
 poetry.lock
+__pycache__
