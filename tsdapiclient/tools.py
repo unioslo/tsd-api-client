@@ -32,7 +32,7 @@ HOSTS = {
     'test': 'test.api.tsd.usit.no',
     'prod': 'api.tsd.usit.no',
     'ec-prod': 'api.fp.educloud.no',
-    'ec-test': 'test-api-educloud.uio.no',
+    'ec-test': 'test.api.fp.educloud.no',
     'alt': 'alt.api.tsd.usit.no',
     'int': 'internal.api.tsd.usit.no',
     'dev': 'localhost:3003',
