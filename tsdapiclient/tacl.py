@@ -235,6 +235,8 @@ def construct_correct_upload_path(path: str) -> str:
     '--guide',
     default=None,
     required=False,
+    is_flag=False,
+    flag_value="topics",
     help='Print a guide',
     shell_complete=get_guide_options
 )
