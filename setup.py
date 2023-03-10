@@ -25,6 +25,8 @@ setup(
         'progress',
         'humanfriendly',
         'libnacl',
+        'pyjwt',
+        'rich',
     ],
     python_requires='>=3.6',
     entry_points='''
