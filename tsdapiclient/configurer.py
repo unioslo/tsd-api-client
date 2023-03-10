@@ -1,10 +1,15 @@
 
 """Module for managing tacl config."""
 
+import datetime
 import os
-import re
 
+import jwt
 import yaml
+from rich.console import Console
+from rich.syntax import Syntax
+from rich.table import Table
+from rich.text import Text
 
 from tsdapiclient.tools import get_config_path
 
@@ -65,12 +70,39 @@ def update_config(env: str, key: str, val: str) -> None:
         write_config(new_config)
 
 def print_config(filename: str = TACL_CONFIG) -> None:
-    try:
-        with open(filename, 'r') as f:
-            cf = f.read()
-            print(cf)
-    except FileNotFoundError:
+    """Print configuration overview and config file path/contents."""
+    console = Console()
+    config = read_config(filename=filename)
+    if not os.path.exists(filename):
         print("No config found")
+    else:
+        grid = Table.grid(expand=True)
+        grid.add_column()
+        grid.add_column(justify="right")
+
+        table = Table(title=f"{__package__} configuration details")
+        table.add_column("Environment")
+        table.add_column("Project")
+        table.add_column("User")
+        table.add_column("Expiry")
+
+        config = read_config(filename=filename)
+        for env in config:
+            for project in config[env].keys():
+                decoded_api_key = decode_api_key(api_key=config[env][project])
+                exp = decoded_api_key['exp']
+                expiry = Text(datetime.datetime.fromtimestamp(exp).strftime('%Y-%m-%d %H:%M:%S'))
+                if api_key_is_expired(api_key=config[env][project]):
+                    expiry.stylize('bold red')
+                user = decoded_api_key.get('user')
+                table.add_row(env, project, user, expiry)
+        console.print(table)
+    
+        with open(filename, 'r') as f:
+            syntax = Syntax(f.read(), 'yaml', line_numbers=True, word_wrap=True)
+        console.print(f"Configuration file '[underline]{filename}[/underline]':")
+        console.print(syntax)
+
 
 def delete_config(filename: str = TACL_CONFIG) -> None:
     try:
@@ -86,3 +118,25 @@ def print_config_tsd_2fa_key(env: str, pnum: str) -> None:
             print(cf[env][pnum])
     except FileNotFoundError:
         print("No config found")
+
+def decode_api_key(api_key: str) -> dict:
+    """Decode a TSD API key.
+
+    Args:
+        api_key (str): The JWT format TSD API key.
+
+    Returns:
+        dict: The decoded TSD API key.
+    """
+    return jwt.decode(api_key, algorithms=['HS256'], options={'verify_signature': False})
+
+def api_key_is_expired(api_key: str) -> bool:
+    """Check if the API key is expired.
+
+    Args:
+        api_key (str): The JWT format TSD API key.
+
+    Returns:
+        bool: True if the API key is expired, False otherwise.
+    """
+    return decode_api_key(api_key=api_key)['exp'] < datetime.datetime.now().timestamp()
