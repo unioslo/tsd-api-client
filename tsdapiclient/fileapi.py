@@ -13,7 +13,7 @@ import humanfriendly
 import humanfriendly.tables
 import requests
 
-from progress.bar import Bar
+from rich.progress import Progress
 
 try:
     import libnacl.public
@@ -41,6 +41,29 @@ from tsdapiclient.tools import (
     Retry,
 )
 
+class Bar:
+    """Simple progress bar.
+    
+    This class implements a progress bar compatible with (this module's usage
+    of) progress.bar.Bar on top of rich.progress.
+
+    Args:
+        title (str): Title of the progress bar.
+        index (float): Current number of completed steps.
+        max (float): Total number of steps.
+        suffix (str): Unused NOOP object for compatiblity.
+    """
+    progress = Progress()
+    task_id: int
+    def __init__(self, title: str, index: float = 0, max: float = 100, suffix: str = ""):
+        self.task_id = self.progress.add_task(title, total=max, completed=index)
+        self.progress.start()
+    
+    def next(self):
+        self.progress.advance(self.task_id)
+    
+    def finish(self):
+        self.progress.stop()
 
 def _init_progress_bar(current_chunk: int, chunksize: int, filename: str) -> Bar:
     # this is an approximation, better than nothing

@@ -22,7 +22,6 @@ setup(
         'requests',
         'click>=8.0',
         'PyYAML',
-        'progress',
         'humanfriendly',
         'libnacl',
         'pyjwt',
