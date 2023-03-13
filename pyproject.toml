@@ -1,0 +1,38 @@
+[tool.poetry]
+name = "tsd-api-client"
+version = "0.0.0" # managed by poetry-dynamic-versioning
+description = "A client for the TSD REST API"
+authors = [
+    "Leon du Toit <l.c.d.toit@usit.uio.no>",
+]
+maintainers = [
+    "Eirik Haatveit <haatveit@uio.no>",
+    "Milen Kouylekov <milen@uio.no>",
+]
+license = "BSD-3-Clause"
+readme = "README.md"
+repository = "https://github.com/unioslo/tsd-api-client"
+packages = [{include = "tsdapiclient"}]
+
+[tool.poetry.scripts]
+tacl = "tsdapiclient.tacl:cli"
+
+[tool.poetry.dependencies]
+python = "^3.6"
+requests = "*"
+click = ">=8"
+PyYAML = "*"
+humanfriendly = "*"
+libnacl = "*"
+PyJWT = "*"
+rich = "*"
+
+[tool.poetry-dynamic-versioning]
+enable = true
+vcs = "git"
+style = "pep440"
+bump = true
+
+[build-system]
+requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning>=0.20.0"]
+build-backend = "poetry_dynamic_versioning.backend"
