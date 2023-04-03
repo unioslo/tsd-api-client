@@ -73,7 +73,7 @@ API_ENVS = {
     'alt': 'alt.api.tsd.usit.no',
     'test': 'test.api.tsd.usit.no',
     'ec-prod': 'api.fp.educloud.no',
-    'ec-test': 'test-api-educloud.uio.no',
+    'ec-test': 'test.api.fp.educloud.no',
     'dev': 'localhost',
 }
 
