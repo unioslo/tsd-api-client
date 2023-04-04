@@ -13,7 +13,6 @@ import requests
 from tsdapiclient import __version__
 from tsdapiclient.administrator import get_tsd_api_key
 from tsdapiclient.authapi import get_jwt_two_factor_auth, get_jwt_basic_auth
-from tsdapiclient.client_config import ENV, CHUNK_THRESHOLD, CHUNK_SIZE
 from tsdapiclient.configurer import (
     read_config, update_config, print_config, delete_config,
 )
@@ -22,6 +21,10 @@ try:
     LIBSODIUM_AVAILABLE = True
 except OSError:
     LIBSODIUM_AVAILABLE = False
+from tsdapiclient.environment import (CHUNK_SIZE, CHUNK_THRESHOLD,
+                                      EDUCLOUD_PREFIX, EDUCLOUD_USER_PREFIX,
+                                      Environment, EnvironmentAPIBaseURL,
+                                      EnvironmentHostname)
 from tsdapiclient.fileapi import (
     streamfile,
     initiate_resumable,
@@ -69,37 +72,28 @@ from tsdapiclient.tools import (
 
 requests.utils.default_user_agent = user_agent
 
-API_ENVS = {
-    'prod': 'api.tsd.usit.no',
-    'alt': 'alt.api.tsd.usit.no',
-    'test': 'test.api.tsd.usit.no',
-    'ec-prod': 'api.fp.educloud.no',
-    'ec-test': 'test.api.fp.educloud.no',
-    'dev': 'localhost',
-}
-
 TOKENS = {
-    'prod': {
+    Environment.prod: {
         'upload': 'import',
         'download': 'export'
     },
-    'test': {
+    Environment.test: {
         'upload': 'import',
         'download': 'export'
     },
-    'alt': {
+    Environment.alt: {
         'upload': 'import-alt',
         'download': 'export-alt'
     },
-    'ec-prod': {
+    Environment.ec_prod: {
         'upload': 'import',
         'download': 'export'
     },
-    'ec-test': {
+    Environment.ec_test: {
         'upload': 'import',
         'download': 'export'
     },
-    'dev': {
+    Environment.dev: {
         'upload': 'import',
         'download': 'export',
     }
@@ -131,7 +125,7 @@ def print_version_info() -> None:
 
 
 def get_api_envs(ctx: str, args: list, incomplete: str) -> list:
-    return [k for k, v in API_ENVS.items() if incomplete in k]
+    return [str(k) for k in Environment if incomplete in str(k)]
 
 
 def get_guide_options(ctx: str, args: list, incomplete: str) -> list:
@@ -180,7 +174,7 @@ def get_user_credentials(env: Optional[str] = None) -> tuple:
     return username, password, otp
 
 
-def get_api_key(env: str, pnum: str) -> str:
+def get_api_key(env: Environment, pnum: str) -> str:
     if env == "dev":
         return "would-have-been-a-jwt"
     config = read_config()
@@ -202,16 +196,16 @@ def get_api_key(env: str, pnum: str) -> str:
     return api_key
 
 
-def check_api_connection(env: str) -> None:
-    if env == "dev":
+def check_api_connection(env: Environment) -> None:
+    if env == Environment.dev:
         return
     if os.getenv("HTTPS_PROXY"):
         debug_step('skipping connection test as a proxy is set')
         return
-    if not has_api_connectivity(hostname=API_ENVS[env]):
+    if not has_api_connectivity(hostname=EnvironmentHostname[env]):
         sys.exit(
             dedent(f'''\
-                The API environment hosted at {ENV[env]} is not accessible from your current network connection.
+                The API environment hosted at {EnvironmentAPIBaseURL[env]} is not accessible from your current network connection.
                 Please contact TSD for help: {HELP_URL}'''
             )
         )
@@ -467,7 +461,7 @@ def construct_correct_upload_path(path: str) -> str:
 def cli(
     pnum: str,
     guide: str,
-    env: str,
+    env: Environment,
     group: str,
     basic: bool,
     upload: str,
@@ -508,7 +502,9 @@ def cli(
     """tacl - TSD API client."""
 
     if not env:
-        env = "ec-prod" if pnum and pnum.startswith("ec") else "prod"
+        env = Environment.ec_prod if pnum and pnum.startswith(EDUCLOUD_PREFIX) else Environment.prod
+    else:
+        env = Environment.from_str(env)
 
     token = None
     if verbose:
@@ -536,7 +532,7 @@ def cli(
     else:
         requires_user_credentials = False
 
-    auth_method = "iam" if env.startswith("ec-") or (pnum and pnum.startswith("ec")) else "tsd"
+    auth_method = "iam" if env.startswith(EDUCLOUD_USER_PREFIX) or (pnum and pnum.startswith(EDUCLOUD_PREFIX)) else "tsd"
     # 2. Try to get a valid access token
     if requires_user_credentials:
         check_api_connection(env)
@@ -804,18 +800,24 @@ def cli(
             if choice not in '12345':
                 click.echo(f'Invalid choice: {choice} for API environment')
                 sys.exit(1)
-            choices = {'1': 'prod', '2': 'alt', '3': 'test', '4': 'ec-prod', '5': 'ec-test'}
+            choices = {
+                '1': Environment.prod,
+                '2': Environment.alt,
+                '3': Environment.test,
+                '4': Environment.ec_prod,
+                '5': Environment.ec_test,
+            }
             env = choices[choice]
             check_api_connection(env)
             username, password, otp = get_user_credentials(env)
-            if env.startswith('ec-'):
+            if env.startswith(EDUCLOUD_PREFIX):
                 auth_method = 'iam'
-                pnum = input('ec project > ')
+                pnum = input('Educloud project (ecNNNN) > ')
             else:
                 pnum = username.split('-')[0]
             key = get_tsd_api_key(env, pnum, username, password, otp, auth_method=auth_method)
             update_config(env, pnum, key)
-            click.echo(f'Successfully registered for {pnum}, and API environment hosted at {ENV[env]}')
+            click.echo(f'Successfully registered for {pnum}, and API environment hosted at {EnvironmentAPIBaseURL[env]}')
         # 4.3 Introspection
         elif version:
             print_version_info()

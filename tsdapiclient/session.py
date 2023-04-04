@@ -10,6 +10,7 @@ from rich.table import Table
 from rich.text import Text
 import yaml
 
+from tsdapiclient.environment import Environment
 from tsdapiclient.tools import (check_if_exp_is_within_range,
                                 check_if_key_has_expired, debug_step,
                                 get_config_path, get_claims,
@@ -17,10 +18,14 @@ from tsdapiclient.tools import (check_if_exp_is_within_range,
 
 SESSION_STORE = get_config_path() + '/session'
 
+def session_env_name(env: Environment) -> str:
+    return env.replace('_', '-')
+
 def session_file_exists() -> bool:
     return False if not os.path.lexists(SESSION_STORE) else True
 
-def session_is_expired(env: str, pnum: str, token_type: str) -> bool:
+def session_is_expired(env: Environment, pnum: str, token_type: str) -> bool:
+    env = session_env_name(env)
     if not session_file_exists():
         return True
     token = session_token(env, pnum, token_type)
@@ -34,7 +39,8 @@ def session_is_expired(env: str, pnum: str, token_type: str) -> bool:
         debug_step('session has not expired')
         return False
 
-def session_expires_soon(env: str, pnum: str, token_type: str, minutes: int = 10) -> bool:
+def session_expires_soon(env: Environment, pnum: str, token_type: str, minutes: int = 10) -> bool:
+    env = session_env_name(env)
     if not session_file_exists():
         return None
     token = session_token(env, pnum, token_type)
@@ -56,7 +62,7 @@ def session_read(session_store: str = SESSION_STORE) -> dict:
     return data
 
 def session_update(
-    env: str,
+    env: Environment,
     pnum: str,
     token_type: str,
     token: str,
@@ -70,6 +76,7 @@ def session_update(
         'ec-test': {},
         'dev': {},
     }
+    env = session_env_name(env)
     if not session_file_exists():
         debug_step('creating new tacl session store')
         data = default
@@ -87,23 +94,25 @@ def session_update(
     with open(SESSION_STORE, 'w') as f:
         f.write(yaml.dump(data, Dumper=yaml.Dumper))
 
-def session_token(env: str, pnum: str, token_type: str) -> str:
+def session_token(env: Environment, pnum: str, token_type: str) -> str:
+    env = session_env_name(env)
     data = session_read()
     return data.get(env, {}).get(pnum, {}).get(token_type)
 
-def session_refresh_token(env: str, pnum: str, token_type: str) -> str:
+def session_refresh_token(env: Environment, pnum: str, token_type: str) -> str:
+    env = session_env_name(env)
     data = session_read()
     return data.get(env, {}).get(pnum, {}).get(f'{token_type}_refresh')
 
 
 def session_clear() -> None:
     data = {
-        'prod': {},
-        'alt': {},
-        'test': {},
-        'ec-prod': {},
-        'ec-test': {},
-        'dev': {},
+        session_env_name(Environment.prod): {},
+        session_env_name(Environment.alt): {},
+        session_env_name(Environment.test): {},
+        session_env_name(Environment.ec_prod): {},
+        session_env_name(Environment.ec_test): {},
+        session_env_name(Environment.dev): {},
     }
     with open(SESSION_STORE, 'w') as f:
         f.write(yaml.dump(data, Dumper=yaml.Dumper))

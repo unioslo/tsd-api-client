@@ -18,6 +18,7 @@ try:
 except OSError:
     LIBSODIUM_AVAILABLE = False
 
+from tsdapiclient.environment import Environment
 from tsdapiclient.fileapi import (streamfile, initiate_resumable, import_list,
                                   export_list, export_get,
                                   import_delete, export_delete, survey_list)
@@ -75,7 +76,7 @@ class GenericRequestCache(object):
 
     dbname = 'generic-request-cache.db'
 
-    def __init__(self, env: str, pnum: str) -> None:
+    def __init__(self, env: Environment, pnum: str) -> None:
         self.path = f'{get_data_path(env, pnum)}/{self.dbname}'
         try:
             self.engine = sqlite3.connect(self.path)
@@ -220,7 +221,7 @@ class GenericDirectoryTransporter(object):
 
     def __init__(
         self,
-        env: str,
+        env: Environment,
         pnum: str,
         directory: str,
         token: str,

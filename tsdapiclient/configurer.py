@@ -10,32 +10,42 @@ from rich.syntax import Syntax
 from rich.table import Table
 from rich.text import Text
 
-from tsdapiclient.tools import get_config_path, get_claims, check_if_key_has_expired
+from tsdapiclient.environment import Environment
+from tsdapiclient.tools import get_config_path
 
 TACL_CONFIG = get_config_path() + '/config'
+BASE_CONFIG = {
+    Environment.test: {},
+    Environment.prod: {},
+    Environment.alt: {},
+    Environment.ec_prod: {},
+    Environment.ec_test: {}
+}
 
 
 def read_config(filename: str = TACL_CONFIG) -> dict:
     try:
         with open(filename, 'r') as f:
             config = yaml.load(f, Loader=yaml.Loader)
+        config = {Environment.from_str(k) : v for k, v in config.items() }
         return config
     except FileNotFoundError:
         return None
 
 
-def write_config(data: dict, filename: str = TACL_CONFIG) -> None:
-    with open(filename, 'w') as f:
-        f.write(yaml.dump(data, Dumper=yaml.Dumper))
+def write_config(data: dict, filename: str = TACL_CONFIG, mode: str = "w") -> None:
+    config = {str(k).replace("_", "-") : v for k, v in data.items() }
+    with open(filename, mode) as f:
+        f.write(yaml.dump(config, Dumper=yaml.Dumper))
 
 
-def update_config(env: str, key: str, val: str) -> None:
-    if env not in ['test', 'prod', 'alt', 'ec-prod', 'ec-test']:
+def update_config(env: Environment, key: str, val: str) -> None:
+    if env not in [Environment.test, Environment.prod, Environment.alt, Environment.ec_prod, Environment.ec_test]:
         raise Exception('Unrecognised environment: {0}'.format(env))
     try:
         config = read_config(TACL_CONFIG)
     except IOError:
-        config = {'test': {}, 'prod': {}, 'alt': {}, 'ec-prod': {}, 'ec-test': {}}
+        config = BASE_CONFIG
     try:
         if config and config.get(env):
             curr_env = config[env]
@@ -47,7 +57,7 @@ def update_config(env: str, key: str, val: str) -> None:
             if 'alt' not in new_config.keys():
                 new_config['alt'] = {}
         else:
-            new_config = {'test': {}, 'prod': {}, 'alt': {}, 'ec-prod': {}, 'ec-test': {}}
+            new_config = BASE_CONFIG
         if not new_env.get(key):
             print('updating {0}'.format(key))
             new_config[env].update({key:val})
@@ -104,12 +114,11 @@ def print_config(filename: str = TACL_CONFIG) -> None:
 
 def delete_config(filename: str = TACL_CONFIG) -> None:
     try:
-        with open(filename, 'w+') as f:
-            f.write(yaml.dump({'test': {}, 'prod': {}, 'alt': {}, 'ec-prod': {}, 'ec-test': {}}, Dumper=yaml.Dumper))
+        write_config(BASE_CONFIG, filename=filename, mode="w+")
     except FileNotFoundError:
         print("No config found")
 
-def print_config_tsd_2fa_key(env: str, pnum: str) -> None:
+def print_config_tsd_2fa_key(env: Environment, pnum: str) -> None:
     try:
         with open(TACL_CONFIG, 'r') as f:
             cf = yaml.load(f, Loader=yaml.Loader)

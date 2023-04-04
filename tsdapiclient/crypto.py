@@ -10,8 +10,10 @@ import libnacl.public
 import libnacl.utils
 import requests
 
+from tsdapiclient.environment import Environment
+from tsdapiclient.environment import EnvironmentHostname
 from tsdapiclient.exc import AuthzError
-from tsdapiclient.tools import HOSTS, debug_step, handle_request_errors
+from tsdapiclient.tools import debug_step, handle_request_errors
 
 
 def nacl_encrypt_data(data: bytes, nonce: bytes, key: bytes) -> bytes:
@@ -31,8 +33,8 @@ def nacl_gen_key() -> bytes:
 
 
 @handle_request_errors
-def nacl_get_server_public_key(env: str, pnum: str, token: str) -> bytes:
-    host = HOSTS.get(env)
+def nacl_get_server_public_key(env: Environment, pnum: str, token: str) -> bytes:
+    host = EnvironmentHostname[env]
     debug_step('getting public key')
     resp = requests.get(
         f'https://{host}/v1/{pnum}/files/crypto/key',

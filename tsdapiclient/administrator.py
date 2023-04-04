@@ -4,13 +4,13 @@
 import json
 import requests
 
-from tsdapiclient.client_config import ENV
+from tsdapiclient.environment import Environment, EnvironmentAPIBaseURL
 from tsdapiclient.tools import handle_request_errors
 
 
 @handle_request_errors
 def get_tsd_api_key(
-    env: str,
+    env: Environment,
     pnum: str,
     user_name: str,
     password: str,
@@ -19,7 +19,7 @@ def get_tsd_api_key(
 ) -> str:
     headers = {'Content-Type': 'application/json'}
     data = {'user_name': user_name, 'password': password, 'otp': otp}
-    url = f'{ENV[env]}/{pnum}/auth/{auth_method}/api_key'
+    url = f'{EnvironmentAPIBaseURL[env]}/{pnum}/auth/{auth_method}/api_key'
     print('GET: {0}'.format(url))
     resp = requests.get(url, headers=headers, data=json.dumps(data))
     resp.raise_for_status()

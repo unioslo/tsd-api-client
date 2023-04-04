@@ -8,13 +8,13 @@ import time
 from datetime import datetime, timedelta
 
 from tsdapiclient.exc import AuthnError
-from tsdapiclient.client_config import ENV
+from tsdapiclient.environment import Environment
 from tsdapiclient.session import session_update
 from tsdapiclient.tools import handle_request_errors, auth_api_url, debug_step, get_claims
 
 @handle_request_errors
 def get_jwt_basic_auth(
-    env: str,
+    env: Environment,
     pnum: str,
     api_key: str,
     token_type: str = 'import',
@@ -36,7 +36,7 @@ def get_jwt_basic_auth(
 
 @handle_request_errors
 def get_jwt_two_factor_auth(
-    env: str,
+    env: Environment,
     pnum: str,
     api_key: str,
     user_name: str,
@@ -67,7 +67,7 @@ def get_jwt_two_factor_auth(
 
 @handle_request_errors
 def refresh_access_token(
-    env: str,
+    env: Environment,
     pnum: str,
     api_key: str,
     refresh_token: str,
@@ -92,7 +92,7 @@ def refresh_access_token(
 
 
 def maybe_refresh(
-    env: str,
+    env: Environment,
     pnum: str,
     api_key: str,
     access_token: str,
