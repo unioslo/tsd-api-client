@@ -5,11 +5,15 @@ import time
 from datetime import datetime, timedelta
 from typing import Optional
 
+from rich.console import Console
+from rich.table import Table
+from rich.text import Text
 import yaml
 
 from tsdapiclient.tools import (check_if_exp_is_within_range,
                                 check_if_key_has_expired, debug_step,
-                                get_config_path)
+                                get_config_path, get_claims,
+                                check_if_key_has_expired,)
 
 SESSION_STORE = get_config_path() + '/session'
 
@@ -46,6 +50,11 @@ def session_expires_soon(env: str, pnum: str, token_type: str, minutes: int = 10
         debug_step('session will not expire soon')
         return False
 
+def session_read(session_store: str = SESSION_STORE) -> dict:
+    with open(session_store, 'r') as f:
+        data = yaml.load(f, Loader=yaml.Loader)
+    return data
+
 def session_update(
     env: str,
     pnum: str,
@@ -65,8 +74,7 @@ def session_update(
         debug_step('creating new tacl session store')
         data = default
     try:
-        with open(SESSION_STORE, 'r') as f:
-            data = yaml.load(f, Loader=yaml.Loader)
+        data = session_read()
     except FileNotFoundError:
         data = default
     target = data.get(env, {}).get(pnum, {})
@@ -80,13 +88,11 @@ def session_update(
         f.write(yaml.dump(data, Dumper=yaml.Dumper))
 
 def session_token(env: str, pnum: str, token_type: str) -> str:
-    with open(SESSION_STORE, 'r') as f:
-        data = yaml.load(f, Loader=yaml.Loader)
+    data = session_read()
     return data.get(env, {}).get(pnum, {}).get(token_type)
 
 def session_refresh_token(env: str, pnum: str, token_type: str) -> str:
-    with open(SESSION_STORE, 'r') as f:
-        data = yaml.load(f, Loader=yaml.Loader)
+    data = session_read()
     return data.get(env, {}).get(pnum, {}).get(f'{token_type}_refresh')
 
 
@@ -101,3 +107,44 @@ def session_clear() -> None:
     }
     with open(SESSION_STORE, 'w') as f:
         f.write(yaml.dump(data, Dumper=yaml.Dumper))
+
+def session_print(session_file: str = SESSION_STORE) -> None:
+    console = Console()
+    try:
+        data = session_read()
+    except FileNotFoundError:
+        print("No session file found")
+        exit(1)
+
+    table = Table(title=f"{__package__} session details", show_lines=True)
+    table.add_column("Environment")
+    table.add_column("Project")
+    table.add_column("User")
+    table.add_column("Groups")
+    table.add_column("Type")
+    table.add_column("Expiry")
+
+    for env in data:
+        for project in data[env].keys():
+            for token_type in data[env][project].keys():
+                token = data[env][project][token_type]
+                if token:
+                    claims = get_claims(token)
+                    exp = claims['exp']
+                    expiry = Text(datetime.fromtimestamp(exp).strftime('%Y-%m-%d %H:%M:%S'))
+                    if check_if_key_has_expired(token):
+                        expiry.stylize('bold red')
+                    user = claims.get('user')
+                    table.add_row(
+                        env,
+                        project,
+                        user,
+                        f"{', '.join(claims.get('groups', []))}",
+                        claims.get("name", token_type),
+                        expiry,
+                    )
+    if table.rows:
+        console.print(table)
+    else:
+        console.print("No sessions found")
+

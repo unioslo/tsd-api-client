@@ -45,6 +45,7 @@ from tsdapiclient.session import (
     session_clear,
     session_token,
     session_refresh_token,
+    session_print,
 )
 from tsdapiclient.sync import (
     SerialDirectoryUploader,
@@ -332,6 +333,12 @@ def construct_correct_upload_path(path: str) -> str:
     help='Delete tacl config'
 )
 @click.option(
+    '--session-show',
+    is_flag=True,
+    required=False,
+    help='Show tacl login session data'
+)
+@click.option(
     '--session-delete',
     is_flag=True,
     required=False,
@@ -475,6 +482,7 @@ def cli(
     verbose: bool,
     config_show: bool,
     config_delete: bool,
+    session_show: bool,
     session_delete: bool,
     register: bool,
     ignore_prefixes: str,
@@ -754,6 +762,8 @@ def cli(
             print_config()
         elif config_delete:
             delete_config()
+        elif session_show:
+            session_print()
         elif session_delete:
             session_clear()
         elif upload_cache_show:
