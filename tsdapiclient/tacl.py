@@ -4,6 +4,7 @@ import os
 import platform
 import sys
 
+from dataclasses import dataclass
 from textwrap import dedent
 from typing import Optional
 
@@ -119,18 +120,21 @@ GUIDES = {
 
 ENV_HTTPS_PROXY = "https_proxy"
 
+
+@dataclass(frozen=True)
+class SoftwareInfo:
+    version: str = __version__
+    os: str = platform.system()
+    cpu_arch: str = platform.uname().machine
+    python_version: str = platform.python_version()
+
+
 def print_version_info() -> None:
-    version_text = """\
-        tacl v{version}
-        - OS/Arch: {os}/{arch}
-        - Python: {pyver}\
-    """.format(
-        version=__version__,
-        os=platform.system(),
-        arch=platform.uname().machine,
-        pyver=platform.python_version()
-    )
-    print(dedent(version_text))
+    print(dedent(f"""\
+        tacl v{SoftwareInfo.version}
+        - OS/Arch: {SoftwareInfo.os}/{SoftwareInfo.cpu_arch}
+        - Python: {SoftwareInfo.python_version}\
+    """))
 
 
 def get_api_envs(ctx: str, args: list, incomplete: str) -> list:
@@ -214,9 +218,16 @@ def check_api_connection(env: str) -> None:
     if not has_api_connectivity(hostname=API_ENVS[env]):
         sys.exit(
             dedent(f'''\
-                The API environment hosted at {ENV[env]} is not accessible from your current network connection.
-                Your external IP address is {get_external_ip_address()}.
-                Please contact TSD for help: {HELP_URL}'''
+                The selected API environment appears to be inaccessible from your current network connection.
+
+                Technical details:
+                - {__package__} version {SoftwareInfo.version}
+                - Python {SoftwareInfo.python_version} on {SoftwareInfo.os}/{SoftwareInfo.cpu_arch}
+                - API environment: {env} ({ENV[env]})
+                - External IPv4 address: {get_external_ip_address()}
+
+                Please copy the above information and contact TSD for help:
+                {HELP_URL}'''
             )
         )
 
