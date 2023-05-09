@@ -116,6 +116,8 @@ GUIDES = {
     'encryption': encryption,
 }
 
+ENV_HTTPS_PROXY = "https_proxy"
+
 def print_version_info() -> None:
     version_text = """\
         tacl v{version}
@@ -205,7 +207,7 @@ def get_api_key(env: str, pnum: str) -> str:
 def check_api_connection(env: str) -> None:
     if env == "dev":
         return
-    if os.getenv("HTTPS_PROXY"):
+    if ENV_HTTPS_PROXY.casefold() in [s.casefold() for s in os.environ]:
         debug_step('skipping connection test as a proxy is set')
         return
     if not has_api_connectivity(hostname=API_ENVS[env]):
