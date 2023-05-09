@@ -27,6 +27,7 @@ from tsdapiclient.client_config import API_VERSION
 from tsdapiclient.exc import AuthzError, AuthnError
 
 HELP_URL = 'https://www.uio.no/english/services/it/research/sensitive-data/contact/index.html'
+EDUCLOUD_CONTACT_URL = "https://www.uio.no/english/services/it/research/platforms/edu-research/help/contact-us.html"
 
 HOSTS = {
     'test': 'test.api.tsd.usit.no',

@@ -59,6 +59,7 @@ from tsdapiclient.sync import (
     DownloadDeleteCache,
 )
 from tsdapiclient.tools import (
+    EDUCLOUD_CONTACT_URL,
     HELP_URL,
     check_if_key_has_expired,
     get_external_ip_address,
@@ -216,6 +217,8 @@ def check_api_connection(env: str) -> None:
         debug_step('skipping connection test as a proxy is set')
         return
     if not has_api_connectivity(hostname=API_ENVS[env]):
+        org = "Educloud Research" if env.startswith("ec") else "TSD"
+        contact_url = EDUCLOUD_CONTACT_URL if env.startswith("ec") else HELP_URL
         sys.exit(
             dedent(f'''\
                 The selected API environment appears to be inaccessible from your current network connection.
@@ -226,8 +229,8 @@ def check_api_connection(env: str) -> None:
                 - API environment: {env} ({ENV[env]})
                 - External IPv4 address: {get_external_ip_address()}
 
-                Please copy the above information and contact TSD for help:
-                {HELP_URL}'''
+                Please copy the above information and contact {org} for help:
+                {contact_url}'''
             )
         )
 
