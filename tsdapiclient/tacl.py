@@ -60,6 +60,7 @@ from tsdapiclient.sync import (
 from tsdapiclient.tools import (
     HELP_URL,
     check_if_key_has_expired,
+    get_external_ip_address,
     has_api_connectivity,
     user_agent,
     debug_step,
@@ -214,6 +215,7 @@ def check_api_connection(env: str) -> None:
         sys.exit(
             dedent(f'''\
                 The API environment hosted at {ENV[env]} is not accessible from your current network connection.
+                Your external IP address is {get_external_ip_address()}.
                 Please contact TSD for help: {HELP_URL}'''
             )
         )

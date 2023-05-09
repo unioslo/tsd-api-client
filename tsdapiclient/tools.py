@@ -38,6 +38,9 @@ HOSTS = {
     'dev': 'localhost:3003',
 }
 
+IP_LOOKUP_API_URL = "https://api.ipify.org"
+
+
 def auth_api_url(env: str, pnum: str, auth_method: str) -> str:
     endpoints = {
         'default': {
@@ -231,6 +234,14 @@ def has_api_connectivity(hostname: str, port: int = 443, timeout: float = 0.5) -
     except:
         pass
     return connectivity
+
+
+def get_external_ip_address(timeout: float = 5) -> str:
+    try:
+        ip_address_request = requests.get(IP_LOOKUP_API_URL, timeout=timeout)
+    except:
+        return "UNKNOWN"
+    return ip_address_request.text
 
 
 def as_bytes(amount: str) -> int:
