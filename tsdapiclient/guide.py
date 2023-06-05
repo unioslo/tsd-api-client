@@ -106,7 +106,8 @@ To import data to your TSD project(s) in an automated way,
 you firstly need to organise access for your machine(s) to the TSD API,
 by proividing an IP address/range. If your machine(s) are located on
 an Uninett network, then TSD's current security policy allows
-enabling access without issue.
+enabling access without issue. You still need to contact USIT
+to get your IP whitelisted.
 
 If not, then you will have to provide a description of how you
 secure your machine(s) and include it in the risk analysis of your project.
