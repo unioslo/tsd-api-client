@@ -18,7 +18,7 @@ packages = [{include = "tsdapiclient"}]
 tacl = "tsdapiclient.tacl:cli"
 
 [tool.poetry.dependencies]
-python = "^3.6"
+python = "^3.8"
 requests = "*"
 click = ">=8"
 PyYAML = "*"
