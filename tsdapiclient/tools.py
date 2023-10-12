@@ -6,7 +6,6 @@ import hashlib
 import json
 import os
 import pathlib
-import socket
 import sys
 import time
 
@@ -224,14 +223,28 @@ def get_data_path(env: str, pnum: str) -> str:
     return str(data_path)
 
 
-def has_api_connectivity(hostname: str, port: int = 443, timeout: float = 0.5) -> bool:
+def has_api_connectivity(
+    hostname: str,
+    port: int = 443,
+    timeout: float = 0.5,
+    schema: str = "https",
+) -> bool:
+    """Verify that a connection can be made to the API.
+
+    Args:
+        hostname (str): domain where the API is hosted
+        port (int, optional): TCP port the API is listening on. Defaults to 443.
+        timeout (float, optional): how long to wait for a response. Defaults to 0.5 seconds.
+        schema (str, optional): protocol to use. Defaults to "https".
+
+    Returns:
+        bool: _description_
+    """
     connectivity = False
     try:
-        sock = socket.socket()
-        sock.settimeout(timeout)
-        sock.connect((hostname, port))
-        connectivity = True
-        sock.close()
+        r = requests.get(f"{schema}://{hostname}:{port}", timeout=timeout)
+        if r.status_code != 403:
+            connectivity = True
     except:
         pass
     return connectivity
