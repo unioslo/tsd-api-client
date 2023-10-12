@@ -211,6 +211,8 @@ def get_api_key(env: str, pnum: str) -> str:
 
 
 def check_api_connection(env: str) -> None:
+    if os.getenv("TACL_DISABLE_API_CONNECTION_CHECK"):
+        return
     if env == "dev":
         return
     if ENV_HTTPS_PROXY.casefold() in [s.casefold() for s in os.environ]:
