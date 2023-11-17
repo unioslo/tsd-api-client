@@ -8,6 +8,7 @@ authors = [
 maintainers = [
     "Eirik Haatveit <haatveit@uio.no>",
     "Milen Kouylekov <milen@uio.no>",
+    "Torjus Håkestad <torjus@uio.no>",
 ]
 license = "BSD-3-Clause"
 readme = "README.md"
