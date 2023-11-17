@@ -11,6 +11,7 @@ import time
 
 from functools import wraps
 from typing import Optional, Callable, Any, Union
+from urllib.parse import urlencode
 
 import click
 import requests
@@ -79,24 +80,26 @@ def file_api_url(
     service: str,
     endpoint: str = '',
     formid: str = '',
-    page: Optional[str] = None,
+    page: Optional[int] = None,
     per_page: Optional[int] = None,
 ) -> str:
     try:
         host = HOSTS.get(env)
-        if page:
-            url = f'https://{host}{page}'
-            if per_page:
-                url += f'&per_page={per_page}'
-            return url
         if formid:
             endpoint = f'{formid}/{endpoint}'
         scheme = 'http' if env == 'dev' else 'https'
         url = f'{scheme}://{host}/{API_VERSION}/{pnum}/{service}/{endpoint}'
         if url.endswith('/'):
             url = url[:-1]
+
+        query_dict = {}
         if per_page:
-            url += f'?per_page={per_page}'
+            query_dict["per_page"] = per_page
+        if page is not None:
+            query_dict["page"] = page
+        if len(query_dict) > 0:
+            url += f'?{urlencode(query_dict)}'
+
         return url
     except (AssertionError, Exception) as e:
         raise e
