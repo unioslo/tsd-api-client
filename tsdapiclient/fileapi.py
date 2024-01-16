@@ -471,7 +471,7 @@ def export_head(
     backend: str = 'files',
     session: Any = requests,
 ) -> requests.Response:
-    headers = {'Authorization': 'Bearer {0}'.format(token)}
+    headers = {'Authorization': 'Bearer {0}'.format(token), "Accept-Encoding": None}
     endpoint = f'export/{filename}'
     url = f'{file_api_url(env, pnum, backend, endpoint=endpoint)}'
     resp = session.head(url, headers=headers)
@@ -526,7 +526,7 @@ def export_get(
     token = tokens.get("access_token") if tokens else token
     filemode = 'wb'
     current_file_size = None
-    headers = {'Authorization': f'Bearer {token}'}
+    headers = {'Authorization': f'Bearer {token}', "Accept-Encoding": None}
     if etag:
         debug_step(f'download_id: {etag}')
         filemode = 'ab'
