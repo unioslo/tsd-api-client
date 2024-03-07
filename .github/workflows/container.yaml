@@ -1,0 +1,97 @@
+name: Build container
+
+on:
+  push:
+    paths:
+      - .github/workflows/container.yaml
+      - Containerfile
+      - pyproject.toml
+      - poetry.lock
+      - tsdapiclient/**
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  PYTHON_VERSION: "3.12"
+  POETRY_VERSION: "1.3.2"
+  POETRY_DYNAMIC_VERSIONING_VERSION: "1.1.0"
+  QEMU_PLATFORMS: "linux/amd64,linux/arm64"
+
+jobs:
+  metadata:
+    runs-on: ubuntu-latest
+
+    outputs:
+      version: ${{ steps.pdv.outputs.version }}
+      tags: ${{ steps.meta.outputs.tags }}
+      labels: ${{ steps.meta.outputs.labels }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install Poetry
+        run: pipx install poetry==${{env.POETRY_VERSION}}
+      - name: Install poetry-dynamic-versioning
+        run: pipx inject poetry "poetry-dynamic-versioning[plugin]==${{env.POETRY_DYNAMIC_VERSIONING_VERSION}}"
+      - name: Get version
+        run: echo "version=$(poetry version --short --no-ansi)" >> $GITHUB_OUTPUT
+        id: pdv
+      - name: Extract metadata (tags, labels) for container
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=ref,event=branch
+            type=raw,value=${{ steps.pdv.outputs.version }},priority=50
+            type=sha,prefix=,format=short
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+          labels: |
+            org.opencontainers.image.version=${{ steps.pdv.outputs.version }}
+
+  build-and-push:
+    runs-on: ubuntu-latest
+    needs: metadata
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Log in to the container registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      -
+        # Add support for more platforms with QEMU
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: ${{ env.QEMU_PLATFORMS }}
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build and push container image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          build-args: |
+            PYTHON_VERSION=${{ env.PYTHON_VERSION }}
+            POETRY_VERSION=${{ env.POETRY_VERSION }}
+            POETRY_DYNAMIC_VERSIONING_VERSION=${{ env.POETRY_DYNAMIC_VERSIONING_VERSION }}
+          platforms: ${{ env.QEMU_PLATFORMS }}
+          file: "Containerfile"
+          push: true
+          tags: ${{ needs.metadata.outputs.tags }}
+          labels: ${{ needs.metadata.outputs.labels }}
