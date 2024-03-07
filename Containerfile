@@ -32,5 +32,5 @@ LABEL org.opencontainers.image.title="TSD API Client" \
       org.opencontainers.image.source="https://github.com/unioslo/tsd-api-client"
 ENTRYPOINT [ "/app/bin/tacl" ]
 ENV XDG_CONFIG_HOME=/config
-VOLUME [ "/config" ]
+VOLUME [ "/config/tacl" ]
 COPY --from=builder /app /app
