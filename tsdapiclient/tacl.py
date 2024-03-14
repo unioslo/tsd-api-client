@@ -552,7 +552,7 @@ def cli(
             click.echo('download not authorized with basic auth')
             sys.exit(1)
         elif env != 'alt' and api_key:
-            requires_user_credentials, token_type = False, 'export-auto'
+            requires_user_credentials, token_type = False, 'export_auto'
         else:
             requires_user_credentials, token_type = True, TOKENS[env]['download']
     else:
