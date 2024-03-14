@@ -10,7 +10,13 @@ from datetime import datetime, timedelta
 from tsdapiclient.exc import AuthnError
 from tsdapiclient.client_config import ENV
 from tsdapiclient.session import session_update
-from tsdapiclient.tools import handle_request_errors, auth_api_url, debug_step, get_claims
+from tsdapiclient.tools import (
+    handle_request_errors,
+    auth_api_url,
+    debug_step,
+    get_claims,
+    HELP_URL,
+)
 
 @handle_request_errors
 def get_jwt_basic_auth(
@@ -25,6 +31,7 @@ def get_jwt_basic_auth(
     }
     url = f'{auth_api_url(env, pnum, "basic")}?type={token_type}'
     try:
+        debug_step(f"POST {url}")
         resp = requests.post(url, headers=headers)
     except Exception as e:
         raise AuthnError from e
@@ -32,7 +39,11 @@ def get_jwt_basic_auth(
         data = json.loads(resp.text)
         return data.get('token'), data.get('refresh_token')
     else:
-        return None, None
+        if resp.status_code == 403:
+            msg = f"Basic auth not authorized from current IP address, contact USIT at {HELP_URL}"
+        else:
+            msg = resp.text
+        raise AuthnError(msg)
 
 @handle_request_errors
 def get_jwt_two_factor_auth(
