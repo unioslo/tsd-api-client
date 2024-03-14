@@ -548,9 +548,11 @@ def cli(
     elif download or download_list or download_sync or download_delete:
         if env == 'alt' and basic:
             requires_user_credentials, token_type = False, TOKENS[env]['download']
-        elif env != 'alt' and basic:
+        elif env != 'alt' and basic and not api_key:
             click.echo('download not authorized with basic auth')
             sys.exit(1)
+        elif env != 'alt' and api_key:
+            requires_user_credentials, token_type = False, 'export-auto'
         else:
             requires_user_credentials, token_type = True, TOKENS[env]['download']
     else:
@@ -598,7 +600,7 @@ def cli(
                 debug_step(f'using refresh token from existing login session')
                 debug_step(f'refreshes remaining: {get_claims(refresh_token).get("counter")}')
                 debug_step(refresh_token)
-    elif not requires_user_credentials and basic:
+    elif not requires_user_credentials and (basic or api_key):
         if not pnum:
             click.echo('missing pnum argument')
             sys.exit(1)
@@ -606,7 +608,7 @@ def cli(
         if not api_key:
             api_key = get_api_key(env, pnum)
         debug_step('using basic authentication')
-        token, refresh_token = get_jwt_basic_auth(env, pnum, api_key)
+        token, refresh_token = get_jwt_basic_auth(env, pnum, api_key, token_type)
     if (requires_user_credentials or basic) and not token:
         click.echo('authentication failed')
         sys.exit(1)
