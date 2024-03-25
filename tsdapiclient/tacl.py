@@ -68,6 +68,7 @@ from tsdapiclient.tools import (
     debug_step,
     as_bytes,
     get_claims,
+    renew_api_key,
 )
 
 requests.utils.default_user_agent = user_agent
@@ -607,6 +608,16 @@ def cli(
         check_api_connection(env)
         if not api_key:
             api_key = get_api_key(env, pnum)
+        if api_key.startswith("@"):
+            key_file = api_key.split("@")[-1]
+            if not os.path.lexists(key_file):
+                sys.exit(f"key file not found: {key_file}")
+            debug_step(f'reading API key from {key_file}')
+            with open(key_file, "r") as f:
+                api_key = f.read()
+            if check_if_key_has_expired(api_key):
+                debug_step("API key has expired")
+                api_key = renew_api_key(env, pnum, api_key, key_file)
         debug_step('using basic authentication')
         token, refresh_token = get_jwt_basic_auth(env, pnum, api_key, token_type)
     if (requires_user_credentials or basic) and not token:
