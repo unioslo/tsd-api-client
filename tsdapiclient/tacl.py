@@ -541,7 +541,7 @@ def cli(
         resume_delete_all or
         upload_sync
     ):
-        if basic:
+        if basic or api_key:
             requires_user_credentials, token_type = False, TOKENS[env]['upload']
         else:
             requires_user_credentials, token_type = True, TOKENS[env]['upload']
