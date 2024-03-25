@@ -49,11 +49,13 @@ def auth_api_url(env: str, pnum: str, auth_method: str) -> str:
             'tsd': f'{pnum}/auth/tsd/token',
             'iam': f'{pnum}/auth/iam/token',
             'refresh': f'{pnum}/auth/refresh/token',
+            'renew': f'{pnum}/auth/clients/secret',
         },
         'int': {
             'basic': f'{pnum}/internal/basic/token',
             'tsd': f'{pnum}/internal/tsd/token',
             'refresh': f'{pnum}/auth/refresh/token',
+            'renew': f'{pnum}/auth/client/secret',
         },
         'dev': { # use the file api's dev token
             'basic': f'{pnum}/token',
@@ -61,9 +63,10 @@ def auth_api_url(env: str, pnum: str, auth_method: str) -> str:
         }
     }
     try:
-        assert auth_method in [
-            'basic', 'tsd', 'iam', 'refresh',
-        ], f'Unrecognised auth_method: {auth_method}'
+        if auth_method not in [
+            'basic', 'tsd', 'iam', 'refresh', 'renew',
+        ]:
+            raise Exception(f'Unrecognised auth_method: {auth_method}')
         host = HOSTS.get(env)
         endpoint_env = env if env in ['int', 'dev'] else 'default'
         endpoint = endpoints.get(endpoint_env).get(auth_method)
@@ -145,6 +148,27 @@ def check_if_key_has_expired(key: str, when: int = int(time.time())) -> bool:
             return False
     except Exception:
         return None
+
+def renew_api_key(env: str, pnum: str, key: str, save_to: str) -> str:
+    try:
+        claims = get_claims(key)
+        payload = {
+            "client_id": claims.get("aud"),
+            "client_secret": key,
+        }
+        debug_step("renewing API key")
+        resp = requests.post(
+            auth_api_url(env, pnum, 'renew'),
+            data=json.dumps(payload),
+        )
+        new_key = json.loads(resp.text).get("new_client_secret")
+        debug_step(f"saving new API key to file: {save_to}")
+        with open(save_to, "w") as f:
+            f.write(new_key)
+        debug_step("continuing with new key")
+        return new_key
+    except Exception as e:
+        raise e
 
 def check_if_exp_is_within_range(key: str, lower: int, upper: int) -> bool:
     try:
