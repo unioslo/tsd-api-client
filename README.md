@@ -14,10 +14,6 @@ pip3 install tsd-api-client --upgrade # to get the latest version
 Get started with `tacl`:
 
 ```bash
-tacl --guide config
-tacl --guide uploads
-tacl --guide downloads
-tacl --guide sync
 tacl --guide topics # to see all guides available
 tacl --help
 ```
