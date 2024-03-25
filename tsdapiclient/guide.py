@@ -7,6 +7,8 @@ uploads
 downloads
 automation
 debugging
+sync
+encryption
 """
 
 config = """
@@ -104,29 +106,33 @@ Using on-the-fly encryption, with automatic decryption:
 automation = f"""
 To import data to your TSD project(s) in an automated way,
 you firstly need to organise access for your machine(s) to the TSD API,
-by proividing an IP address/range. If your machine(s) are located on
-an Uninett network, then TSD's current security policy allows
-enabling access without issue. You still need to contact USIT
-to get your IP whitelisted.
+by proividing an IP address/range.
 
-If not, then you will have to provide a description of how you
-secure your machine(s) and include it in the risk analysis of your project.
+Given that this level of access is taken care of, you need an API key
+to authenticate with. There are two ways of doing this. The first and
+easiest way is to is to run:
 
-Given that this level of access is taken care of, that you have registered tacl,
-and that you have obtained TSD credentials for your project(s),
-you can set up automated data import in the following way:
+    tacl --register
+
+and then to run:
 
     tacl p11 --basic --upload myfile
 
-The above example supposes that you have registered your client as
-described in the tacl --guide config section. This is suitable when
-you have a small number of clients. If, however, you have so many clients
-that registering them one-by-one is impractical, you can contact TSD
-at {HELP_URL}
-and request a standalone API client. This will give you an API key
-which you can use with tacl as such:
+This allows using the API key which is tied to your user to automate
+data imports.
+
+Another use case is to use an impersonal API key, to automate
+data imports, and possibly exports. Contact USIT at {HELP_URL}
+and request a standalone API client.
+
+This will give you an API key which you can use with tacl as such:
 
     tacl p11 --api-key $KEY --upload myfile
+
+You can also store the key in a file (only the key no newlines),
+and invoke tacl as such:
+
+    tacl p11 --api-key @path-to-file --upload myfile
 
 Invoking tacl like this will over-ride any other local config.
 """

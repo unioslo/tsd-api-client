@@ -465,7 +465,7 @@ def construct_correct_upload_path(path: str) -> str:
     '--api-key',
     required=False,
     default=None,
-    help='Pass an explicit API key - over-rides tacl config'
+    help='Pass an explicit API key, pasting the key or as a path to a file: --api-key @path-to-file'
 )
 @click.option(
     '--encrypt',
