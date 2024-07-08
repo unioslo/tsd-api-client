@@ -1,0 +1,19 @@
+name: Pull request mergability check
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+jobs:
+  check-pr-ff-merge:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+
+    steps:
+      - name: Checking if fast forward merging is possible
+        uses: sequoia-pgp/fast-forward@v1
+        with:
+          merge: false
+          comment: always

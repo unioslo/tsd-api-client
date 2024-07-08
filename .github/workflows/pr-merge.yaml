@@ -1,0 +1,24 @@
+name: Pull request merge
+on:
+  issue_comment:
+    types: [created, edited]
+jobs:
+  pr-ff-merge:
+    # Only run if the comment contains a fast-forward triggering command.
+    if: ${{ ( contains(github.event.comment.body, '/fast-forward') ||
+              contains(github.event.comment.body, '!ff') ||
+              contains(github.event.comment.body, '!merge') )
+            && github.event.issue.pull_request }}
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+
+    steps:
+      - name: Fast forward merge
+        uses: sequoia-pgp/fast-forward@v1
+        with:
+          merge: true
+          comment: always
