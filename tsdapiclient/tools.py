@@ -362,9 +362,18 @@ class Retry(object):
             elif rc in [500, 504] or reconnect:
                 self.counter -= 1
                 retry_attempt_no += 1
-                debug_step(f'timeout: retrying request attempt {retry_attempt_no}/{total}')
+                debug_step(
+                    f"timeout: retrying request attempt {retry_attempt_no}/{total}"
+                )
+                if self.counter == 0:  # this was the last attempt
+                    self.resp.raise_for_status()
             else:
                 return {"resp": self.resp, "new_session": new_session}
 
-    def __exit__(self, type, value, traceback) -> dict:
-        return {"resp": self.resp, "new_session": None} # caller should raise from that
+    def __exit__(self, exc_type, exc_value, exc_traceback) -> dict:
+        if exc_type:
+            raise exc_type(exc_value).with_traceback(exc_traceback)
+        return {
+            "resp": self.resp,
+            "new_session": None,
+        }
