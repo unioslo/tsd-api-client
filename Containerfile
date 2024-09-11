@@ -1,11 +1,13 @@
-ARG BASE_IMAGE="docker.io/python:3.12-alpine"
+ARG PYTHON_VERSION="3.12"
+ARG BASE_IMAGE="docker.io/python:${PYTHON_VERSION}-alpine"
 
 FROM ${BASE_IMAGE} AS poetry
 
 RUN apk add --no-cache \
     build-base \
     libffi-dev
-RUN pip install poetry==1.3.2
+ARG POETRY_VERSION="1.8.3"
+RUN pip install poetry==${POETRY_VERSION}
 
 
 FROM poetry AS builder
@@ -16,7 +18,8 @@ RUN python -m venv /app && \
     source /app/bin/activate && \
     poetry install --only main --no-root
 
-RUN poetry self add "poetry-dynamic-versioning[plugin]==1.1.0"
+ARG POETRY_DYNAMIC_VERSIONING_VERSION="1.4.1"
+RUN poetry self add "poetry-dynamic-versioning[plugin]==${POETRY_DYNAMIC_VERSIONING_VERSION}"
 RUN apk add --no-cache git
 COPY tsdapiclient ./tsdapiclient
 COPY .git ./.git
