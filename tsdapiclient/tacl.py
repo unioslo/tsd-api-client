@@ -2,18 +2,20 @@
 import getpass
 import os
 import platform
+import re
 import sys
 
 from dataclasses import dataclass
 from textwrap import dedent
 from typing import Optional
+import uuid
 
 import click
 import requests
 
 from tsdapiclient import __version__
 from tsdapiclient.administrator import get_tsd_api_key
-from tsdapiclient.authapi import get_jwt_two_factor_auth, get_jwt_basic_auth
+from tsdapiclient.authapi import get_jwt_two_factor_auth, get_jwt_basic_auth, get_jwt_instance_auth
 from tsdapiclient.client_config import ENV, CHUNK_THRESHOLD, CHUNK_SIZE
 from tsdapiclient.configurer import (
     read_config, update_config, print_config, delete_config,
@@ -37,7 +39,7 @@ from tsdapiclient.fileapi import (
     export_delete,
 )
 from tsdapiclient.guide import (
-    topics, config, uploads, downloads, debugging, automation, sync, encryption,
+    topics, config, uploads, downloads, debugging, automation, sync, encryption, instances
 )
 from tsdapiclient.session import (
     session_is_expired,
@@ -116,6 +118,7 @@ GUIDES = {
     'downloads': downloads,
     'debugging': debugging,
     'automation': automation,
+    'instances': instances,
     'sync': sync,
     'encryption': encryption,
 }
@@ -468,6 +471,18 @@ def construct_correct_upload_path(path: str) -> str:
     help='Pass an explicit API key, pasting the key or as a path to a file: --api-key @path-to-file'
 )
 @click.option(
+    '--link-id',
+    required=False,
+    default=None,
+    help='Pass a download link obtained from the TSD API. This must be used with --api-key as well as it requires a specific client'
+)
+@click.option(
+    '--secret-challenge',
+    required=False,
+    default=None,
+    help='Pass a secret challenge for instance authentication'
+)
+@click.option(
     '--encrypt',
     is_flag=True,
     required=False,
@@ -522,6 +537,8 @@ def cli(
     keep_updated: bool,
     download_delete: str,
     api_key: str,
+    link_id: str,
+    secret_challenge: str,
     encrypt: bool,
     chunk_size: int,
     resumable_threshold: int,
@@ -545,7 +562,7 @@ def cli(
         if basic or api_key:
             requires_user_credentials, token_type = False, TOKENS[env]['upload']
         else:
-            requires_user_credentials, token_type = True, TOKENS[env]['upload']
+            requires_user_credentials, token_type = False if link_id else True, TOKENS[env]['upload']
     elif download or download_list or download_sync or download_delete:
         if env == 'alt' and basic:
             requires_user_credentials, token_type = False, TOKENS[env]['download']
@@ -619,7 +636,21 @@ def cli(
                 debug_step("API key has expired")
                 api_key = renew_api_key(env, pnum, api_key, key_file)
         debug_step('using basic authentication')
-        token, refresh_token = get_jwt_basic_auth(env, pnum, api_key, token_type)
+        if link_id:
+
+            if link_id.startswith("https://"):
+                click.echo("extracting link_id from URL")
+                patten = r"https://(?P<HOST>.+)/(?P<instance_type>c|i)/(?P<link_id>[a-f\d0-9-]{36})"
+                if match:=re.compile(patten).match(link_id):
+                    link_id = uuid.UUID(match.group("link_id"))
+                    if match.group("instance_type") == "c" and not secret_challenge:
+                        click.echo("instance authentication requires a secret challenge")
+                        sys.exit(1)
+            else:
+                link_id = uuid.UUID(link_id)
+            token, refresh_token = get_jwt_instance_auth(env, pnum, api_key, link_id, secret_challenge, token_type)
+        else:
+            token, refresh_token = get_jwt_basic_auth(env, pnum, api_key, token_type)
     if (requires_user_credentials or basic) and not token:
         click.echo('authentication failed')
         sys.exit(1)

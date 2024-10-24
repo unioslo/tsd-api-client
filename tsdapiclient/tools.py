@@ -46,6 +46,7 @@ def auth_api_url(env: str, pnum: str, auth_method: str) -> str:
     endpoints = {
         'default': {
             'basic': f'{pnum}/auth/basic/token',
+            'instances': '/all/auth/instances/token',
             'tsd': f'{pnum}/auth/tsd/token',
             'iam': f'{pnum}/auth/iam/token',
             'refresh': f'{pnum}/auth/refresh/token',
@@ -53,6 +54,7 @@ def auth_api_url(env: str, pnum: str, auth_method: str) -> str:
         },
         'int': {
             'basic': f'{pnum}/internal/basic/token',
+            'instances': '/all/internal/auth/instances/token',
             'tsd': f'{pnum}/internal/tsd/token',
             'refresh': f'{pnum}/auth/refresh/token',
             'renew': f'{pnum}/auth/client/secret',
@@ -64,7 +66,7 @@ def auth_api_url(env: str, pnum: str, auth_method: str) -> str:
     }
     try:
         if auth_method not in [
-            'basic', 'tsd', 'iam', 'refresh', 'renew',
+            'basic', 'tsd', 'iam', 'refresh', 'renew', 'instances'
         ]:
             raise Exception(f'Unrecognised auth_method: {auth_method}')
         host = HOSTS.get(env)

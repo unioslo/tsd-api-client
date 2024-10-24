@@ -1,7 +1,7 @@
-
 """Module for the TSD Auth API."""
 
 import json
+from uuid import UUID
 import requests
 import time
 
@@ -44,6 +44,36 @@ def get_jwt_basic_auth(
         else:
             msg = resp.text
         raise AuthnError(msg)
+
+
+def get_jwt_instance_auth(
+    env: str,
+    pnum: str,
+    api_key: str,
+    link_id: UUID,
+    secret_challenge: str|None = None,
+    token_type: str = "import",
+) -> tuple:
+    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"}
+    url = f'{auth_api_url(env, pnum, "instances")}?type={token_type}'
+    try:
+        debug_step(f"POST {url}")
+        request_body = {"id": str(link_id)}
+        if secret_challenge:
+            request_body["secret_challenge"] = secret_challenge
+        resp = requests.post(url, headers=headers, data=json.dumps(request_body))
+    except Exception as e:
+        raise AuthnError from e
+    if resp.status_code in [200, 201]:
+        data = json.loads(resp.text)
+        return data.get("token"), data.get("refresh_token")
+    else:
+        if resp.status_code == 403:
+            msg = f"Instance auth not authorized from current IP address, contact USIT at {HELP_URL}"
+        else:
+            msg = resp.text
+        raise AuthnError(msg)
+
 
 @handle_request_errors
 def get_jwt_two_factor_auth(

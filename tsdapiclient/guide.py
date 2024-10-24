@@ -1,4 +1,3 @@
-
 from tsdapiclient.tools import HELP_URL
 
 topics = """
@@ -6,6 +5,7 @@ config
 uploads
 downloads
 automation
+instances
 debugging
 sync
 encryption
@@ -137,6 +137,34 @@ and invoke tacl as such:
 Invoking tacl like this will over-ride any other local config.
 """
 
+instances = f"""
+
+In order to use the instances, you need to have a link ID and an api
+key. To request an api key, you need to contact USIT at {HELP_URL}.
+The link will be provided to you by the project owner.
+
+The instances are currently only used for uploading data. To upload
+data to with an instance, you can use the following command:
+    
+    tacl p11 --api-key <api_key> --link-id <link_id> (--secret-challenge <secret_challenge>)? --upload myfile
+
+where <link_id> is the link id provided to you by the project owner,
+and <secret_challenge> is the secret challenge provided to you by the
+project owner. The secret challenge is used  to verify that the instance
+is the correct one. The link id is used to identify the instance it can
+be provided as UUID or a https link. Example of an https link  is:
+
+    tacl p11 --api-key <api_key> --link-id https://data.tsd.usit.no/i/d3bd40e1-0a15-4575-9745-830ec52a4b3f --upload myfile
+    tacl p11 --api-key <api_key> --link-id https://data.tsd.usit.no/c/1154a666-4ae3-49e5-b1dd-cf1ea2cc86f9 --secret-challenge --upload myfile
+
+where the 'c' and 'i' are the type of the link. The 'c' for instance
+that requires a secret challenge and the 'i' for instance that does not
+require a secret challenge. The UUID variant is the same as the https link
+but without the https and the domain.
+
+    tacl p11 --api-key <api_key>--link-id d3bd40e1-0a15-4575-9745-830ec52a4b3f --upload myfile
+    tacl p11 --api-key <api_key> --link-id 1154a666-4ae3-49e5-b1dd-cf1ea2cc86f9 --secret-challenge secret --upload myfile
+"""
 debugging = f"""
 If you are having trouble while running a command, check the version,
 and run the problematic command in verbose mode:
