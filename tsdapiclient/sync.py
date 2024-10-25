@@ -239,6 +239,7 @@ class GenericDirectoryTransporter(object):
         api_key: Optional[str] = None,
         refresh_token: Optional[str] = None,
         refresh_target: Optional[int] = None,
+        remote_path: Optional[str] = None,
     ) -> None:
         self.env = env
         self.pnum = pnum
@@ -265,6 +266,7 @@ class GenericDirectoryTransporter(object):
         self.api_key = api_key
         self.refresh_token = refresh_token
         self.refresh_target = refresh_target
+        self.remote_path = remote_path
 
     def _parse_ignore_data(self, patterns: str) -> list:
         # e.g. .git,build,dist
@@ -395,6 +397,7 @@ class GenericDirectoryTransporter(object):
                 group=self.group,
                 backend=list_funcs[self.remote_key]['backend'],
                 per_page=10000, # for better sync performance
+                remote_path=self.remote_path,  
             )
             found = out.get('files')
             next_page = out.get('page')
@@ -453,6 +456,7 @@ class GenericDirectoryTransporter(object):
             print(f'WARNING: could not find {resource} on local disk')
             return resource
         if os.stat(resource).st_size > self.chunk_threshold:
+            print(f'initiating resumable upload for {resource} {self.remote_path}')   
             resp = initiate_resumable(
                 self.env,
                 self.pnum,
@@ -468,6 +472,7 @@ class GenericDirectoryTransporter(object):
                 api_key=self.api_key,
                 refresh_token=self.refresh_token,
                 refresh_target=self.refresh_target,
+                remote_path=self.remote_path,
             )
         else:
             resp = streamfile(
@@ -483,6 +488,7 @@ class GenericDirectoryTransporter(object):
                 api_key=self.api_key,
                 refresh_token=self.refresh_token,
                 refresh_target=self.refresh_target,
+                remote_path=self.remote_path,
             )
         if resp.get("session"):
             debug_step("renewing session")
@@ -525,6 +531,7 @@ class GenericDirectoryTransporter(object):
             refresh_token=self.refresh_token,
             refresh_target=self.refresh_target,
             public_key=self.public_key,
+            remote_path=self.remote_path,   
         )
         if resp.get('tokens'):
             self.token = resp.get('tokens').get('access_token')
@@ -552,6 +559,7 @@ class GenericDirectoryTransporter(object):
             api_key=self.api_key,
             refresh_token=self.refresh_token,
             refresh_target=self.refresh_target,
+            remote_path=self.remote_path,
         )
         if resp.get('tokens'):
             self.token = resp.get('tokens').get('access_token')

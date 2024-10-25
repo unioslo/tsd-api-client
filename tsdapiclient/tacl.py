@@ -204,8 +204,8 @@ def get_api_key(env: str, pnum: str) -> str:
         print(f'client not registered for API environment {env} and {pnum}')
         sys.exit(1)
     try:
-        has_exired = check_if_key_has_expired(api_key)
-        if has_exired:
+        has_expired = check_if_key_has_expired(api_key)
+        if has_expired:
             print('Your API key has expired')
             print('Register your client again')
             sys.exit(1)
@@ -241,7 +241,7 @@ def check_api_connection(env: str) -> None:
         )
 
 
-def construct_correct_upload_path(path: str) -> str:
+def construct_correct_remote_path(path: str) -> str:
     if path.startswith('../'):
         return os.path.abspath(path)
     elif path.startswith('~/'):
@@ -500,6 +500,11 @@ def construct_correct_upload_path(path: str) -> str:
     default=CHUNK_THRESHOLD,
     help='E.g.: 1gb, files larger than this size will be sent as resumable uploads'
 )
+@click.option(
+    '--remote-path',
+    required=False,
+    help='Specify a path on the remote server to upload'
+)
 def cli(
     pnum: str,
     guide: str,
@@ -542,6 +547,7 @@ def cli(
     encrypt: bool,
     chunk_size: int,
     resumable_threshold: int,
+    remote_path: str,
 ) -> None:
     """tacl - TSD API client."""
 
@@ -667,7 +673,37 @@ def cli(
                 public_key = nacl_get_server_public_key(env, pnum, token)
         else:
             public_key = None
-        group = f'{pnum}-member-group' if not group else group
+
+        available_groups = get_claims(token).get('groups')
+        if group:
+            if group not in available_groups:
+                sys.exit(f'group {group} not available with this authentication')
+        else:
+            member_group  = f'{pnum}-member-group'
+            if member_group not in available_groups:
+                if len(available_groups) == 1:
+                    group = available_groups[0]
+                else:
+                    sys.exit(f'select a group from on of the following: {available_groups}')
+            else:
+                group = member_group
+
+        token_path = get_claims(token).get('path', None)
+        if token_path:
+            if not token_path.startswith('/'):
+                token_path = f'/{token_path}'
+            if not token_path.endswith('/'):
+                token_path = f'{token_path}/'
+
+        if remote_path:
+            if not remote_path.startswith('/'):
+                remote_path = f"/{remote_path}"
+            if not remote_path.endswith('/'):
+                remote_path = f'{remote_path}/'
+            if token_path and remote_path.startswith(token_path):
+                sys.exit(f'upload path mismatch: {remote_path} != {token_path}')
+        else:
+            remote_path = token_path
         if upload:
             if os.path.isfile(upload):
                 if upload_id or os.stat(upload).st_size > as_bytes(resumable_threshold):
@@ -685,15 +721,16 @@ def cli(
                         api_key=api_key,
                         refresh_token=refresh_token,
                         refresh_target=refresh_target,
+                        remote_path=remote_path,
                     )
                 else:
                     debug_step('starting upload')
                     resp = streamfile(
-                        env, pnum, upload, token, group=group, public_key=public_key,
+                        env, pnum, upload, token, group=group, public_key=public_key, remote_path=remote_path
                     )
             else:
                 click.echo(f'uploading directory {upload}')
-                upload = construct_correct_upload_path(upload)
+                upload = construct_correct_remote_path(upload)
                 uploader = SerialDirectoryUploader(
                     env,
                     pnum,
@@ -709,13 +746,14 @@ def cli(
                     api_key=api_key,
                     refresh_token=refresh_token,
                     refresh_target=refresh_target,
+                    remote_path=remote_path,
                 )
                 uploader.sync()
         elif upload_sync:
             if os.path.isfile(upload_sync):
                 sys.exit('--upload-sync takes a directory as an argument')
             click.echo(f'uploading directory {upload_sync}')
-            upload_sync = construct_correct_upload_path(upload_sync)
+            upload_sync = construct_correct_remote_path(upload_sync)
             syncer = SerialDirectoryUploadSynchroniser(
                 env,
                 pnum,
@@ -735,6 +773,7 @@ def cli(
                 api_key=api_key,
                 refresh_token=refresh_token,
                 refresh_target=refresh_target,
+                remote_path=remote_path,
             )
             syncer.sync()
         elif resume_list:
@@ -751,7 +790,7 @@ def cli(
         elif download:
             filename = download
             debug_step('starting file export')
-            resp = export_head(env, pnum, filename, token)
+            resp = export_head(env, pnum, filename, token, remote_path=remote_path)
             if resp.headers.get('Content-Type') == 'directory':
                 click.echo(f'downloading directory: {download}')
                 downloader = SerialDirectoryDownloader(
@@ -767,6 +806,7 @@ def cli(
                     refresh_token=refresh_token,
                     refresh_target=refresh_target,
                     public_key=public_key,
+                    remote_path=remote_path,
                 )
                 downloader.sync()
             else:
@@ -777,14 +817,15 @@ def cli(
                     token,
                     etag=download_id,
                     public_key=public_key,
+                    remote_path=remote_path,    
                 )
         elif download_list:
             debug_step('listing export directory')
-            data = export_list(env, pnum, token)
+            data = export_list(env, pnum, token, remote_path=remote_path)
             print_export_list(data)
         elif download_delete:
             debug_step(f'deleting {download_delete}')
-            export_delete(env, pnum, token, download_delete)
+            export_delete(env, pnum, token, download_delete, remote_path=remote_path)
         elif download_sync:
             filename = download_sync
             debug_step('starting directory sync')
@@ -807,6 +848,7 @@ def cli(
                 refresh_token=refresh_token,
                 refresh_target=refresh_target,
                 public_key=public_key,
+                remote_path=remote_path
             )
             syncer.sync()
         return
