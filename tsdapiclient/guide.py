@@ -162,7 +162,7 @@ that requires a secret challenge and the 'i' for instance that does not
 require a secret challenge. The UUID variant is the same as the https link
 but without the https and the domain.
 
-    tacl p11 --api-key <api_key>--link-id d3bd40e1-0a15-4575-9745-830ec52a4b3f --upload myfile
+    tacl p11 --api-key <api_key> --link-id d3bd40e1-0a15-4575-9745-830ec52a4b3f --upload myfile
     tacl p11 --api-key <api_key> --link-id 1154a666-4ae3-49e5-b1dd-cf1ea2cc86f9 --secret-challenge secret --upload myfile
 """
 debugging = f"""
