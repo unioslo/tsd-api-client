@@ -503,7 +503,7 @@ def construct_correct_remote_path(path: str) -> str:
 @click.option(
     '--remote-path',
     required=False,
-    help='Specify a path on the remote server to upload'
+    help='Specify a path on the remote server'
 )
 def cli(
     pnum: str,
@@ -638,20 +638,38 @@ def cli(
             debug_step(f'reading API key from {key_file}')
             with open(key_file, "r") as f:
                 api_key = f.read()
-            if check_if_key_has_expired(api_key):
-                debug_step("API key has expired")
-                api_key = renew_api_key(env, pnum, api_key, key_file)
+        if check_if_key_has_expired(api_key):
+            debug_step("API key has expired")
+            api_key = renew_api_key(env, pnum, api_key, key_file)
         debug_step('using basic authentication')
         if link_id:
-
+            if link_id.startswith("@"):
+                link_id_file = link_id.split("@")[-1]
+                if not os.path.lexists(link_id_file):
+                    sys.exit(f"link id file not found: {link_id_file}")
+                debug_step(f'reading link id from {link_id_file}')
+                with open(link_id_file, "r") as f:
+                    link_id = f.read()
+            if secret_challenge and secret_challenge.startswith("@"):
+                secret_challenge_file = secret_challenge.split("@")[-1]
+                if not os.path.lexists(secret_challenge_file):
+                    sys.exit(f"secret challenge not found: {secret_challenge_file}")
+                debug_step(f'reading secret challenge from {secret_challenge_file}')
+                with open(secret_challenge_file, "r") as f:
+                    secret_challenge = f.read()
             if link_id.startswith("https://"):
                 click.echo("extracting link_id from URL")
                 patten = r"https://(?P<HOST>.+)/(?P<instance_type>c|i)/(?P<link_id>[a-f\d0-9-]{36})"
                 if match:=re.compile(patten).match(link_id):
                     link_id = uuid.UUID(match.group("link_id"))
-                    if match.group("instance_type") == "c" and not secret_challenge:
-                        click.echo("instance authentication requires a secret challenge")
-                        sys.exit(1)
+                    if match.group("instance_type") == "c":
+                        if not secret_challenge:
+                            click.echo("instance requires a secret challenge")
+                            secret_challenge = click.prompt("secret challenge > ", hide_input=True)
+                            print(secret_challenge)
+                            if not secret_challenge:
+                                click.echo("instance authentication requires a secret challenge")
+                                sys.exit(1)
             else:
                 link_id = uuid.UUID(link_id)
             token, refresh_token = get_jwt_instance_auth(env, pnum, api_key, link_id, secret_challenge, token_type)
