@@ -1,4 +1,3 @@
-
 import os
 import time
 import shutil
@@ -305,6 +304,7 @@ class GenericDirectoryTransporter(object):
                 self.delete_cache.add_many(key=self.directory, items=deletes)
         # 3. transfer resources
         for resource, integrity_reference in resources:
+            print(f'transferring: {resource}')
             self._transfer(resource, integrity_reference=integrity_reference)
             if self.use_cache:
                 self.transfer_cache.remove(key=self.directory, item=resource)
@@ -366,8 +366,9 @@ class GenericDirectoryTransporter(object):
         Recursively list a remote path.
         Ignore prefixes and suffixes if they exist.
         Collect integrity references for all resources.
-
         """
+
+        print(f'finding remote resources for {path}')
         list_funcs = {
             'export': {
                 'func': export_list,
@@ -403,8 +404,9 @@ class GenericDirectoryTransporter(object):
             next_page = out.get('page')
             if found:
                 for entry in found:
-                    subdir_and_resource = entry.get("href").split(f"/{path}")[-1]
-                    ref = f'{path}{subdir_and_resource}'
+                    import os
+                    subdir_and_resource = os.path.basename(entry.get("href"))
+                    ref = f'{path}/{subdir_and_resource}'
                     ignore_prefix = False
                     # check if we should ignore it
                     for prefix in self.ignore_prefixes:
@@ -516,6 +518,7 @@ class GenericDirectoryTransporter(object):
         if not os.path.lexists(target):
             debug_step(f'creating directory: {target}')
             os.makedirs(target)
+        print(f'downloading: {resource}')
         resp = export_get(
             self.env,
             self.pnum,

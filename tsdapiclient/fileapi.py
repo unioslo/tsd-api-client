@@ -115,12 +115,12 @@ def format_filename(filename: str) -> str:
     return os.path.basename(filename)
 
 
-def upload_resource_name(filename: str, is_dir: bool, group: Optional[str] = None, remote_path: Optional[str] =None) -> str:
+def upload_resource_name(filename: str, is_dir: bool, group: Optional[str] = None, remote_path: Optional[str] = None) -> str:
     if not is_dir:
         debug_step('uploading file')
         resource = quote(format_filename(filename))
         if remote_path:
-            resource = f'{remote_path}{resource}'   
+            resource = f'{quote(remote_path)}{resource}'   
         else:
             resource = f'/{resource}'
         if group:
@@ -132,7 +132,7 @@ def upload_resource_name(filename: str, is_dir: bool, group: Optional[str] = Non
         else:
             target = filename
         if remote_path:
-            resource = f'{group}{remote_path}{quote(target)}'
+            resource = f'{group}{quote(remote_path)}{quote(target)}'
         else:
             resource = f'{group}/{quote(target)}'
     return resource
@@ -157,7 +157,7 @@ def lazy_reader(
     - verify the hash of a given chunk, between given offsets
     - create the iterator from a given offset
 
-    Dependig on how the function is called it can return either bytes
+    Depending on how the function is called it can return either bytes
     or tuples. 1) When the caller provides the public_key, but _not_ a nonce
     and key, then the function will generate the nonce and key, and return a
     tuple with the encrypted nonce and key, along with the data and chunksize
@@ -334,9 +334,9 @@ def import_list(
     per_page: number of files to list per page
 
     """
-    resource = directory if directory else ''
+    resource = quote(directory) if directory else ''
     if remote_path:
-        endpoint=f"stream/{group}{remote_path}{resource}"
+        endpoint=f"stream/{group}{quote(remote_path)}{resource}"
     else:
         endpoint=f"stream/{group}{resource}"
     url = f'{file_api_url(env, pnum, backend, endpoint=endpoint , page=page, per_page=per_page)}'
@@ -405,9 +405,9 @@ def import_delete(
     tokens = maybe_refresh(env, pnum, api_key, token, refresh_token, refresh_target)
     token = tokens.get("access_token") if tokens else token
     if remote_path:
-        endpoint = f'stream/{group}{remote_path}{filename}'
+        endpoint = f'stream/{group}{quote(remote_path)}{quote(filename)}'
     else:
-        endpoint = f'stream/{group}{filename}'
+        endpoint = f'stream/{group}{quote(filename)}'
     url = f'{file_api_url(env, pnum, "files", endpoint=endpoint)}'
     headers = {'Authorization': f'Bearer {token}'}
     print(f'deleting: {filename}')
@@ -431,9 +431,9 @@ def export_delete(
     tokens = maybe_refresh(env, pnum, api_key, token, refresh_token, refresh_target)
     token = tokens.get("access_token") if tokens else token
     if remote_path:
-        endpoint = f'export{remote_path}{filename}'
+        endpoint = f'export{quote(remote_path)}{quote(filename)}'
     else:
-        endpoint = f'export/{filename}'
+        endpoint = f'export/{quote(filename)}'
     url = f'{file_api_url(env, pnum, "files", endpoint=endpoint)}'
     headers = {'Authorization': f'Bearer {token}'}
     print(f'deleting: {filename}')
@@ -490,7 +490,7 @@ def export_list(
                         sys.exit(f'{remote_path} is a file, not a directory')
             if not exists:
                 sys.exit(f'{remote_path} does not exist')
-        endpoint = f"export{remote_path}{resource}"
+        endpoint = f"export{quote(remote_path)}{resource}"
     else:
         endpoint = f'export/{resource}'
     url = f'{file_api_url(env, pnum, backend, endpoint=endpoint, page=page, per_page=per_page)}'
@@ -515,9 +515,9 @@ def export_head(
 ) -> requests.Response:
     headers = {'Authorization': 'Bearer {0}'.format(token), "Accept-Encoding": "*"}
     if remote_path:
-        endpoint = f"export{remote_path}{filename}"
+        endpoint = f"export{quote(remote_path)}{quote(filename)}"
     else:     
-        endpoint = f'export/{filename}'
+        endpoint = f'export/{quote(filename)}'
     url = f'{file_api_url(env, pnum, backend, endpoint=endpoint)}'
     resp = session.head(url, headers=headers)
     return resp
@@ -586,11 +586,11 @@ def export_get(
     if dev_url:
         url = dev_url
     else:
-        if backend == 'files':
+        if backend == 'survey':
             urlpath = ''
         else:
             if remote_path:
-                urlpath = f"export{remote_path}"
+                urlpath = f"export{quote(remote_path)}"
             else:
                 urlpath = 'export/'
         endpoint = f'{urlpath}{filename}'
@@ -670,10 +670,7 @@ def _resumable_url(
 ) -> str:
     resource = upload_resource_name(filename, is_dir, group=group, remote_path=remote_path)
     if not dev_url:
-        if remote_path:
-            endpoint = f"stream{remote_path}{resource}"
-        else:
-            endpoint = f"stream/{resource}"
+        endpoint = f"stream/{resource}"
         url = f'{file_api_url(env, pnum, backend, endpoint=endpoint)}'
     else:
         url = dev_url

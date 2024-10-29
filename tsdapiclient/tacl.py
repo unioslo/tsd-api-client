@@ -477,10 +477,11 @@ def construct_correct_remote_path(path: str) -> str:
     help='Pass a download link obtained from the TSD API. This must be used with --api-key as well as it requires a specific client'
 )
 @click.option(
-    '--secret-challenge',
+    '--secret-challenge-file',
     required=False,
     default=None,
-    help='Pass a secret challenge for instance authentication'
+    type=click.Path(exists=True),
+    help='Pass a secret challenge for instance authentication if needed as a file: --secret-challenge-file @path-to-file'
 )
 @click.option(
     '--encrypt',
@@ -503,7 +504,7 @@ def construct_correct_remote_path(path: str) -> str:
 @click.option(
     '--remote-path',
     required=False,
-    help='Specify a path on the remote server'
+    help='Specify a path on the remote server. For example a directory in the file-import/<group> directory or file-export directory of the TSD project'
 )
 def cli(
     pnum: str,
@@ -543,7 +544,7 @@ def cli(
     download_delete: str,
     api_key: str,
     link_id: str,
-    secret_challenge: str,
+    secret_challenge_file: str,
     encrypt: bool,
     chunk_size: int,
     resumable_threshold: int,
@@ -649,14 +650,12 @@ def cli(
                     sys.exit(f"link id file not found: {link_id_file}")
                 debug_step(f'reading link id from {link_id_file}')
                 with open(link_id_file, "r") as f:
-                    link_id = f.read()
-            if secret_challenge and secret_challenge.startswith("@"):
-                secret_challenge_file = secret_challenge.split("@")[-1]
-                if not os.path.lexists(secret_challenge_file):
-                    sys.exit(f"secret challenge not found: {secret_challenge_file}")
+                    link_id = f.read().strip()
+            secret_challenge = None
+            if secret_challenge_file:
                 debug_step(f'reading secret challenge from {secret_challenge_file}')
                 with open(secret_challenge_file, "r") as f:
-                    secret_challenge = f.read()
+                    secret_challenge = f.read().strip()
             if link_id.startswith("https://"):
                 click.echo("extracting link_id from URL")
                 patten = r"https://(?P<HOST>.+)/(?P<instance_type>c|i)/(?P<link_id>[a-f\d0-9-]{36})"
@@ -666,12 +665,12 @@ def cli(
                         if not secret_challenge:
                             click.echo("instance requires a secret challenge")
                             secret_challenge = click.prompt("secret challenge > ", hide_input=True)
-                            print(secret_challenge)
                             if not secret_challenge:
                                 click.echo("instance authentication requires a secret challenge")
                                 sys.exit(1)
             else:
                 link_id = uuid.UUID(link_id)
+            print(link_id, secret_challenge )
             token, refresh_token = get_jwt_instance_auth(env, pnum, api_key, link_id, secret_challenge, token_type)
         else:
             token, refresh_token = get_jwt_basic_auth(env, pnum, api_key, token_type)
@@ -809,6 +808,7 @@ def cli(
             filename = download
             debug_step('starting file export')
             resp = export_head(env, pnum, filename, token, remote_path=remote_path)
+            print(resp)
             if resp.headers.get('Content-Type') == 'directory':
                 click.echo(f'downloading directory: {download}')
                 downloader = SerialDirectoryDownloader(
@@ -847,7 +847,7 @@ def cli(
         elif download_sync:
             filename = download_sync
             debug_step('starting directory sync')
-            resp = export_head(env, pnum, filename, token)
+            resp = export_head(env, pnum, filename, token, remote_path=remote_path)
             if resp.headers.get('Content-Type') != 'directory':
                 sys.exit('directory sync does not apply to files')
             syncer = SerialDirectoryDownloadSynchroniser(
