@@ -997,7 +997,6 @@ def _start_resumable(
         api_key=api_key,
         refresh_token=refresh_token,
         refresh_target=refresh_target,
-        remote_path=remote_path,    
     )
     if not tokens:
         tokens = resp.get('tokens')
@@ -1085,7 +1084,6 @@ def _continue_resumable(
         api_key=api_key,
         refresh_token=refresh_token,
         refresh_target=refresh_target,
-        remote_path=remote_path,
     )
     if not tokens:
         tokens = resp.get('tokens')
