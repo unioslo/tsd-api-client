@@ -1,6 +1,7 @@
 """Module for the TSD Auth API."""
 
 import json
+from typing import Optional
 from uuid import UUID
 import requests
 import time
@@ -51,7 +52,7 @@ def get_jwt_instance_auth(
     pnum: str,
     api_key: str,
     link_id: UUID,
-    secret_challenge: str|None = None,
+    secret_challenge: Optional[str] = None,
     token_type: str = "import",
 ) -> tuple:
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"}
