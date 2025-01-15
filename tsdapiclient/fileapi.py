@@ -742,10 +742,10 @@ def get_resumable(
     """
     if not dev_url:
         if filename:
-            filename = f'{quote(format_filename(filename))}'
+            filename_path = pathlib.Path(quote(format_filename(filename)))
             if remote_path:
-                filename = f'{remote_path}{filename}'
-            endpoint = f'resumables{filename}'
+                filename_path = remote_path / filename_path
+            endpoint = str('resumables' / filename_path)
         else:
             endpoint = 'resumables'
         url = f'{file_api_url(env, pnum, backend, endpoint=endpoint)}'
