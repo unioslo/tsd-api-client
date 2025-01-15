@@ -4,6 +4,7 @@ import sys
 import hashlib
 import json
 import os
+import pathlib
 
 from functools import cmp_to_key
 from typing import Optional, Union, Any, Iterable
@@ -43,7 +44,7 @@ from tsdapiclient.tools import (
 
 class Bar:
     """Simple progress bar.
-    
+
     This class implements a progress bar compatible with (this module's usage
     of) progress.bar.Bar on top of rich.progress.
 
@@ -58,10 +59,10 @@ class Bar:
     def __init__(self, title: str, index: float = 0, max: float = 100, suffix: str = ""):
         self.task_id = self.progress.add_task(title, total=max, completed=index)
         self.progress.start()
-    
+
     def next(self):
         self.progress.advance(self.task_id)
-    
+
     def finish(self):
         self.progress.stop()
 
@@ -116,26 +117,22 @@ def format_filename(filename: str) -> str:
 
 
 def upload_resource_name(filename: str, is_dir: bool, group: Optional[str] = None, remote_path: Optional[str] = None) -> str:
+    if not group:
+        group = ""
     if not is_dir:
         debug_step('uploading file')
-        resource = quote(format_filename(filename))
+        resource = "/" / pathlib.Path(quote(format_filename(filename)))
         if remote_path:
-            resource = f'{quote(remote_path)}{resource}'   
-        else:
-            resource = f'/{resource}'
+            resource = quote(remote_path) / resource
         if group:
-            resource = f'{group}{resource}'
-    elif is_dir:
+            resource = group / resource
+    else:
         debug_step('uploading directory (file)')
-        if filename.startswith('/'):
-            target = filename[1:]
-        else:
-            target = filename
         if remote_path:
-            resource = f'{group}{quote(remote_path)}{quote(target)}'
+            resource = pathlib.Path("/") / group / quote(remote_path) / quote(filename)
         else:
-            resource = f'{group}/{quote(target)}'
-    return resource
+            resource = pathlib.Path("/") / group / quote(filename)
+    return str(resource)
 
 
 def lazy_reader(
@@ -335,10 +332,12 @@ def import_list(
 
     """
     resource = quote(directory) if directory else ''
+    if not group:
+        group = ""
     if remote_path:
-        endpoint=f"stream/{group}{quote(remote_path)}{resource}"
+        endpoint = str(pathlib.Path("stream") / group / quote(remote_path) / resource)
     else:
-        endpoint=f"stream/{group}{resource}"
+        endpoint = str(pathlib.Path("stream") / group / resource)
     url = f'{file_api_url(env, pnum, backend, endpoint=endpoint , page=page, per_page=per_page)}'
     headers = {'Authorization': 'Bearer {0}'.format(token)}
     debug_step(f'listing resources at {url}')
@@ -400,7 +399,7 @@ def import_delete(
     api_key: Optional[str] = None,
     refresh_token: Optional[str] = None,
     refresh_target: Optional[int] = None,
-    remote_path: Optional[str] = None,  
+    remote_path: Optional[str] = None,
 ) -> requests.Response:
     tokens = maybe_refresh(env, pnum, api_key, token, refresh_token, refresh_target)
     token = tokens.get("access_token") if tokens else token
@@ -453,7 +452,7 @@ def export_list(
     page: Optional[str] = None,
     group: Optional[str] = None,
     per_page: Optional[int] = None,
-    remote_path: Optional[str] = None,  
+    remote_path: Optional[str] = None,
 ) -> dict:
     """
     Get the list of files available for export.
@@ -472,8 +471,8 @@ def export_list(
 
     """
     resource = directory if directory else ''
-    if remote_path: 
-        
+    if remote_path:
+
         if not resource :
             # checks if remote path is a file or a directory
             split_path = remote_path.split('/')
@@ -516,7 +515,7 @@ def export_head(
     headers = {'Authorization': 'Bearer {0}'.format(token), "Accept-Encoding": "*"}
     if remote_path:
         endpoint = f"export{quote(remote_path)}{quote(filename)}"
-    else:     
+    else:
         endpoint = f'export/{quote(filename)}'
     url = f'{file_api_url(env, pnum, backend, endpoint=endpoint)}'
     resp = session.head(url, headers=headers)
@@ -731,7 +730,7 @@ def get_resumable(
     api_key: Optional[str] = None,
     refresh_token: Optional[str] = None,
     refresh_target: Optional[int] = None,
-    remote_path: Optional[str] = None,  
+    remote_path: Optional[str] = None,
 ) -> dict:
     """
     List uploads which can be resumed.
@@ -785,7 +784,7 @@ def initiate_resumable(
     api_key: Optional[str] = None,
     refresh_token: Optional[str] = None,
     refresh_target: Optional[int] = None,
-    remote_path: Optional[str] = None,  
+    remote_path: Optional[str] = None,
 ) -> dict:
     """
     Performs a resumable upload, either by resuming a partial one,
@@ -937,7 +936,7 @@ def _start_resumable(
     api_key: Optional[str] = None,
     refresh_token: Optional[str] = None,
     refresh_target: Optional[int] = None,
-    remote_path: Optional[str] = None,  
+    remote_path: Optional[str] = None,
 ) -> dict:
     """
     Start a new resumable upload, reding a file, chunk-by-chunk
@@ -1021,7 +1020,7 @@ def _continue_resumable(
     api_key: Optional[str] = None,
     refresh_token: Optional[str] = None,
     refresh_target: Optional[int] = None,
-    remote_path: Optional[str] = None,  
+    remote_path: Optional[str] = None,
 ) -> dict:
     """
     Continue a resumable upload, reding a file, from the
