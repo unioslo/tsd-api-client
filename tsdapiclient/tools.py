@@ -93,7 +93,8 @@ def file_api_url(
         if formid:
             endpoint = f'{formid}/{endpoint}'
         scheme = 'http' if env == 'dev' else 'https'
-        url = f'{scheme}://{host}/{API_VERSION}/{pnum}/{service}/{endpoint}'
+        path = os.path.normpath(f"{host}/{API_VERSION}/{pnum}/{service}/{endpoint}")
+        url = f'{scheme}://{path}'
         if url.endswith('/'):
             url = url[:-1]
 
