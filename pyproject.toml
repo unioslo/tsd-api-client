@@ -27,6 +27,9 @@ humanfriendly = "*"
 libnacl = "*"
 rich = "*"
 
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.4"
+
 [tool.poetry-dynamic-versioning]
 enable = true
 vcs = "git"
