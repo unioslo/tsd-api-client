@@ -93,6 +93,8 @@ def file_api_url(
         if formid:
             endpoint = f'{formid}/{endpoint}'
         scheme = 'http' if env == 'dev' else 'https'
+        if page is not None:
+            return f"{scheme}://{host}/{page}"
         path = os.path.normpath(f"{host}/{API_VERSION}/{pnum}/{service}/{endpoint}")
         url = f'{scheme}://{path}'
         if url.endswith('/'):
@@ -101,8 +103,6 @@ def file_api_url(
         query_dict = {}
         if per_page:
             query_dict["per_page"] = per_page
-        if page is not None:
-            query_dict["page"] = page
         if len(query_dict) > 0:
             url += f'?{urlencode(query_dict)}'
 
