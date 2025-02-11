@@ -707,14 +707,10 @@ def cli(
 
         token_path = get_claims(token).get('path', None)
         if token_path:
-            if not token_path.startswith('/'):
-                token_path = f'/{token_path}'
             if not token_path.endswith('/'):
                 token_path = f'{token_path}/'
 
         if remote_path:
-            if not remote_path.startswith('/'):
-                remote_path = f"/{remote_path}"
             if not remote_path.endswith('/'):
                 remote_path = f'{remote_path}/'
             if token_path and remote_path.startswith(token_path):
@@ -835,7 +831,7 @@ def cli(
                     token,
                     etag=download_id,
                     public_key=public_key,
-                    remote_path=remote_path,    
+                    remote_path=remote_path,
                 )
         elif download_list:
             debug_step('listing export directory')

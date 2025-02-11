@@ -117,21 +117,23 @@ def format_filename(filename: str) -> str:
 
 
 def upload_resource_name(filename: str, is_dir: bool, group: Optional[str] = None, remote_path: Optional[str] = None) -> str:
-    if not group:
-        group = ""
     if not is_dir:
         debug_step('uploading file')
-        resource = "/" / pathlib.Path(quote(format_filename(filename)))
+        resource = pathlib.Path(quote(format_filename(filename)))
         if remote_path:
             resource = quote(remote_path) / resource
         if group:
             resource = group / resource
     else:
         debug_step('uploading directory (file)')
-        if remote_path:
-            resource = pathlib.Path("/") / group / quote(remote_path) / quote(filename)
+        if filename.startswith('/'):
+            resource = pathlib.Path(filename[1:])
         else:
-            resource = pathlib.Path("/") / group / quote(filename)
+            resource = pathlib.Path(filename)
+        if remote_path:
+            resource = quote(remote_path) / resource
+        if group:
+            resource = group / resource
     return str(resource)
 
 
@@ -253,7 +255,7 @@ def streamfile(
     tokens = maybe_refresh(env, pnum, api_key, token, refresh_token, refresh_target)
     token = tokens.get('access_token') if tokens else token
     resource = upload_resource_name(filename, is_dir, group=group, remote_path=remote_path)
-    endpoint = str(pathlib.Path("stream") / f"{resource}?group={group}")
+    endpoint=f"stream/{resource}?group={group}"
     url = f'{file_api_url(env, pnum, backend, endpoint=endpoint)}'
     headers = {'Authorization': f'Bearer {token}'}
     debug_step(f'streaming data to {url}')
@@ -335,9 +337,9 @@ def import_list(
     if not group:
         group = ""
     if remote_path:
-        endpoint = str(pathlib.Path("stream") / group / quote(remote_path) / quote(resource))
+        endpoint = str(pathlib.Path("stream") / group / quote(remote_path) / resource)
     else:
-        endpoint = str(pathlib.Path("stream") / group / quote(resource))
+        endpoint = str(pathlib.Path("stream") / group / resource)
     url = f'{file_api_url(env, pnum, backend, endpoint=endpoint , page=page, per_page=per_page)}'
     headers = {'Authorization': 'Bearer {0}'.format(token)}
     debug_step(f'listing resources at {url}')
@@ -376,7 +378,7 @@ def survey_list(
     per_page: number of files to list per page
 
     """
-    endpoint = str(pathlib.Path(directory or "") / "attachments")
+    endpoint=f"{directory}/attachments"
     url = f'{file_api_url(env, pnum, backend, endpoint=endpoint, page=page, per_page=per_page)}'
     headers = {'Authorization': 'Bearer {0}'.format(token)}
     debug_step(f'listing resources at {url}')
@@ -403,12 +405,10 @@ def import_delete(
 ) -> requests.Response:
     tokens = maybe_refresh(env, pnum, api_key, token, refresh_token, refresh_target)
     token = tokens.get("access_token") if tokens else token
-    endpoint = pathlib.Path("stream")
-    if group:
-        endpoint = endpoint / group
     if remote_path:
-        endpoint = endpoint / quote(remote_path)
-    endpoint = str(endpoint / quote(filename))
+        endpoint = f'stream/{group}{quote(remote_path)}{quote(filename)}'
+    else:
+        endpoint = f'stream/{group}{quote(filename)}'
     url = f'{file_api_url(env, pnum, "files", endpoint=endpoint)}'
     headers = {'Authorization': f'Bearer {token}'}
     print(f'deleting: {filename}')
@@ -431,10 +431,10 @@ def export_delete(
 ) -> requests.Response:
     tokens = maybe_refresh(env, pnum, api_key, token, refresh_token, refresh_target)
     token = tokens.get("access_token") if tokens else token
-    endpoint = pathlib.Path("export")
     if remote_path:
-        endpoint = endpoint / quote(remote_path)
-    endpoint = str(endpoint / quote(filename))
+        endpoint = f'export{quote(remote_path)}{quote(filename)}'
+    else:
+        endpoint = f'export/{quote(filename)}'
     url = f'{file_api_url(env, pnum, "files", endpoint=endpoint)}'
     headers = {'Authorization': f'Bearer {token}'}
     print(f'deleting: {filename}')
@@ -491,10 +491,9 @@ def export_list(
                         sys.exit(f'{remote_path} is a file, not a directory')
             if not exists:
                 sys.exit(f'{remote_path} does not exist')
-    endpoint = pathlib.Path("export")
-    if remote_path:
-        endpoint = endpoint / quote(remote_path)
-    endpoint = str(endpoint / resource)
+        endpoint = f"export{quote(remote_path)}{resource}"
+    else:
+        endpoint = f'export/{resource}'
     url = f'{file_api_url(env, pnum, backend, endpoint=endpoint, page=page, per_page=per_page)}'
     headers = {'Authorization': 'Bearer {0}'.format(token)}
     debug_step(f'listing resources at {url}')
@@ -516,10 +515,10 @@ def export_head(
     remote_path: Optional[str] = None,
 ) -> requests.Response:
     headers = {'Authorization': 'Bearer {0}'.format(token), "Accept-Encoding": "*"}
-    endpoint = pathlib.Path("export")
     if remote_path:
-        endpoint = endpoint / quote(remote_path)
-    endpoint = str(endpoint / quote(filename))
+        endpoint = f"export{quote(remote_path)}{quote(filename)}"
+    else:
+        endpoint = f'export/{quote(filename)}'
     url = f'{file_api_url(env, pnum, backend, endpoint=endpoint)}'
     resp = session.head(url, headers=headers)
     return resp
@@ -589,12 +588,13 @@ def export_get(
         url = dev_url
     else:
         if backend == 'survey':
-            urlpath = pathlib.Path("")
+            urlpath = ''
         else:
-            urlpath = pathlib.Path("export")
             if remote_path:
-                urlpath = urlpath / quote(remote_path)
-        endpoint = str(urlpath / filename)
+                urlpath = f"export{quote(remote_path)}"
+            else:
+                urlpath = 'export/'
+        endpoint = f'{urlpath}{filename}'
         # make provision for unsatisfactory semantics
         if backend in ['export', 'files']:
             service = 'files'
@@ -671,7 +671,7 @@ def _resumable_url(
 ) -> str:
     resource = upload_resource_name(filename, is_dir, group=group, remote_path=remote_path)
     if not dev_url:
-        endpoint = str(pathlib.Path("stream") / resource)
+        endpoint = f"stream/{resource}"
         url = f'{file_api_url(env, pnum, backend, endpoint=endpoint)}'
     else:
         url = dev_url
@@ -1124,8 +1124,8 @@ def delete_resumable(
     if dev_url:
         url = dev_url
     else:
-        filename = quote(format_filename(filename)) if filename else ''
-        endpoint = str(pathlib.Path('resumables') / f'{filename}?id={upload_id}')
+        filename = f'/{quote(format_filename(filename))}' if filename else ''
+        endpoint = f'resumables{filename}?id={upload_id}'
         url = f'{file_api_url(env, pnum, backend, endpoint=endpoint)}'
     debug_step(f'deleting {filename} using: {url}')
     resp = session.delete(url, headers={'Authorization': 'Bearer {0}'.format(token)})
