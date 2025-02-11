@@ -1,5 +1,4 @@
 import os
-import pathlib
 import time
 import shutil
 import sqlite3
@@ -354,7 +353,7 @@ class GenericDirectoryTransporter(object):
                         break
                 if ignore_suffix:
                     continue
-                target = os.path.normpath(f'{directory}/{file}')
+                target = f'{directory}/{file}'
                 if self.sync_mtime:
                     integrity_reference = str(os.stat(target).st_mtime)
                 if self.target_dir:
@@ -399,7 +398,7 @@ class GenericDirectoryTransporter(object):
                 group=self.group,
                 backend=list_funcs[self.remote_key]['backend'],
                 per_page=10000, # for better sync performance
-                remote_path=self.remote_path,
+                remote_path=self.remote_path,  
             )
             found = out.get('files')
             next_page = out.get('page')
@@ -407,7 +406,7 @@ class GenericDirectoryTransporter(object):
                 for entry in found:
                     import os
                     subdir_and_resource = os.path.basename(entry.get("href"))
-                    ref = str(pathlib.Path(path) / subdir_and_resource)
+                    ref = f'{path}/{subdir_and_resource}'
                     ignore_prefix = False
                     # check if we should ignore it
                     for prefix in self.ignore_prefixes:
@@ -459,7 +458,7 @@ class GenericDirectoryTransporter(object):
             print(f'WARNING: could not find {resource} on local disk')
             return resource
         if os.stat(resource).st_size > self.chunk_threshold:
-            print(f'initiating resumable upload for {resource} {self.remote_path}')
+            print(f'initiating resumable upload for {resource} {self.remote_path}')   
             resp = initiate_resumable(
                 self.env,
                 self.pnum,
@@ -535,7 +534,7 @@ class GenericDirectoryTransporter(object):
             refresh_token=self.refresh_token,
             refresh_target=self.refresh_target,
             public_key=self.public_key,
-            remote_path=self.remote_path,
+            remote_path=self.remote_path,   
         )
         if resp.get('tokens'):
             self.token = resp.get('tokens').get('access_token')
