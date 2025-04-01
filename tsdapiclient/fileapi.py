@@ -119,7 +119,7 @@ def format_filename(filename: str) -> str:
 def upload_resource_name(filename: str, is_dir: bool, group: Optional[str] = None, remote_path: Optional[str] = None) -> str:
     if not is_dir:
         debug_step('uploading file')
-        resource = pathlib.Path(quote(format_filename(filename)))
+        resource = pathlib.PurePosixPath(quote(format_filename(filename)))
         if remote_path:
             resource = quote(remote_path) / resource
         if group:
@@ -127,9 +127,9 @@ def upload_resource_name(filename: str, is_dir: bool, group: Optional[str] = Non
     else:
         debug_step('uploading directory (file)')
         if filename.startswith('/'):
-            resource = pathlib.Path(filename[1:])
+            resource = pathlib.PurePosixPath(filename[1:])
         else:
-            resource = pathlib.Path(filename)
+            resource = pathlib.PurePosixPath(filename)
         if remote_path:
             resource = quote(remote_path) / resource
         if group:

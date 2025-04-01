@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 import pathlib
+import posixpath
 import sys
 import time
 
@@ -95,7 +96,7 @@ def file_api_url(
         scheme = 'http' if env == 'dev' else 'https'
         if page is not None:
             return f"{scheme}://{host}/{page}"
-        path = os.path.normpath(f"{host}/{API_VERSION}/{pnum}/{service}/{endpoint}")
+        path = posixpath.normpath(f"{host}/{API_VERSION}/{pnum}/{service}/{endpoint}")
         url = f'{scheme}://{path}'
         if url.endswith('/'):
             url = url[:-1]
