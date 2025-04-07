@@ -337,9 +337,9 @@ def import_list(
     if not group:
         group = ""
     if remote_path:
-        endpoint = str(pathlib.Path("stream") / group / quote(remote_path) / resource)
+        endpoint = str(pathlib.PurePosixPath("stream") / group / quote(remote_path) / resource)
     else:
-        endpoint = str(pathlib.Path("stream") / group / resource)
+        endpoint = str(pathlib.PurePosixPath("stream") / group / resource)
     url = f'{file_api_url(env, pnum, backend, endpoint=endpoint , page=page, per_page=per_page)}'
     headers = {'Authorization': 'Bearer {0}'.format(token)}
     debug_step(f'listing resources at {url}')
@@ -744,7 +744,7 @@ def get_resumable(
     """
     if not dev_url:
         if filename:
-            filename_path = pathlib.Path(quote(format_filename(filename)))
+            filename_path = pathlib.PurePosixPath(quote(format_filename(filename)))
             if remote_path:
                 filename_path = remote_path / filename_path
             endpoint = str('resumables' / filename_path)
