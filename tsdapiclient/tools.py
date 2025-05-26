@@ -15,6 +15,7 @@ from typing import Optional, Callable, Any, Union
 from urllib.parse import urlencode
 
 import click
+import humanfriendly.tables
 import requests
 
 from . import __version__
@@ -303,6 +304,46 @@ def as_bytes(amount: str) -> int:
     else:
         raise Exception(f'unsupported amount: {amount}, accepted units: "kb", "mb", "gb"')
     return num_bytes
+
+
+def instance_info(env: str, instance_id: str) -> dict:
+    try:
+        url = f"https://{HOSTS.get(env)}/v1/public/iam/capabilities/instances/{instance_id}"
+        debug_step(f"Fetching info from: {url}")
+        resp = requests.get(url)
+        return json.loads(resp.text)
+    except Exception as e:
+        debug_step("problem fetching instance information")
+        return {}
+
+
+def project_info(env: str, pnum: str) -> dict:
+    try:
+        url = f"https://{HOSTS.get(env)}/v1/public/iam/projects/{pnum}"
+        debug_step(f"Fetching info from: {url}")
+        resp = requests.get(url)
+        return json.loads(resp.text)
+    except Exception as e:
+        debug_step("problem fetching project information")
+        return {}
+
+def maybe_na(val: Any) -> Any:
+    return "N/A" if val is None else val
+
+def display_instance_info(env: str, instance_id: str) -> None:
+    colnames = ["Link parameter", "Value"]
+    values = []
+    instance = instance_info(env, instance_id)
+    if not instance:
+        return
+    values.append(["Start date", maybe_na(instance.get("instance_start_date"))])
+    values.append(["End date", maybe_na(instance.get("instance_end_date"))])
+    values.append(["Usages remaing", maybe_na(instance.get("instance_usages_remaining"))])
+    pnum = instance.get("instance_metadata", {}).get("project")
+    project = project_info(env, pnum)
+    values.append(["Project name", project.get("project_name")])
+    values.append(["Project number", pnum])
+    print(humanfriendly.tables.format_pretty_table(values, colnames))
 
 
 class Retry(object):
