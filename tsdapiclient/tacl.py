@@ -39,7 +39,7 @@ from tsdapiclient.fileapi import (
     export_delete,
 )
 from tsdapiclient.guide import (
-    topics, config, uploads, downloads, debugging, automation, sync, encryption, instances
+    topics, config, uploads, downloads, debugging, automation, sync, encryption, links
 )
 from tsdapiclient.session import (
     session_is_expired,
@@ -119,7 +119,7 @@ GUIDES = {
     'downloads': downloads,
     'debugging': debugging,
     'automation': automation,
-    'instances': instances,
+    'links': links,
     'sync': sync,
     'encryption': encryption,
 }
