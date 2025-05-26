@@ -71,6 +71,7 @@ from tsdapiclient.tools import (
     as_bytes,
     get_claims,
     renew_api_key,
+    display_instance_info,
 )
 
 requests.utils.default_user_agent = user_agent
@@ -671,16 +672,17 @@ def cli(
                 patten = r"https://(?P<HOST>.+)/(?P<instance_type>c|i)/(?P<link_id>[a-f\d0-9-]{36})"
                 if match := re.compile(patten).match(link_id):
                     link_id = uuid.UUID(match.group("link_id"))
+                    display_instance_info(env, link_id)
                     if match.group("instance_type") == "c":
                         if not secret_challenge:
-                            click.echo("instance requires a secret challenge")
-                            secret_challenge = click.prompt("secret challenge", hide_input=True)
+                            secret_challenge = getpass.getpass("secret challenge: ")
                             if not secret_challenge:
-                                click.echo("instance authentication requires a secret challenge")
+                                click.echo("Secret required")
                                 sys.exit(1)
             else:
                 try:
                     link_id = uuid.UUID(link_id)
+                    display_instance_info(env, link_id)
                 except ValueError:
                     click.echo(f"invalid link-id: {link_id}")
                     sys.exit(1)
