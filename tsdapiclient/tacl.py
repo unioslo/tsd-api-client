@@ -570,12 +570,20 @@ def cli(
             requires_user_credentials, token_type = False, TOKENS[env]['upload']
         else:
             requires_user_credentials, token_type = False if link_id else True, TOKENS[env]['upload']
-    elif download or download_list or download_sync or download_delete:
+    elif (
+        download or
+        download_list or
+        download_sync or
+        download_delete or
+        (link_id and not upload)
+    ):
         if env == 'alt' and basic:
             requires_user_credentials, token_type = False, TOKENS[env]['download']
         elif env != 'alt' and basic and not api_key:
             click.echo('download not authorized with basic auth')
             sys.exit(1)
+        elif link_id:
+            requires_user_credentials, token_type = False, TOKENS[env]['download']
         elif env != 'alt' and api_key:
             requires_user_credentials, token_type = False, 'export_auto'
         else:
@@ -627,8 +635,11 @@ def cli(
                 debug_step(refresh_token)
     elif not requires_user_credentials and (basic or api_key):
         if not pnum:
-            click.echo('missing pnum argument')
-            sys.exit(1)
+            if api_key and link_id:
+                pnum = "all" # for instance auth
+            else:
+                click.echo('missing pnum argument')
+                sys.exit(1)
         check_api_connection(env)
         if not api_key:
             api_key = get_api_key(env, pnum)
@@ -642,7 +653,6 @@ def cli(
         if check_if_key_has_expired(api_key):
             debug_step("API key has expired")
             api_key = renew_api_key(env, pnum, api_key, key_file)
-        debug_step('using basic authentication')
         if link_id:
             if link_id.startswith("@"):
                 link_id_file = link_id.split("@")[-1]
@@ -657,22 +667,28 @@ def cli(
                 with open(secret_challenge_file, "r") as f:
                     secret_challenge = f.read().strip()
             if link_id.startswith("https://"):
-                click.echo("extracting link_id from URL")
+                debug_step("extracting link_id from URL")
                 patten = r"https://(?P<HOST>.+)/(?P<instance_type>c|i)/(?P<link_id>[a-f\d0-9-]{36})"
-                if match:=re.compile(patten).match(link_id):
+                if match := re.compile(patten).match(link_id):
                     link_id = uuid.UUID(match.group("link_id"))
                     if match.group("instance_type") == "c":
                         if not secret_challenge:
                             click.echo("instance requires a secret challenge")
-                            secret_challenge = click.prompt("secret challenge > ", hide_input=True)
+                            secret_challenge = click.prompt("secret challenge", hide_input=True)
                             if not secret_challenge:
                                 click.echo("instance authentication requires a secret challenge")
                                 sys.exit(1)
             else:
-                link_id = uuid.UUID(link_id)
-            print(link_id, secret_challenge )
+                try:
+                    link_id = uuid.UUID(link_id)
+                except ValueError:
+                    click.echo(f"invalid link-id: {link_id}")
+                    sys.exit(1)
+            debug_step('using instance authentication')
             token, refresh_token = get_jwt_instance_auth(env, pnum, api_key, link_id, secret_challenge, token_type)
+            pnum = get_claims(token).get("proj")
         else:
+            debug_step('using basic authentication')
             token, refresh_token = get_jwt_basic_auth(env, pnum, api_key, token_type)
     if (requires_user_credentials or basic) and not token:
         click.echo('authentication failed')
@@ -706,17 +722,15 @@ def cli(
                 group = member_group
 
         token_path = get_claims(token).get('path', None)
-        if token_path:
-            if not token_path.endswith('/'):
-                token_path = f'{token_path}/'
 
         if remote_path:
             if not remote_path.endswith('/'):
                 remote_path = f'{remote_path}/'
-            if token_path and remote_path.startswith(token_path):
+            if token_path and not remote_path.startswith(token_path):
                 sys.exit(f'upload path mismatch: {remote_path} != {token_path}')
         else:
-            remote_path = token_path
+            if token_path:
+                remote_path = f"{token_path}/"
         if upload:
             if os.path.isfile(upload):
                 if upload_id or os.stat(upload).st_size > as_bytes(resumable_threshold):
@@ -800,11 +814,14 @@ def cli(
         elif resume_delete_all:
             debug_step('deleting all resumables')
             delete_all_resumables(env, pnum, token)
-        elif download:
-            filename = download
+        elif download or (link_id and token_type == "export"):
+            if link_id:
+                filename = os.path.basename(token_path)
+                remote_path = f"{os.path.dirname(token_path)}/"
+            else:
+                filename = download
             debug_step('starting file export')
             resp = export_head(env, pnum, filename, token, remote_path=remote_path)
-            print(resp)
             if resp.headers.get('Content-Type') == 'directory':
                 click.echo(f'downloading directory: {download}')
                 downloader = SerialDirectoryDownloader(

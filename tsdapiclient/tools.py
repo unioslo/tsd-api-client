@@ -47,7 +47,7 @@ def auth_api_url(env: str, pnum: str, auth_method: str) -> str:
     endpoints = {
         'default': {
             'basic': f'{pnum}/auth/basic/token',
-            'instances': '/all/auth/instances/token',
+            'instances': f'/{pnum}/auth/instances/token',
             'tsd': f'{pnum}/auth/tsd/token',
             'iam': f'{pnum}/auth/iam/token',
             'refresh': f'{pnum}/auth/refresh/token',
