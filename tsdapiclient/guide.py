@@ -5,7 +5,7 @@ config
 uploads
 downloads
 automation
-instances
+links
 debugging
 sync
 encryption
@@ -151,44 +151,37 @@ and invoke tacl as such:
 Invoking tacl like this will over-ride any other local config.
 """
 
-instances = f"""
+links = f"""
+In order to use import and export links (instance authentication),
+you need to have a link ID and an API key. To request an API key,
+you need to contact USIT at {HELP_URL}.
+It is good practice to save the API key in an access restricted file.
+This file can then be reference when using tacl. The link will be
+provided to you by the project owner. If the link is password protected,
+then it is good practice to store this in a file too.
 
-In order to use the instances, you need to have a link ID and an api
-key. To request an api key, you need to contact USIT at {HELP_URL}.
-The link will be provided to you by the project owner.
-
-The instances are currently only used for uploading data. To upload
-data to with an instance, you can use the following command:
+Import links can be used to upload data to a specific project. To upload a file
+with a password-protected import link, do the following:
     
-    tacl p11 --api-key <api_key> --link-id <link_id> (--secret-challenge-file <secret_challenge_file>)? --upload myfile
+    tacl --api-key @<path-to-api-key-file> --link-id <link_id> --secret-challenge-file @<path-to-secret-file> --upload myfile
 
-where <link_id> is the link id provided to you by the project owner,
-and <secret_challenge_file> is a file that contains secret challenge provided
-to you by the project owner. The secret challenge is used to verify that
-the instance is the correct one. The link id is used to identify the
-instance it can be provided as UUID or a https link. Example of an https
-link is:
+It is also possible to referene the full link, instead of just the ID, for example:
 
-    tacl p11 --api-key <api_key> --link-id https://data.tsd.usit.no/i/<uuid> --upload myfile
-    tacl p11 --api-key <api_key> --link-id https://data.tsd.usit.no/c/<uuid> --secret-challenge-file @path-to-secret-file --upload myfile
+    tacl --api-key @<path-to-api-key-file> --link-id https://data.tsd.usit.no/i/<uuid> --upload myfile
+    tacl --api-key @<path-to-api-key-file> --link-id https://data.tsd.usit.no/c/<uuid> --secret-challenge-file @path-to-secret-file --upload myfile
 
 where the 'c' and 'i' are the type of the link. The 'c' for instance
 that requires a secret challenge and the 'i' for instance that does not
-require a secret challenge. The UUID variant is the same as the https link
-but without the https and the domain.
+require a secret challenge. If the secret is not provided via a file or a flag
+the client will prompt the user for input.
 
-    tacl p11 --api-key <api_key> --link-id <uuid> --upload myfile
-    tacl p11 --api-key <api_key> --link-id <uuid>--secret-challenge-file  @path-to-secret-file --upload myfile
+Export links can be used in the same way:
 
-You can also store the instance in a file (only the instance or url no newlines),
-and invoke tacl as such:
+    tacl --api-key @<path-to-api-key-file> --link-id <link_id> --secret-challenge-file @<path-to-secret-file>
 
-    tacl p11 --link-id @path-to-instance-file --secret-challenge-file @path-to-secret-file --upload myfile
-    
-While the secret challenge is optional, it has to provided always as a file to avoid leaking secrets in the shared 
-machines process. If not provided the secret challenge will be asked for in the terminal if needed.
-    
+Since export links are tied to specific files the client will perform the download automatically.
 """
+
 debugging = f"""
 If you are having trouble while running a command, check the version,
 and run the problematic command in verbose mode:
