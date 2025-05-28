@@ -165,7 +165,7 @@ with a password-protected import link, do the following:
     
     tacl --api-key @<path-to-api-key-file> --link-id <link_id> --secret-challenge-file @<path-to-secret-file> --upload myfile
 
-It is also possible to referene the full link, instead of just the ID, for example:
+It is also possible to reference the full link, instead of just the ID, for example:
 
     tacl --api-key @<path-to-api-key-file> --link-id https://data.tsd.usit.no/i/<uuid> --upload myfile
     tacl --api-key @<path-to-api-key-file> --link-id https://data.tsd.usit.no/c/<uuid> --secret-challenge-file @path-to-secret-file --upload myfile
