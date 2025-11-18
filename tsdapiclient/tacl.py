@@ -933,11 +933,11 @@ def cli(
             delete_cache.destroy_all()
         # 4.2 Register a client
         elif register:
-            prod = "1 - for normal production usage"
-            fx = "2 - for use over fx03 network"
-            test = "3 - for testing"
-            ec_prod = "4 - for Educloud normal production usage"
-            ec_test = "5 - for Educloud testing"
+            prod = "1 - TSD production usage"
+            fx = "2 - TSD fiber network for hospitals (fx03)"
+            test = "3 - TSD testing"
+            ec_prod = "4 - Educloud production usage"
+            ec_test = "5 - Educloud testing"
             prompt = "Choose the API environment by typing one of the following numbers"
             choice = input(f"""{prompt}:\n{prod}\n{fx}\n{test}\n{ec_prod}\n{ec_test}\n > """)
             if choice not in '12345':
