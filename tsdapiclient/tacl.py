@@ -645,7 +645,7 @@ def cli(
         if not api_key:
             api_key = get_api_key(env, pnum)
         if api_key.startswith("@"):
-            key_file = api_key.split("@")[-1]
+            key_file = api_key[1:]
             if not os.path.lexists(key_file):
                 sys.exit(f"key file not found: {key_file}")
             debug_step(f'reading API key from {key_file}')
@@ -656,7 +656,7 @@ def cli(
             api_key = renew_api_key(env, pnum, api_key, key_file)
         if link_id:
             if link_id.startswith("@"):
-                link_id_file = link_id.split("@")[-1]
+                link_id_file = link_id[1:]
                 if not os.path.lexists(link_id_file):
                     sys.exit(f"link id file not found: {link_id_file}")
                 debug_step(f'reading link id from {link_id_file}')
