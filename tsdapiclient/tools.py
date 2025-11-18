@@ -172,6 +172,9 @@ def renew_api_key(env: str, pnum: str, key: str, save_to: str) -> str:
             f.write(new_key)
         debug_step("continuing with new key")
         return new_key
+    except json.decoder.JSONDecodeError as e:
+        debug_step(f"response from API: {resp.text}")
+        raise e
     except Exception as e:
         raise e
 
