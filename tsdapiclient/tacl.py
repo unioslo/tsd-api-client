@@ -665,10 +665,6 @@ def cli(
             secret_challenge = None
             if secret_challenge_file:
                 debug_step(f'reading secret challenge from {secret_challenge_file}')
-                if secret_challenge_file.startswith("@"):
-                    secret_challenge_file = secret_challenge_file[1:]
-                else:
-                    sys.exit("--secret-challenge-file missing `@` prefix")
                 with open(secret_challenge_file, "r") as f:
                     secret_challenge = f.read().strip()
             if link_id.startswith("https://"):

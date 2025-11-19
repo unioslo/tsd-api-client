@@ -163,12 +163,12 @@ then it is good practice to store this in a file too.
 Import links can be used to upload data to a specific project. To upload a file
 with a password-protected import link, do the following:
     
-    tacl --api-key @<path-to-api-key-file> --link-id <link_id> --secret-challenge-file @<path-to-secret-file> --upload myfile
+    tacl --api-key @<path-to-api-key-file> --link-id <link_id> --secret-challenge-file path-to-secret-file --upload myfile
 
 It is also possible to reference the full link, instead of just the ID, for example:
 
     tacl --api-key @<path-to-api-key-file> --link-id https://data.tsd.usit.no/i/<uuid> --upload myfile
-    tacl --api-key @<path-to-api-key-file> --link-id https://data.tsd.usit.no/c/<uuid> --secret-challenge-file @path-to-secret-file --upload myfile
+    tacl --api-key @<path-to-api-key-file> --link-id https://data.tsd.usit.no/c/<uuid> --secret-challenge-file path-to-secret-file --upload myfile
 
 where the 'c' and 'i' are the type of the link. The 'c' for instance
 that requires a secret challenge and the 'i' for instance that does not
