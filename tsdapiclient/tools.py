@@ -59,7 +59,7 @@ def auth_api_url(env: str, pnum: str, auth_method: str) -> str:
             'instances': '/all/internal/auth/instances/token',
             'tsd': f'{pnum}/internal/tsd/token',
             'refresh': f'{pnum}/auth/refresh/token',
-            'renew': f'{pnum}/auth/client/secret',
+            'renew': f'{pnum}/auth/clients/secret',
         },
         'dev': { # use the file api's dev token
             'basic': f'{pnum}/token',
@@ -161,10 +161,10 @@ def renew_api_key(env: str, pnum: str, key: str, save_to: str) -> str:
             "client_id": claims.get("aud"),
             "client_secret": key,
         }
-        debug_step("renewing API key")
+        url = auth_api_url(env, pnum, 'renew')
+        debug_step(f"renewing API key at: {url}")
         resp = requests.post(
-            auth_api_url(env, pnum, 'renew'),
-            data=json.dumps(payload),
+            url, data=json.dumps(payload),
         )
         new_key = json.loads(resp.text).get("new_client_secret")
         debug_step(f"saving new API key to file: {save_to}")
