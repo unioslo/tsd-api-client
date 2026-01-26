@@ -979,7 +979,7 @@ def _start_resumable(
             data = json.loads(resp.text)
         if chunk_num == 1:
             if upload_id:
-                assert data["id"] == upload_id # We expect the value communicated back to us by the API, to remain the same throughout the uploading process
+                assert data['id'] == upload_id # We expect the value communicated back to us by the API, to remain the same throughout the uploading process
             else:
                 upload_id = data['id']
             print('Upload id: {0}'.format(upload_id))
