@@ -849,6 +849,7 @@ def initiate_resumable(
     if dev_url:
             dev_url = dev_url.replace('resumables', 'stream')
     if to_resume:
+        assert not upload_id # `to_resume`, as passed to `_continue_resumable`, is expected to contain an uploading ID, so if `upload_id` is specified it's an ambiguity, which we choose not to resolve
         try:
             return _continue_resumable(
                 env,
@@ -880,6 +881,7 @@ def initiate_resumable(
             token,
             chunksize,
             group,
+            upload_id,
             dev_url,
             stop_at,
             backend,
@@ -928,6 +930,7 @@ def _start_resumable(
     token: str,
     chunksize: int,
     group: Optional[str] = None,
+    upload_id: Optional[str] = None,
     dev_url: Optional[str] = None,
     stop_at: Optional[int] = None,
     backend: str = 'files',
@@ -963,7 +966,7 @@ def _start_resumable(
             headers['Nacl-Nonce'] = nacl_encode_header(enc_nonce)
             headers['Nacl-Key'] = nacl_encode_header(enc_key)
             headers['Nacl-Chunksize'] = str(ch_size)
-        if chunk_num == 1:
+        if chunk_num == 1 and not upload_id:
             parmaterised_url = '{0}?chunk={1}'.format(url, str(chunk_num))
         else:
             parmaterised_url = '{0}?chunk={1}&id={2}'.format(url, str(chunk_num), upload_id)
@@ -975,7 +978,10 @@ def _start_resumable(
             resp.raise_for_status()
             data = json.loads(resp.text)
         if chunk_num == 1:
-            upload_id = data['id']
+            if upload_id:
+                assert data["id"] == upload_id # We expect the value communicated back to us by the API, to remain the same throughout the uploading process
+            else:
+                upload_id = data['id']
             print('Upload id: {0}'.format(upload_id))
             bar = _init_progress_bar(chunk_num, chunksize, filename)
         bar.next()
