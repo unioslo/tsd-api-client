@@ -849,7 +849,8 @@ def initiate_resumable(
     if dev_url:
             dev_url = dev_url.replace('resumables', 'stream')
     if to_resume:
-        assert not upload_id # `to_resume`, as passed to `_continue_resumable`, is expected to contain an uploading ID, so if `upload_id` is specified it's an ambiguity, which we choose not to resolve
+        if 'id' in to_resume:
+            assert not upload_id or upload_id == to_resume['id'] # `to_resume` contains an uploading ID and so may `upload_id`, if it does then a mismatch would make for an ambiguity which we choose not to resolve
         try:
             return _continue_resumable(
                 env,
