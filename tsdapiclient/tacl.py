@@ -650,7 +650,7 @@ def cli(
                 sys.exit(f"key file not found: {key_file}")
             debug_step(f'reading API key from {key_file}')
             with open(key_file, "r") as f:
-                api_key = f.read()
+                api_key = f.read().strip()
         if check_if_key_has_expired(api_key):
             debug_step("API key has expired")
             api_key = renew_api_key(env, pnum, api_key, key_file)
