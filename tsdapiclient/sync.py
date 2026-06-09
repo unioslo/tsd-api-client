@@ -5,6 +5,7 @@ import sqlite3
 import sys
 
 from contextlib import contextmanager
+from pathlib import Path, PurePosixPath
 from typing import ContextManager, Iterable, Optional
 
 import click
@@ -75,7 +76,7 @@ class GenericRequestCache(object):
     dbname = 'generic-request-cache.db'
 
     def __init__(self, env: str, pnum: str) -> None:
-        self.path = f'{get_data_path(env, pnum)}/{self.dbname}'
+        self.path = str(Path(get_data_path(env, pnum)) / self.dbname)
         try:
             self.engine = sqlite3.connect(self.path)
         except sqlite3.OperationalError as e:
@@ -330,14 +331,13 @@ class GenericDirectoryTransporter(object):
         exist remotely.
 
         """
-        path = path if not self.target_dir else os.path.normpath(f'{self.target_dir}/{path}')
+        path = path if not self.target_dir else str(Path(self.target_dir) / path)
         resources = []
         integrity_reference = None
         debug_step('finding local resources to transfer')
         for directory, subdirectory, files in os.walk(path):
-            if sys.platform == 'win32':
-                directory = directory.replace("\\", "/")
-            folder = directory.replace(f'{path}/', '')
+            rel_path = Path(directory).relative_to(path)
+            folder = directory if rel_path == Path('.') else str(rel_path)
             ignore_prefix = False
             for prefix in self.ignore_prefixes:
                 if folder.startswith(prefix):
@@ -353,12 +353,12 @@ class GenericDirectoryTransporter(object):
                         break
                 if ignore_suffix:
                     continue
-                target = f'{directory}/{file}'
+                target = Path(directory) / file
                 if self.sync_mtime:
-                    integrity_reference = str(os.stat(target).st_mtime)
+                    integrity_reference = str(target.stat().st_mtime)
                 if self.target_dir:
-                    target = os.path.normpath(target.replace(f'{self.target_dir}/', ''))
-                resources.append((target, integrity_reference))
+                    target = target.relative_to(Path(self.target_dir))
+                resources.append((str(target), integrity_reference))
         return resources
 
     def _find_remote_resources(self, path: str) -> list:
@@ -406,7 +406,7 @@ class GenericDirectoryTransporter(object):
                 for entry in found:
                     import os
                     subdir_and_resource = os.path.basename(entry.get("href"))
-                    ref = f'{path}/{subdir_and_resource}'
+                    ref = str(PurePosixPath(path) / subdir_and_resource)
                     ignore_prefix = False
                     # check if we should ignore it
                     for prefix in self.ignore_prefixes:
@@ -514,7 +514,7 @@ class GenericDirectoryTransporter(object):
 
         """
         target = os.path.dirname(resource)
-        target = target if not self.target_dir else os.path.normpath(f'{self.target_dir}/{target}')
+        target = target if not self.target_dir else str(Path(self.target_dir) / target)
         if not os.path.lexists(target):
             debug_step(f'creating directory: {target}')
             os.makedirs(target)
