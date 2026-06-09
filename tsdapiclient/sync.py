@@ -1,12 +1,10 @@
 import os
-import time
 import shutil
 import sqlite3
-import sys
 
 from contextlib import contextmanager
 from pathlib import Path, PurePosixPath
-from typing import ContextManager, Iterable, Optional
+from typing import ContextManager, Optional
 
 import click
 import humanfriendly.tables
@@ -14,14 +12,22 @@ import requests
 
 try:
     import libnacl.public
+
     LIBSODIUM_AVAILABLE = True
 except OSError:
     LIBSODIUM_AVAILABLE = False
 
-from tsdapiclient.fileapi import (streamfile, initiate_resumable, import_list,
-                                  export_list, export_get,
-                                  import_delete, export_delete, survey_list)
-from tsdapiclient.tools import debug_step, get_data_path, get_claims
+from tsdapiclient.fileapi import (
+    streamfile,
+    initiate_resumable,
+    import_list,
+    export_list,
+    export_get,
+    import_delete,
+    export_delete,
+    survey_list,
+)
+from tsdapiclient.tools import as_local_path, debug_step, get_data_path, get_claims
 
 
 @contextmanager
@@ -70,17 +76,16 @@ class CacheError(Exception):
 
 
 class GenericRequestCache(object):
-
     """sqlite-backed request cache."""
 
-    dbname = 'generic-request-cache.db'
+    dbname = "generic-request-cache.db"
 
     def __init__(self, env: str, pnum: str) -> None:
         self.path = str(Path(get_data_path(env, pnum)) / self.dbname)
         try:
             self.engine = sqlite3.connect(self.path)
         except sqlite3.OperationalError as e:
-            msg = f'cannot access request cache: {e}'
+            msg = f"cannot access request cache: {e}"
             raise CacheConnectionError(msg) from e
 
     def create(self, *, key: str) -> None:
@@ -93,15 +98,17 @@ class GenericRequestCache(object):
         try:
             with sqlite_session(self.engine) as session:
                 session.execute(
-                    f'create table if not exists {request_table_definition}'
+                    f"create table if not exists {request_table_definition}"
                 )
         except Exception as e:
-            msg = f'could not create request cache for {key}: {e}'
+            msg = f"could not create request cache for {key}: {e}"
             raise CacheCreationError(msg) from e
 
-    def add(self, *, key: str, item: str, integrity_reference: Optional[str] = None) -> tuple:
+    def add(
+        self, *, key: str, item: str, integrity_reference: Optional[str] = None
+    ) -> tuple:
         if not isinstance(item, str):
-            raise CacheItemTypeError('only string items allowed')
+            raise CacheItemTypeError("only string items allowed")
         try:
             with sqlite_session(self.engine) as session:
                 session.execute(
@@ -109,7 +116,7 @@ class GenericRequestCache(object):
                       values ('{item}', '{integrity_reference}')"
                 )
         except sqlite3.IntegrityError as e:
-            msg = f'{item} already cached for {key}'
+            msg = f"{item} already cached for {key}"
             raise CacheDuplicateItemError(msg) from e
         except sqlite3.OperationalError as e:
             msg = f"{e}, call: create(key='{key}')"
@@ -117,15 +124,17 @@ class GenericRequestCache(object):
         return (item, integrity_reference)
 
     def add_many(self, *, key: str, items: list) -> bool:
-        stmt = f'insert into "{os.path.basename(key)}"(resource_path, integrity_reference) \
+        stmt = (
+            f'insert into "{os.path.basename(key)}"(resource_path, integrity_reference) \
                  values (?, ?)'
+        )
         try:
             with sqlite_session(self.engine) as session:
                 session.executemany(stmt, items)
         except sqlite3.ProgrammingError as e:
-            raise CacheError(f'{e}') from e
+            raise CacheError(f"{e}") from e
         except sqlite3.IntegrityError as e:
-            msg = f'item already cached: {e} - delete cache and try again'
+            msg = f"item already cached: {e} - delete cache and try again"
             raise CacheDuplicateItemError(msg) from e
         except sqlite3.OperationalError as e:
             msg = f"{e}, call: create(key='{key}')"
@@ -143,7 +152,7 @@ class GenericRequestCache(object):
         try:
             with sqlite_session(self.engine) as session:
                 res = session.execute(
-                    f"select resource_path, integrity_reference from \"{os.path.basename(key)}\""
+                    f'select resource_path, integrity_reference from "{os.path.basename(key)}"'
                 ).fetchall()
         except sqlite3.OperationalError as e:
             msg = f"{e}, call: create(key='{key}')"
@@ -153,11 +162,9 @@ class GenericRequestCache(object):
     def destroy(self, *, key: str) -> bool:
         try:
             with sqlite_session(self.engine) as session:
-                session.execute(
-                    f"drop table if exists \"{os.path.basename(key)}\""
-                )
+                session.execute(f'drop table if exists "{os.path.basename(key)}"')
         except sqlite3.OperationalError as e:
-            msg = f'could not destroy cache for {key}: {e}'
+            msg = f"could not destroy cache for {key}: {e}"
             raise CacheDestroyError(msg) from e
         return True
 
@@ -169,7 +176,7 @@ class GenericRequestCache(object):
         if not all_tables:
             return []
         for table in all_tables[0]:
-            summary_query = f"select min(created_at), max(created_at) from \"{table}\""
+            summary_query = f'select min(created_at), max(created_at) from "{table}"'
             with sqlite_session(self.engine) as session:
                 summary = session.execute(summary_query).fetchall()[0]
                 data.append((table, summary[0], summary[1]))
@@ -177,13 +184,12 @@ class GenericRequestCache(object):
 
     def print(self) -> None:
         data = self.overview()
-        colnames = ['Cache key', 'Created at', 'Updated at']
+        colnames = ["Cache key", "Created at", "Updated at"]
         values = []
         for entry in data:
             row = [entry[0], entry[1], entry[2]]
             values.append(row)
         print(humanfriendly.tables.format_pretty_table(sorted(values), colnames))
-
 
     def destroy_all(self) -> None:
         data = self.overview()
@@ -194,28 +200,27 @@ class GenericRequestCache(object):
 
 
 class UploadCache(GenericRequestCache):
-    dbname = 'upload-request-cache.db'
+    dbname = "upload-request-cache.db"
 
 
 class DownloadCache(GenericRequestCache):
-    dbname = 'download-request-cache.db'
+    dbname = "download-request-cache.db"
 
 
 class GenericDeleteCache(GenericRequestCache):
-    dbname = 'generic-delete-cache.db'
+    dbname = "generic-delete-cache.db"
 
 
 class UploadDeleteCache(GenericDeleteCache):
-    dbname = 'update-delete-cache.db'
+    dbname = "update-delete-cache.db"
 
 
 class DownloadDeleteCache(GenericDeleteCache):
-    dbname = 'download-delete-cache.db'
+    dbname = "download-delete-cache.db"
 
 
 class GenericDirectoryTransporter(object):
-
-    transfer_cache_class =  GenericRequestCache
+    transfer_cache_class = GenericRequestCache
     delete_cache_class = GenericDeleteCache
 
     def __init__(
@@ -234,8 +239,8 @@ class GenericDirectoryTransporter(object):
         remote_key: Optional[str] = None,
         target_dir: Optional[str] = None,
         public_key: Optional["libnacl.public.PublicKey"] = None,
-        chunk_size: Optional[int] = 1000*1000*50,
-        chunk_threshold: Optional[int] = 1000*1000*1000,
+        chunk_size: Optional[int] = 1000 * 1000 * 50,
+        chunk_threshold: Optional[int] = 1000 * 1000 * 1000,
         api_key: Optional[str] = None,
         refresh_token: Optional[str] = None,
         refresh_target: Optional[int] = None,
@@ -255,7 +260,7 @@ class GenericDirectoryTransporter(object):
         self.ignore_prefixes = self._parse_ignore_data(prefixes)
         self.ignore_suffixes = self._parse_ignore_data(suffixes)
         self.sync_mtime = sync_mtime
-        self.integrity_reference_key = 'etag' if not sync_mtime else 'mtime'
+        self.integrity_reference_key = "etag" if not sync_mtime else "mtime"
         self.keep_missing = keep_missing
         self.keep_updated = keep_updated
         self.remote_key = remote_key
@@ -273,8 +278,8 @@ class GenericDirectoryTransporter(object):
         if not patterns:
             return []
         else:
-            debug_step(f'ignoring patterns: {patterns}')
-            return patterns.replace(' ', '').split(',')
+            debug_step(f"ignoring patterns: {patterns}")
+            return patterns.replace(" ", "").split(",")
 
     def sync(self) -> bool:
         """
@@ -288,14 +293,14 @@ class GenericDirectoryTransporter(object):
         deletes = []
         # 1. check caches
         if self.use_cache:
-            debug_step('reading from cache')
+            debug_step("reading from cache")
             left_overs = self.transfer_cache.read(key=self.directory)
             if left_overs:
-                click.echo('resuming directory transfer from cache')
+                click.echo("resuming directory transfer from cache")
                 resources = left_overs
             left_over_deletes = self.delete_cache.read(key=self.directory)
             if left_over_deletes:
-                click.echo('resuming deletion from cache')
+                click.echo("resuming deletion from cache")
                 deletes = left_over_deletes
         # 2. maybe find resources, maybe fill caches
         if not resources or not self.use_cache:
@@ -305,18 +310,18 @@ class GenericDirectoryTransporter(object):
                 self.delete_cache.add_many(key=self.directory, items=deletes)
         # 3. transfer resources
         for resource, integrity_reference in resources:
-            print(f'transferring: {resource}')
+            print(f"transferring: {resource}")
             self._transfer(resource, integrity_reference=integrity_reference)
             if self.use_cache:
                 self.transfer_cache.remove(key=self.directory, item=resource)
-        debug_step('destroying transfer cache')
+        debug_step("destroying transfer cache")
         self.transfer_cache.destroy(key=self.directory)
         # 4. maybe delete resources
         for resource, _ in deletes:
             self._delete(resource)
             if self.use_cache:
                 self.delete_cache.remove(key=self.directory, item=resource)
-        debug_step('destroying delete cache')
+        debug_step("destroying delete cache")
         self.delete_cache.destroy(key=self.directory)
         return True
 
@@ -335,10 +340,10 @@ class GenericDirectoryTransporter(object):
         abs_path = Path(path).resolve()
         resources = []
         integrity_reference = None
-        debug_step('finding local resources to transfer')
+        debug_step("finding local resources to transfer")
         for directory, subdirectory, files in os.walk(abs_path):
             rel_path = Path(directory).relative_to(abs_path)
-            folder = str(directory) if rel_path == Path('.') else str(rel_path)
+            folder = str(directory) if rel_path == Path(".") else str(rel_path)
             ignore_prefix = False
             for prefix in self.ignore_prefixes:
                 if folder.startswith(prefix):
@@ -356,7 +361,11 @@ class GenericDirectoryTransporter(object):
                     continue
                 abs_target = Path(directory) / file
                 if self.sync_mtime:
-                    integrity_reference = str(abs_target.stat().st_mtime)
+                    integrity_reference = str(
+                        os.stat(as_local_path(abs_target)).st_mtime
+                    )
+                # Convert back to relative path for storage/upload
+                # Make it relative to cwd to preserve the original directory structure
                 if self.target_dir:
                     target_dir_abs = Path(self.target_dir).resolve()
                     target = abs_target.relative_to(target_dir_abs)
@@ -372,27 +381,27 @@ class GenericDirectoryTransporter(object):
         Collect integrity references for all resources.
         """
 
-        print(f'finding remote resources for {path}')
+        print(f"finding remote resources for {path}")
         list_funcs = {
-            'export': {
-                'func': export_list,
-                'backend': 'files',
+            "export": {
+                "func": export_list,
+                "backend": "files",
             },
-            'import': {
-                'func': import_list,
-                'backend': 'files',
+            "import": {
+                "func": import_list,
+                "backend": "files",
             },
-            'survey': {
-                'func': survey_list,
-                'backend': 'survey',
-            }
+            "survey": {
+                "func": survey_list,
+                "backend": "survey",
+            },
         }
         resources = []
         subdirs = []
         next_page = None
         while True:
-            click.echo(f'fetching information about directory: {path}')
-            out = list_funcs[self.remote_key]['func'](
+            click.echo(f"fetching information about directory: {path}")
+            out = list_funcs[self.remote_key]["func"](
                 self.env,
                 self.pnum,
                 self.token,
@@ -400,27 +409,28 @@ class GenericDirectoryTransporter(object):
                 directory=path,
                 page=next_page,
                 group=self.group,
-                backend=list_funcs[self.remote_key]['backend'],
-                per_page=10000, # for better sync performance
-                remote_path=self.remote_path,  
+                backend=list_funcs[self.remote_key]["backend"],
+                per_page=10000,  # for better sync performance
+                remote_path=self.remote_path,
             )
-            found = out.get('files')
-            next_page = out.get('page')
+            found = out.get("files")
+            next_page = out.get("page")
             if found:
                 for entry in found:
                     import os
+
                     subdir_and_resource = os.path.basename(entry.get("href"))
                     ref = str(PurePosixPath(path) / subdir_and_resource)
                     ignore_prefix = False
                     # check if we should ignore it
                     for prefix in self.ignore_prefixes:
                         # because we ignore _sub_ directories
-                        target = ref.replace(f'{self.directory}/', '')
+                        target = ref.replace(f"{self.directory}/", "")
                         if target.startswith(prefix):
                             ignore_prefix = True
                             break
                     if ignore_prefix:
-                        debug_step(f'ignoring {ref}')
+                        debug_step(f"ignoring {ref}")
                         continue
                     ignore_suffix = False
                     for suffix in self.ignore_suffixes:
@@ -428,10 +438,10 @@ class GenericDirectoryTransporter(object):
                             ignore_suffix = True
                             break
                     if ignore_suffix:
-                        debug_step(f'ignoring {ref}')
+                        debug_step(f"ignoring {ref}")
                         continue
                     # track resource
-                    if entry.get('mime-type') == 'directory':
+                    if entry.get("mime-type") == "directory":
                         subdirs.append(ref)
                     else:
                         resources.append(
@@ -440,11 +450,11 @@ class GenericDirectoryTransporter(object):
             # follow next_page(s) for a given path, until exhaustively listed
             # break if no other subdirs were found
             if not next_page and not subdirs:
-                debug_step(f'found all files for {path}')
+                debug_step(f"found all files for {path}")
                 break
             if not next_page and subdirs:
                 path = subdirs.pop(0)
-                debug_step(f'finding files for sub-directory {path}')
+                debug_step(f"finding files for sub-directory {path}")
         return resources
 
     def _transfer_local_to_remote(
@@ -458,11 +468,11 @@ class GenericDirectoryTransporter(object):
         size of the $CHUNK_THRESHOLD.
 
         """
-        if not os.path.lexists(resource):
-            print(f'WARNING: could not find {resource} on local disk')
+        if not os.path.lexists(as_local_path(resource)):
+            print(f"WARNING: could not find {resource} on local disk")
             return resource
-        if os.stat(resource).st_size > self.chunk_threshold:
-            print(f'initiating resumable upload for {resource} {self.remote_path}')   
+        if os.stat(as_local_path(resource)).st_size > self.chunk_threshold:
+            print(f"initiating resumable upload for {resource} {self.remote_path}")
             resp = initiate_resumable(
                 self.env,
                 self.pnum,
@@ -499,10 +509,10 @@ class GenericDirectoryTransporter(object):
         if resp.get("session"):
             debug_step("renewing session")
             self.session = resp.get("session")
-        if resp.get('tokens'):
-            self.token = resp.get('tokens').get('access_token')
-            self.refresh_token = resp.get('tokens').get('refresh_token')
-            self.refresh_target = get_claims(self.token).get('exp')
+        if resp.get("tokens"):
+            self.token = resp.get("tokens").get("access_token")
+            self.refresh_token = resp.get("tokens").get("refresh_token")
+            self.refresh_target = get_claims(self.token).get("exp")
         return resource
 
     def _transfer_remote_to_local(
@@ -519,10 +529,10 @@ class GenericDirectoryTransporter(object):
         """
         target = os.path.dirname(resource)
         target = target if not self.target_dir else str(Path(self.target_dir) / target)
-        if not os.path.lexists(target):
-            debug_step(f'creating directory: {target}')
-            os.makedirs(target)
-        print(f'downloading: {resource}')
+        if not os.path.lexists(as_local_path(target)):
+            debug_step(f"creating directory: {target}")
+            os.makedirs(as_local_path(target))
+        print(f"downloading: {resource}")
         resp = export_get(
             self.env,
             self.pnum,
@@ -538,12 +548,12 @@ class GenericDirectoryTransporter(object):
             refresh_token=self.refresh_token,
             refresh_target=self.refresh_target,
             public_key=self.public_key,
-            remote_path=self.remote_path,   
+            remote_path=self.remote_path,
         )
-        if resp.get('tokens'):
-            self.token = resp.get('tokens').get('access_token')
-            self.refresh_token = resp.get('tokens').get('refresh_token')
-            self.refresh_target = get_claims(self.token).get('exp')
+        if resp.get("tokens"):
+            self.token = resp.get("tokens").get("access_token")
+            self.refresh_token = resp.get("tokens").get("refresh_token")
+            self.refresh_target = get_claims(self.token).get("exp")
         return resource
 
     def _delete_remote_resource(self, resource: str) -> str:
@@ -552,10 +562,10 @@ class GenericDirectoryTransporter(object):
 
         """
         delete_funcs = {
-            'export': export_delete,
-            'import': import_delete,
+            "export": export_delete,
+            "import": import_delete,
         }
-        debug_step(f'deleting: {resource}')
+        debug_step(f"deleting: {resource}")
         resp = delete_funcs[self.remote_key](
             self.env,
             self.pnum,
@@ -568,10 +578,10 @@ class GenericDirectoryTransporter(object):
             refresh_target=self.refresh_target,
             remote_path=self.remote_path,
         )
-        if resp.get('tokens'):
-            self.token = resp.get('tokens').get('access_token')
-            self.refresh_token = resp.get('tokens').get('refresh_token')
-            self.refresh_target = get_claims(self.token).get('exp')
+        if resp.get("tokens"):
+            self.token = resp.get("tokens").get("access_token")
+            self.refresh_token = resp.get("tokens").get("refresh_token")
+            self.refresh_target = get_claims(self.token).get("exp")
         return resource
 
     def _find_sync_lists(
@@ -608,18 +618,21 @@ class GenericDirectoryTransporter(object):
         # the integrity reference is not relevant
         # so None is passed as the second tuple value
         if not keep_missing:
-            target_names = set([ r for r, i in target ])
-            source_names = set([ r for r, i in source ])
-            deletes = [ (r, None) for r in target_names.difference(source_names) ]
+            target_names = set([r for r, i in target])
+            source_names = set([r for r, i in source])
+            deletes = [(r, None) for r in target_names.difference(source_names)]
         else:
             deletes = []
         if not keep_updated:
-            source_names_mtimes = set([ (r, i) for r, i in source ])
-            target_names_mtimes = set([ (r, i) for r, i in target ])
-            transfers = [ (r, None) for r, i in source_names_mtimes.difference(target_names_mtimes) ]
+            source_names_mtimes = set([(r, i) for r, i in source])
+            target_names_mtimes = set([(r, i) for r, i in target])
+            transfers = [
+                (r, None)
+                for r, i in source_names_mtimes.difference(target_names_mtimes)
+            ]
         else:
-            sources = { r: i for r, i in source }
-            remotes = { r: i for r, i in target }
+            sources = {r: i for r, i in source}
+            remotes = {r: i for r, i in target}
             transfers = []
             for k, v in sources.items():
                 if not remotes.get(k):
@@ -643,7 +656,9 @@ class GenericDirectoryTransporter(object):
         """
         raise NotImplementedError
 
-    def _transfer(self, resource: str, integrity_reference: Optional[str] = None) -> str:
+    def _transfer(
+        self, resource: str, integrity_reference: Optional[str] = None
+    ) -> str:
         """
         Transfer a given resource over the network.
 
@@ -664,8 +679,8 @@ class GenericDirectoryTransporter(object):
 
 # Implementations of specific transfers
 
-class SerialDirectoryUploader(GenericDirectoryTransporter):
 
+class SerialDirectoryUploader(GenericDirectoryTransporter):
     """Simple idempotent resumable directory upload."""
 
     transfer_cache_class = UploadCache
@@ -675,8 +690,9 @@ class SerialDirectoryUploader(GenericDirectoryTransporter):
         resources = self._find_local_resources(path)
         return resources, deletes
 
-
-    def _transfer(self, resource: str, integrity_reference: Optional[str] = None) -> str:
+    def _transfer(
+        self, resource: str, integrity_reference: Optional[str] = None
+    ) -> str:
         resource = self._transfer_local_to_remote(
             resource, integrity_reference=integrity_reference
         )
@@ -684,7 +700,6 @@ class SerialDirectoryUploader(GenericDirectoryTransporter):
 
 
 class SerialDirectoryDownloader(GenericDirectoryTransporter):
-
     """Simple idempotent resumable directory download."""
 
     transfer_cache_class = DownloadCache
@@ -694,7 +709,9 @@ class SerialDirectoryDownloader(GenericDirectoryTransporter):
         resources = self._find_remote_resources(path)
         return resources, deletes
 
-    def _transfer(self, resource: str, integrity_reference: Optional[str] = None) -> str:
+    def _transfer(
+        self, resource: str, integrity_reference: Optional[str] = None
+    ) -> str:
         resource = self._transfer_remote_to_local(
             resource, integrity_reference=integrity_reference
         )
@@ -702,7 +719,6 @@ class SerialDirectoryDownloader(GenericDirectoryTransporter):
 
 
 class SerialDirectoryUploadSynchroniser(GenericDirectoryTransporter):
-
     """
     Incremental, one-way, local-to-remote directory sync.
 
@@ -720,13 +736,16 @@ class SerialDirectoryUploadSynchroniser(GenericDirectoryTransporter):
         source = self._find_local_resources(path)
         target = self._find_remote_resources(path)
         resources, deletes = self._find_sync_lists(
-            source=source, target=target,
+            source=source,
+            target=target,
             keep_missing=self.keep_missing,
-            keep_updated=self.keep_updated
+            keep_updated=self.keep_updated,
         )
         return resources, deletes
 
-    def _transfer(self, resource: str, integrity_reference: Optional[str] = None) -> str:
+    def _transfer(
+        self, resource: str, integrity_reference: Optional[str] = None
+    ) -> str:
         resource = self._transfer_local_to_remote(
             resource, integrity_reference=integrity_reference
         )
@@ -738,7 +757,6 @@ class SerialDirectoryUploadSynchroniser(GenericDirectoryTransporter):
 
 
 class SerialDirectoryDownloadSynchroniser(GenericDirectoryTransporter):
-
     """
     Incremental, one-way, remote-to-local directory sync.
 
@@ -756,22 +774,26 @@ class SerialDirectoryDownloadSynchroniser(GenericDirectoryTransporter):
         target = self._find_local_resources(path)
         source = self._find_remote_resources(path)
         resources, deletes = self._find_sync_lists(
-            source=source, target=target,
+            source=source,
+            target=target,
             keep_missing=self.keep_missing,
-            keep_updated=self.keep_updated
+            keep_updated=self.keep_updated,
         )
         return resources, deletes
 
-    def _transfer(self, resource: str, integrity_reference: Optional[str] = None) -> str:
+    def _transfer(
+        self, resource: str, integrity_reference: Optional[str] = None
+    ) -> str:
         resource = self._transfer_remote_to_local(
             resource, integrity_reference=integrity_reference
         )
         return resource
 
     def _delete(self, resource: str) -> str:
-        print(f'deleting: {resource}')
-        if os.path.isdir(resource):
-            shutil.rmtree(resource)
+        print(f"deleting: {resource}")
+        local = as_local_path(resource)
+        if os.path.isdir(local):
+            shutil.rmtree(local)
         else:
-            os.remove(resource)
+            os.remove(local)
         return resource
