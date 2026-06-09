@@ -332,12 +332,13 @@ class GenericDirectoryTransporter(object):
 
         """
         path = path if not self.target_dir else str(Path(self.target_dir) / path)
+        abs_path = Path(path).resolve()
         resources = []
         integrity_reference = None
         debug_step('finding local resources to transfer')
-        for directory, subdirectory, files in os.walk(path):
-            rel_path = Path(directory).relative_to(path)
-            folder = directory if rel_path == Path('.') else str(rel_path)
+        for directory, subdirectory, files in os.walk(abs_path):
+            rel_path = Path(directory).relative_to(abs_path)
+            folder = str(directory) if rel_path == Path('.') else str(rel_path)
             ignore_prefix = False
             for prefix in self.ignore_prefixes:
                 if folder.startswith(prefix):
@@ -353,11 +354,14 @@ class GenericDirectoryTransporter(object):
                         break
                 if ignore_suffix:
                     continue
-                target = Path(directory) / file
+                abs_target = Path(directory) / file
                 if self.sync_mtime:
-                    integrity_reference = str(target.stat().st_mtime)
+                    integrity_reference = str(abs_target.stat().st_mtime)
                 if self.target_dir:
-                    target = target.relative_to(Path(self.target_dir))
+                    target_dir_abs = Path(self.target_dir).resolve()
+                    target = abs_target.relative_to(target_dir_abs)
+                else:
+                    target = abs_target.relative_to(Path.cwd())
                 resources.append((str(target), integrity_reference))
         return resources
 
