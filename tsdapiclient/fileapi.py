@@ -127,6 +127,8 @@ def upload_resource_name(filename: str, is_dir: bool, group: Optional[str] = Non
             resource = group / resource
     else:
         debug_step('uploading directory (file)')
+        if os.sep != '/':
+            filename = filename.replace(os.sep, '/')
         if filename.startswith('/'):
             resource = pathlib.PurePosixPath(filename[1:])
         else:
