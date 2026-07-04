@@ -644,6 +644,7 @@ def cli(
         check_api_connection(env)
         if not api_key:
             api_key = get_api_key(env, pnum)
+        key_file = None
         if api_key.startswith("@"):
             key_file = api_key[1:]
             if not os.path.lexists(key_file):
@@ -653,6 +654,12 @@ def cli(
                 api_key = f.read().strip()
         if check_if_key_has_expired(api_key):
             debug_step("API key has expired")
+            if not key_file:
+                sys.exit(
+                    "API key has expired and cannot be renewed automatically: "
+                    "pass the key as a file reference (--api-key @path-to-file) "
+                    "so the renewed key can be saved"
+                )
             api_key = renew_api_key(env, pnum, api_key, key_file)
         if link_id:
             if link_id.startswith("@"):
