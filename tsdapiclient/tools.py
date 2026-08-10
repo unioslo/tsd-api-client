@@ -258,6 +258,27 @@ def get_data_path(env: str, pnum: str) -> str:
     return str(data_path)
 
 
+def as_local_path(path) -> str:
+    r"""
+    Return a path suitable for local filesystem operations.
+
+    On Windows, prefixes the absolute path with \\?\ so that operations
+    succeed for paths exceeding MAX_PATH (260 characters). The prefix
+    tells Windows to pass the path directly to the filesystem API, which
+    supports paths up to ~32,767 characters. On other platforms the path
+    is returned unchanged.
+    """
+    path = str(path)
+    if sys.platform != 'win32':
+        return path
+    abs_path = os.path.abspath(path)
+    if abs_path.startswith('\\\\?\\'):
+        return abs_path
+    if abs_path.startswith('\\\\'):
+        return '\\\\?\\UNC\\' + abs_path[2:]
+    return '\\\\?\\' + abs_path
+
+
 def has_api_connectivity(
     hostname: str,
     port: int = 443,

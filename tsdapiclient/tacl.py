@@ -72,6 +72,7 @@ from tsdapiclient.tools import (
     get_claims,
     renew_api_key,
     display_instance_info,
+    as_local_path,
 )
 
 requests.utils.default_user_agent = user_agent
@@ -741,8 +742,8 @@ def cli(
             if token_path:
                 remote_path = f"{token_path}/"
         if upload:
-            if os.path.isfile(upload):
-                if upload_id or os.stat(upload).st_size > as_bytes(resumable_threshold):
+            if os.path.isfile(as_local_path(upload)):
+                if upload_id or os.stat(as_local_path(upload)).st_size > as_bytes(resumable_threshold):
                     debug_step(f'starting resumable upload')
                     resp = initiate_resumable(
                         env,

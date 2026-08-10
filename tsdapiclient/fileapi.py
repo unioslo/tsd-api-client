@@ -33,6 +33,7 @@ except OSError:
 from tsdapiclient.authapi import maybe_refresh
 from tsdapiclient.client_config import ENV, API_VERSION
 from tsdapiclient.tools import (
+    as_local_path,
     handle_request_errors,
     debug_step,
     HELP_URL,
@@ -68,7 +69,7 @@ class Bar:
 
 def _init_progress_bar(current_chunk: int, chunksize: int, filename: str) -> Bar:
     # this is an approximation, better than nothing
-    fsize = os.stat(filename).st_size
+    fsize = os.stat(as_local_path(filename)).st_size
     num_chunks = fsize / chunksize
     if fsize < chunksize:
         current_chunk = 1
@@ -126,6 +127,8 @@ def upload_resource_name(filename: str, is_dir: bool, group: Optional[str] = Non
             resource = group / resource
     else:
         debug_step('uploading directory (file)')
+        if os.sep != '/':
+            filename = filename.replace(os.sep, '/')
         if filename.startswith('/'):
             resource = pathlib.PurePosixPath(filename[1:])
         else:
@@ -171,7 +174,7 @@ def lazy_reader(
         enc_nonce = nacl_encrypt_header(public_key, nonce)
         enc_key = nacl_encrypt_header(public_key, key)
     debug_step(f'reading file: {filename} in chunks of {chunksize} bytes')
-    with open(filename, 'rb') as f:
+    with open(as_local_path(filename), 'rb') as f:
         if verify:
             debug_step('verifying chunk md5sum')
             f.seek(previous_offset)
@@ -260,7 +263,7 @@ def streamfile(
     headers = {'Authorization': f'Bearer {token}'}
     debug_step(f'streaming data to {url}')
     if set_mtime:
-        current_mtime = os.stat(filename).st_mtime
+        current_mtime = os.stat(as_local_path(filename)).st_mtime
         headers['Modified-Time'] = str(current_mtime)
     if public_key:
         nonce, key = nacl_gen_nonce(), nacl_gen_key()
@@ -577,8 +580,8 @@ def export_get(
     if etag:
         debug_step(f'download_id: {etag}')
         filemode = 'ab'
-        if os.path.lexists(filename):
-            current_file_size = os.stat(filename).st_size
+        if os.path.lexists(as_local_path(filename)):
+            current_file_size = os.stat(as_local_path(filename)).st_size
             debug_step(f'found {filename} with {current_file_size} bytes')
             headers['Range'] = 'bytes={0}-'.format(current_file_size)
         else:
@@ -616,9 +619,9 @@ def export_get(
         bar = _init_export_progress_bar(unquote(filename), current_file_size, total_file_size, chunksize)
     filename = filename if not target_dir else os.path.normpath(f'{target_dir}/{filename}')
     destination_dir = os.path.dirname(filename)
-    if destination_dir and not os.path.lexists(destination_dir):
+    if destination_dir and not os.path.lexists(as_local_path(destination_dir)):
         debug_step(f'creating directory: {destination_dir}')
-        os.makedirs(destination_dir)
+        os.makedirs(as_local_path(destination_dir))
     if public_key:
         debug_step('generating nonce and key')
         nonce = nacl_gen_nonce()
@@ -630,7 +633,7 @@ def export_get(
         headers['Nacl-Chunksize'] = str(chunksize)
     with session.get(url, headers=headers, stream=True) as r:
         r.raise_for_status()
-        with open(unquote(filename), filemode) as f:
+        with open(as_local_path(unquote(filename)), filemode) as f:
             for chunk in r.iter_content(chunk_size=chunksize):
                 if chunk:
                     if public_key:
@@ -648,7 +651,7 @@ def export_get(
         try:
             mtime = float(resp.headers.get('Modified-Time'))
             debug_step(f'setting mtime for {filename} to {mtime}')
-            os.utime(filename, (mtime, mtime))
+            os.utime(as_local_path(filename), (mtime, mtime))
         except TypeError:
             print(f'{err}: {filename} - {err_consequence}')
             print('issue most likely due to not getting the correct header from the API')
@@ -951,7 +954,7 @@ def _start_resumable(
     """
     url = _resumable_url(env, pnum, filename, dev_url, backend, is_dir, group=group, remote_path=remote_path)
     headers = {'Authorization': f'Bearer {token}'}
-    current_mtime = os.stat(filename).st_mtime if set_mtime else None
+    current_mtime = os.stat(as_local_path(filename)).st_mtime if set_mtime else None
     if set_mtime:
         headers['Modified-Time'] = str(current_mtime)
     chunk_num = 1
@@ -1041,7 +1044,7 @@ def _continue_resumable(
     tokens = {}
     url = _resumable_url(env, pnum, filename, dev_url, backend, is_dir, group=group, remote_path=remote_path)
     headers = {'Authorization': f'Bearer {token}'}
-    current_mtime = os.stat(filename).st_mtime if set_mtime else None
+    current_mtime = os.stat(as_local_path(filename)).st_mtime if set_mtime else None
     if set_mtime:
         headers['Modified-Time'] = str(current_mtime)
     max_chunk = to_resume['max_chunk']
